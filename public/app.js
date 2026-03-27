@@ -264,9 +264,15 @@ function renderPersonal() {
         const card = document.createElement('div');
         card.className = 'person-card';
         
-        // Parse the unique ID as the creation timestamp
-        const timestamp = parseInt(person._id);
-        const dateStr = !isNaN(timestamp) ? new Date(timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+        // Try to get date from createdAt, fallback to extracting from MongoDB _id timestamp
+        let dateStr = 'N/A';
+        if (person.createdAt) {
+            dateStr = new Date(person.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        } else if (person._id && person._id.length === 24) {
+            // MongoDB ID first 8 chars are hex timestamp in seconds
+            const timestamp = parseInt(person._id.substring(0, 8), 16) * 1000;
+            dateStr = new Date(timestamp).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        }
 
         card.innerHTML = `
             <div class="person-header" style="margin-bottom:0.25rem;">
