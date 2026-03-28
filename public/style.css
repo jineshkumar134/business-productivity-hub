@@ -686,6 +686,13 @@ select { width:100%; }
     border:3px solid var(--gray-200); border-top-color:var(--primary);
     border-radius:50%; animation:spin 0.8s linear infinite;
 }
+.spinner-small {
+    display:inline-block; width:14px; height:14px;
+    border:2px solid rgba(255,255,255,0.3); border-top-color:white;
+    border-radius:50%; animation:spin 0.6s linear infinite;
+    vertical-align: middle; margin-right: 0.4rem;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
 
 /* ===== STATUS INDICATOR ===== */
 .dot { width:8px; height:8px; border-radius:50%; }
@@ -853,7 +860,7 @@ select { width:100%; }
     flex-shrink: 0;
 }
 .pipeline-node-circle .circle-label {
-    font-size: 0.6rem; font-weight: 800; leading-trim: both; line-height: 1.2;
+    font-size: 0.6rem; font-weight: 800; line-height: 1.2;
     max-width: 64px; text-align: center;
 }
 .pipeline-node-circle .circle-pct {
@@ -930,24 +937,47 @@ select { width:100%; }
 @media print {
     body {
         background: #fff !important;
-        overflow: auto !important;
+        overflow: visible !important;
         height: auto !important;
     }
+    /* Hide layout and UI controls */
     .sidebar, .top-header, .btn-print, .pipeline-viz-header .btn-print,
-    #notification-container { display: none !important; }
+    .modal, #notification-container, .header-actions, .nav-item,
+    .add-task-btn-small, .add-task-btn, .mini-delete-btn,
+    .ai-view-header button, .hr-header button, .modal-footer { display: none !important; }
+
     .app-container { display: block !important; }
-    .main-content { height: auto !important; overflow: auto !important; width: 100% !important; }
-    .content-area { padding: 0 !important; height: auto !important; overflow: auto !important; }
-    .view { display: none !important; overflow: visible !important; }
+    .main-content { height: auto !important; overflow: visible !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    .content-area { padding: 0 !important; height: auto !important; overflow: visible !important; }
+    
+    /* Ensure the active view is visible */
+    .view { display: none !important; opacity: 1 !important; transform: none !important; }
+    .view.active { display: block !important; }
+
+    /* Specific overrides for pipeline/summary */
     #summary-view { display: block !important; page-break-inside: avoid; }
-    .pipeline-viz-wrap { box-shadow: none !important; border: none !important; overflow: visible !important; }
-    .pipeline-track-wrap { min-width: unset !important; }
-    .pipeline-task-pill { box-shadow: none !important; border: 1px solid #ddd !important; }
-    .summary-stats, .pipeline-container { display: none !important; }
-    .section-label { margin-top: 1rem; }
+    .pipeline-viz-wrap { box-shadow: none !important; border: 1px solid #eee !important; overflow: visible !important; }
+    .pipeline-track-wrap { min-width: unset !important; overflow: visible !important; }
+    .pipeline-rope-row { display: flex !important; flex-wrap: nowrap !important; }
+    .pipeline-task-pill { box-shadow: none !important; border: 1px solid #ddd !important; page-break-inside: avoid; }
+    
+    /* Ensure cards are visible */
+    .module-card, .person-card {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #eee !important;
+        background: #fff !important;
+    }
+
+    #hr-view.active { display: block !important; }
+    .personal-grid { 
+        display: grid !important; 
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1rem !important;
+    }
 
     @page {
         size: A4 landscape;
-        margin: 15mm;
+        margin: 10mm;
     }
 }

@@ -56,9 +56,10 @@ const el = {
     analyzeLogsBtn: $('analyze-logs-btn'),
     aiInsightsContainer: $('ai-insights-container'),
     aiReportContent: $('ai-report-content'),
-    completedDateGroup: $('completed-date-group'),
     delayReasonGroup: $('delay-reason-group'),
     profileModal: $('profile-modal'),
+    exportAiBtn: $('export-ai-btn'),
+    exportHrBtn: $('export-hr-btn')
 };
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
@@ -194,6 +195,28 @@ function setupEventListeners() {
 
     // Run AI analysis  
     $('run-ai-btn')?.addEventListener('click', handleAIAlignmentAnalysis);
+
+    // Export PDF
+    el.exportAiBtn?.addEventListener('click', () => exportToPDF('ai-results-area', 'AI_Strategic_Alignment.pdf'));
+    el.exportHrBtn?.addEventListener('click', () => exportToPDF('personal-grid', 'Team_Roster.pdf'));
+}
+
+async function exportToPDF(elementId, filename) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    const opt = {
+        margin: [10, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    try {
+        showNotification('Generating PDF...', 'success');
+        await html2pdf().set(opt).from(element).save();
+    } catch (err) {
+        showNotification('PDF Export failed', 'error');
+    }
 }
 
 function checkTaskConstraints() {
@@ -575,16 +598,18 @@ async function handleAIAlignmentAnalysis() {
     if (!resultsArea) return;
     if (!vision && !mission) { showNotification('Please define Vision & Mission first.', 'error'); return; }
     
-    resultsArea.innerHTML = `<div class="ai-insight-panel" style="text-align:center;padding:2.5rem;"><div class="spinner" style="margin:0 auto 1rem;"></div><div style="font-weight:600;color:var(--dark);font-size:0.95rem;">Analysing tasks against strategic goals…</div><div style="font-size:0.78rem;color:var(--secondary);margin-top:0.5rem;">Connecting to AI Engine via backend...</div></div>`;
-    
-    try {
-        const response = await fetch('/api/ai/align', {
+        resultsArea.innerHTML = `<div class="ai-insight-panel" style="text-align:center;padding:2.5rem;"><div class="spinner" style="margin:0 auto 1rem;"></div><div style="font-weight:600;color:var(--dark);font-size:0.95rem;">Analysing tasks against strategic goals…</div><div style="font-size:0.78rem;color:var(--secondary);margin-top:0.5rem;">Connecting to AI Engine via backend...</div></div>`;
+        if (el.exportAiBtn) el.exportAiBtn.style.display = 'none';
+        
+        try {
+            const response = await fetch('/api/ai/align', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ vision, mission, tasks: state.tasks, departments: state.departments })
         });
         
         const data = await response.json();
+        if (el.exportAiBtn) el.exportAiBtn.style.display = 'inline-flex';
         
         if (data.error) throw new Error(data.error);
         
@@ -770,15 +795,59 @@ async function handleTaskSubmit(e){
     if(state.selectedPersonal.length===0){showNotification('Assign at least one person','error');return;}
     const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal};
     if(taskData.status==='Completed'&&taskData.completed_date&&new Date(taskData.completed_date)>new Date(taskData.due_date)&&!taskData.delay_reason){showNotification('Delay reason required','error');return;}
-    try{const res=await fetch(id?`/api/tasks/${id}`:'/api/tasks',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(taskData)});if(res.ok){showNotification(id?'Task updated ✅':'Task created ✅','success');el.taskModal.classList.remove('active');await fetchData();renderAll();}}catch(err){showNotification('Failed to save task','error');}
+    try{
+        const btn = $('save-task-btn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner-small"></div> Saving...';
+        
+        const res=await fetch(id?`/api/tasks/${id}`:'/api/tasks',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(taskData)});
+        if(res.ok){showNotification(id?'Task updated ✅':'Task created ✅','success');el.taskModal.classList.remove('active');await fetchData();renderAll();}
+        
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }catch(err){showNotification('Failed to save task','error');}
 }
 
 async function handlePersonalSubmit(e){
     e.preventDefault();
     const id=$('person-id').value;
-    const personData={name:$('person-name').value,role:$('person-role').value,department:$('person-dept').value,email:$('person-email').value,responsibility:$('person-responsibility').value,photoData:$('person-photo-data').value||state.personPhotoData};
-    try{const res=await fetch(id?`/api/personal/${id}`:'/api/personal',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(personData)});if(res.ok){showNotification(id?'Member updated ✅':'Member added ✅','success');el.personalModal.classList.remove('active');await fetchData();renderAll();}}catch(err){showNotification('Failed to save member','error');}
+    // Always prefer state.personPhotoData — it's reliably set on upload and edit-modal open
+    const photoData = state.personPhotoData || $('person-photo-data').value || '';
+    const personData={
+        name:$('person-name').value,
+        role:$('person-role').value,
+        department:$('person-dept').value,
+        email:$('person-email').value,
+        responsibility:$('person-responsibility').value,
+        photoData
+    };
+    const btn = e.submitter;
+    const originalHtml = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled=true; btn.innerHTML='<div class="spinner-small"></div> Saving...'; }
+    try{
+        const res=await fetch(
+            id ? `/api/personal/${id}` : '/api/personal',
+            { method: id?'PUT':'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(personData) }
+        );
+        if(res.ok){
+            showNotification(id?'Member updated ✅':'Member added ✅','success');
+            el.personalModal.classList.remove('active');
+            state.personPhotoData='';
+            await fetchData();
+            renderAll();
+        } else {
+            let errMsg = 'Server error';
+            try { const j=await res.json(); errMsg=j.error||res.statusText; } catch(e){}
+            showNotification('Save failed: '+errMsg,'error');
+        }
+    }catch(err){
+        showNotification('Network error: '+err.message,'error');
+    } finally {
+        if(btn){ btn.disabled=false; btn.innerHTML=originalHtml; }
+    }
 }
+
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function renderSelectedPersonal(){
