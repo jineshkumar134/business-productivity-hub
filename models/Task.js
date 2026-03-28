@@ -6,9 +6,12 @@ const TaskSchema = new mongoose.Schema({
     priority: { type: String, default: 'Medium' },
     status: { type: String, default: 'Not Started' },
     progress: { type: Number, default: 0 },
-    due_date: { type: String },
-    description: { type: String },
-    responsible: [{ type: String }]
+    due_date: { type: String, required: true },
+    completed_date: { type: String },
+    delay_reason: { type: String },
+    description: { type: String, required: true },
+    responsible: [{ type: String }],
+    requested_by: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Task', TaskSchema);

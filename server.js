@@ -23,14 +23,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 const taskRoutes = require('./routes/tasks');
 const personalRoutes = require('./routes/personal');
 const logRoutes = require('./routes/logs');
+const authRoutes = require('./routes/auth');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/personal', personalRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/auth', authRoutes);
 
 // Catch-all route to serve the SPA
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // Start Server

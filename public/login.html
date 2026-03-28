@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Hub - Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-check">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <div class="success-text" id="successText">Welcome back!</div>
+        <div class="success-subtext">Redirecting to dashboard...</div>
+    </div>
+
+    <div class="auth-container">
+        <div class="auth-card" id="authCard">
+            <div class="auth-logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <h1>Business Hub</h1>
+                <p>Sign in to your account</p>
+            </div>
+
+            <div class="error-msg" id="errorMsg"></div>
+
+            <form id="signinForm" onsubmit="handleSignIn(event)">
+                <div class="form-group">
+                    <label for="si-email">Email</label>
+                    <input type="email" id="si-email" placeholder="name@company.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="si-password">Password</label>
+                    <input type="password" id="si-password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="auth-btn" id="submitBtn"><span class="btn-text">Sign In</span></button>
+            </form>
+
+            <div class="auth-switch">
+                Don't have an account? <a href="/signup.html">Sign up</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.add('visible');
+            document.getElementById('authCard').classList.add('shake');
+            setTimeout(() => document.getElementById('authCard').classList.remove('shake'), 350);
+        }
+
+        function showSuccess(name) {
+            document.getElementById('successText').textContent = 'Welcome back, ' + name + '!';
+            document.getElementById('successOverlay').classList.add('active');
+            setTimeout(() => { window.location.href = '/index.html'; }, 1800);
+        }
+
+        async function handleSignIn(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('loading');
+            document.getElementById('errorMsg').classList.remove('visible');
+
+            try {
+                const res = await fetch('/api/auth/signin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('si-email').value,
+                        password: document.getElementById('si-password').value
+                    })
+                });
+                const data = await res.json();
+                btn.classList.remove('loading');
+                if (!res.ok) { showError(data.error || 'Invalid credentials'); return; }
+                localStorage.setItem('bh_user', JSON.stringify(data.user));
+                showSuccess(data.user.name);
+            } catch (err) {
+                btn.classList.remove('loading');
+                showError('Network error. Please try again.');
+            }
+        }
+
+        if (localStorage.getItem('bh_user')) { window.location.href = '/index.html'; }
+    </script>
+</body>
+</html>

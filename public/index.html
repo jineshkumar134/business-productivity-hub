@@ -13,11 +13,16 @@
 <body>
     <div class="app-container">
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div class="logo">
-                    <i data-lucide="briefcase"></i>
-                    <span>Business Hub</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <div class="logo">
+                        <i data-lucide="zap" style="color:var(--primary);"></i>
+                        <span class="logo-text">Business Hub</span>
+                    </div>
+                    <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+                        <i data-lucide="chevrons-left"></i>
+                    </button>
                 </div>
             </div>
             <nav class="sidebar-nav">
@@ -38,7 +43,12 @@
                     <span>Activity Log</span>
                 </button>
             </nav>
-            <!-- Sidebar Footer Removed -->
+            <div class="sidebar-footer" style="margin-top:auto; padding:1rem;">
+                <button class="nav-item" onclick="handleLogout()" style="width:100%; color:#ef4444;">
+                    <i data-lucide="log-out"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
         </aside>
 
         <!-- Main Content Area -->
@@ -48,7 +58,8 @@
                     <h1 id="view-title">Dashboard Overview</h1>
                     <p id="view-desc">Monitor organizational performance in real-time.</p>
                 </div>
-                <div class="header-actions">
+                <div class="header-actions" style="display:flex; align-items:center; gap:1rem;">
+                    <div id="user-greeting" onclick="openProfileModal()" style="display:flex; align-items:center; gap:0.5rem; background:rgba(37,99,235,0.08); padding:0.4rem 1rem; border-radius:8px; font-size:0.85rem; font-weight:600; color:var(--primary); cursor:pointer; transition:all 0.2s;"></div>
                     <button id="add-task-global" class="btn btn-primary">
                         <i data-lucide="plus"></i>
                         <span>New Task</span>
@@ -92,20 +103,37 @@
                 <div id="logs-view" class="view">
                     <div class="logs-header">
                         <h2>System Activity Logs</h2>
-                        <button id="clear-logs-btn" class="btn btn-danger">
-                            <i data-lucide="trash-2"></i>
-                            <span>Clear Logs</span>
+                        <button id="analyze-logs-btn" class="btn btn-primary" style="background: linear-gradient(135deg, #1e40af, #2563eb); border:none; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+                            <i data-lucide="sparkles"></i>
+                            <span>Analyze with AI</span>
                         </button>
+                    </div>
+
+                    <!-- AI Insights Display Area -->
+                    <div id="ai-insights-container" style="display:none; margin-bottom: 2rem; animation: slideInSmooth 0.4s ease;">
+                        <div style="background: white; border-radius: 16px; border: 1px solid var(--gray-200); border-top: 4px solid var(--primary); padding: 1.5rem; box-shadow: var(--shadow-md);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+                                <h3 style="font-size:1.15rem; color:var(--dark); display:flex; align-items:center; gap:0.5rem;"><i data-lucide="brain-circuit" style="color:var(--primary);"></i> AI Intelligence Insights</h3>
+                                <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" style="background:none; border:none; cursor:pointer; color:var(--secondary); font-size:1.2rem;">&times;</button>
+                            </div>
+                            <div id="ai-report-content" style="font-size:0.95rem; color:var(--secondary); line-height:1.6;">
+                                <!-- AI report injected here -->
+                                <div class="loading-animation" style="text-align:center; padding: 2rem;">
+                                    <div style="display:inline-block; width:30px; height:30px; border:3px solid var(--gray-200); border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite;"></div>
+                                    <p style="margin-top:1rem; font-weight:600;">Processing organization-wide logs for deep analysis...</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="logs-container">
                         <table class="logs-table">
                             <thead>
                                 <tr>
-                                    <th>Action</th>
-                                    <th>Task/Details</th>
-                                    <th>Department</th>
+                                    <th>Status</th>
+                                    <th style="width:30%">Task & Description</th>
                                     <th>Owner</th>
-                                    <th>Timestamp</th>
+                                    <th>Due / Completed</th>
+                                    <th>Timeline Audit</th>
                                 </tr>
                             </thead>
                             <tbody id="logs-tbody">
@@ -116,6 +144,42 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding-bottom: 2rem;">
+            <div class="modal-header">
+                <h2>User Profile</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div style="padding: 2.5rem 2rem 1.5rem;">
+                <div id="profile-initial" style="width:70px; height:70px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; margin:0 auto 1.5rem; box-shadow: 0 4px 15px rgba(37,99,235,0.3);">J</div>
+                <h3 id="profile-name" style="font-size: 1.5rem; color: var(--dark); margin-bottom: 0.5rem;">—</h3>
+                <p id="profile-email" style="font-size: 0.95rem; color: var(--secondary); margin-bottom: 1.5rem;">—</p>
+                
+                <div style="background: var(--gray-100); border-radius: 12px; padding: 1rem; text-align: left; display: flex; flex-direction: column; gap: 1rem; border: 1px solid var(--gray-200);">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <i data-lucide="phone" style="color:var(--primary); width:20px; height:20px;"></i>
+                        <div>
+                            <div style="font-size:0.7rem; font-weight:700; color:var(--secondary); text-transform:uppercase;">Phone Number</div>
+                            <div id="profile-phone" style="font-size:0.95rem; font-weight:600; color:var(--dark);">—</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <i data-lucide="shield-check" style="color:var(--success); width:20px; height:20px;"></i>
+                        <div>
+                            <div style="font-size:0.7rem; font-weight:700; color:var(--secondary); text-transform:uppercase;">Account Status</div>
+                            <div style="font-size:0.95rem; font-weight:600; color:var(--success);">Verified Admin</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="handleLogout()" class="btn btn-danger" style="margin: 0 auto; display: flex; padding: 0.75rem 2rem;">
+                <i data-lucide="log-out"></i>
+                Logout
+            </button>
+        </div>
     </div>
 
     <!-- Task Modal -->
@@ -131,7 +195,7 @@
                     <label for="task-name">Task Name</label>
                     <input type="text" id="task-name" placeholder="Enter task name" required>
                 </div>
-                <div class="form-row">
+                <div class="form-row-triple">
                     <div class="form-group">
                         <label for="task-department">Department</label>
                         <select id="task-department" required>
@@ -150,6 +214,19 @@
                             <option value="Low">Low</option>
                             <option value="Medium" selected>Medium</option>
                             <option value="High">High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-requested-by">Requested By</label>
+                        <select id="task-requested-by">
+                            <option value="">Self</option>
+                            <option value="Product Research">Product Research</option>
+                            <option value="Product Development">Product Development</option>
+                            <option value="Product Marketing">Product Marketing</option>
+                            <option value="Product Selling">Product Selling</option>
+                            <option value="Accounts & Finance">Accounts & Finance</option>
+                            <option value="Client Success">Client Success</option>
+                            <option value="HR Department">HR Department</option>
                         </select>
                     </div>
                 </div>
@@ -177,13 +254,23 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="task-due-date">Due Date</label>
-                    <input type="date" id="task-due-date">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-due-date">Due Date</label>
+                        <input type="date" id="task-due-date" required>
+                    </div>
+                    <div class="form-group" id="completed-date-group" style="display:none;">
+                        <label for="task-completed-date">Completed Date</label>
+                        <input type="date" id="task-completed-date">
+                    </div>
+                </div>
+                <div class="form-group" id="delay-reason-group" style="display:none;">
+                    <label for="task-delay-reason" style="color:var(--danger);">Delay Reason (Required for late completion)</label>
+                    <textarea id="task-delay-reason" placeholder="Explain the reason for delay..."></textarea>
                 </div>
                 <div class="form-group">
                     <label for="task-description">Description</label>
-                    <textarea id="task-description" placeholder="Optional details..."></textarea>
+                    <textarea id="task-description" placeholder="Task details and expectations" required></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary close-modal">Cancel</button>

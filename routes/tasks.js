@@ -23,8 +23,11 @@ router.post('/', async (req, res) => {
         await Log.create({
             action: 'Created',
             task_name: newTask.task_name,
+            task_description: newTask.description,
             department: newTask.department,
             responsible: newTask.responsible,
+            due_date: newTask.due_date,
+            requested_by: newTask.requested_by,
             description: `Task "${newTask.task_name}" created in ${newTask.department}`
         });
 
@@ -42,11 +45,16 @@ router.put('/:id', async (req, res) => {
         
         if (updatedTask) {
             await Log.create({
-                action: 'Updated',
+                action: updatedTask.status === 'Completed' ? 'Completed' : 'Updated',
                 task_name: updatedTask.task_name,
+                task_description: updatedTask.description,
                 department: updatedTask.department,
                 responsible: updatedTask.responsible,
-                description: `Task "${updatedTask.task_name}" updated to ${updatedTask.status} (${updatedTask.progress}%)`
+                due_date: updatedTask.due_date,
+                completed_date: updatedTask.completed_date,
+                delay_reason: updatedTask.delay_reason,
+                requested_by: updatedTask.requested_by,
+                description: `Task "${updatedTask.task_name}" status: ${updatedTask.status} (${updatedTask.progress}%)`
             });
             res.json(updatedTask);
         } else {
