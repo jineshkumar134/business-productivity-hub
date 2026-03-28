@@ -3,333 +3,496 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Hub | Centralized Management</title>
+    <title>Business Hub | Organizational Management</title>
+    <meta name="description" content="Centralized organizational management hub — track tasks, departments, personnel, and AI-driven strategic alignment.">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                    <div class="logo">
-                        <i data-lucide="zap" style="color:var(--primary);"></i>
-                        <span class="logo-text">Business Hub</span>
-                    </div>
-                    <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
-                        <i data-lucide="chevrons-left"></i>
-                    </button>
-                </div>
-            </div>
-            <nav class="sidebar-nav">
-                <button class="nav-item active" data-view="dashboard">
-                    <i data-lucide="layout-dashboard"></i>
-                    <span>Dashboard</span>
-                </button>
-                <button class="nav-item" data-view="summary">
-                    <i data-lucide="bar-chart-3"></i>
-                    <span>Health Summary</span>
-                </button>
-                <button class="nav-item" data-view="hr">
-                    <i data-lucide="users"></i>
-                    <span>HR & Personal</span>
-                </button>
-                <button class="nav-item" data-view="logs">
-                    <i data-lucide="history"></i>
-                    <span>Activity Log</span>
-                </button>
-            </nav>
-            <div class="sidebar-footer" style="margin-top:auto; padding:1rem;">
-                <button class="nav-item" onclick="handleLogout()" style="width:100%; color:#ef4444;">
-                    <i data-lucide="log-out"></i>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </aside>
+<div class="app-container">
 
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <header class="top-header">
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </div>
+                    <span class="logo-text" style="font-size:1rem;font-weight:800;letter-spacing:-0.02em;">Business Hub</span>
+                </div>
+                <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <button class="nav-item active" data-view="dashboard" id="nav-dashboard">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                </span>
+                <span>Dashboard</span>
+            </button>
+            <button class="nav-item" data-view="summary" id="nav-summary">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </span>
+                <span>Org Working</span>
+            </button>
+            <button class="nav-item" data-view="ai" id="nav-ai">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4"/><path d="M12 10v12"/><path d="M8 14H4"/><path d="M20 14h-4"/><path d="M8 18H5"/><path d="M19 18h-3"/><circle cx="12" cy="22" r="0"/></svg>
+                </span>
+                <span>AI Insights</span>
+            </button>
+            <button class="nav-item" data-view="hr" id="nav-hr">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </span>
+                <span>Team &amp; HR</span>
+            </button>
+            <button class="nav-item" data-view="logs" id="nav-logs">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </span>
+                <span>Activity Log</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="nav-item" onclick="handleLogout()" style="width:100%;color:#f87171;">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </span>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main class="main-content">
+
+        <!-- TOP HEADER -->
+        <header class="top-header">
+            <div class="header-left">
                 <div class="header-text">
                     <h1 id="view-title">Dashboard Overview</h1>
                     <p id="view-desc">Monitor organizational performance in real-time.</p>
                 </div>
-                <div class="header-actions" style="display:flex; align-items:center; gap:1rem;">
-                    <div id="user-greeting" onclick="openProfileModal()" style="display:flex; align-items:center; gap:0.5rem; background:rgba(37,99,235,0.08); padding:0.4rem 1rem; border-radius:8px; font-size:0.85rem; font-weight:600; color:var(--primary); cursor:pointer; transition:all 0.2s;"></div>
-                    <button id="add-task-global" class="btn btn-primary">
-                        <i data-lucide="plus"></i>
-                        <span>New Task</span>
+            </div>
+            <div class="header-actions">
+                <!-- Search Bar -->
+                <div class="search-bar" id="global-search-bar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input type="text" id="global-search" placeholder="Search tasks, people…" autocomplete="off">
+                </div>
+                <!-- User Greeting -->
+                <div class="user-greeting" id="user-greeting" onclick="openProfileModal()">
+                    <div class="user-avatar" id="header-avatar-wrap">
+                        <span id="header-avatar-initial">J</span>
+                    </div>
+                    <span id="header-user-name">User</span>
+                </div>
+                <!-- New Task Button -->
+                <button id="add-task-global" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>New Task</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <div id="content-area" class="content-area">
+
+            <!-- ── DASHBOARD VIEW ── -->
+            <div id="dashboard-view" class="view active">
+                <div id="dashboard-stats-banner" class="dashboard-banner"></div>
+                <div class="module-grid" id="module-grid"></div>
+            </div>
+
+            <!-- ── ORG WORKING VIEW ── -->
+            <div id="summary-view" class="view">
+                <!-- Pipeline Visualizer -->
+                <div class="pipeline-container" id="pipeline-container"></div>
+                <!-- Stats Row -->
+                <div class="summary-stats" id="summary-stats"></div>
+                <!-- Dept Cards -->
+                <div class="section-label">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                    Department Health
+                </div>
+                <div class="summary-blocks" id="summary-blocks"></div>
+            </div>
+
+            <!-- ── AI INSIGHTS VIEW ── -->
+            <div id="ai-view" class="view">
+                <div class="ai-view-header">
+                    <div>
+                        <h2 style="font-size:1.1rem;margin-bottom:0.2rem;display:flex;align-items:center;gap:0.5rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.75 2.75-1.75 3.5L16 22H8l1.75-12.5C8.75 8.75 8 7.5 8 6a4 4 0 0 1 4-4z"/><path d="M8 22h8"/></svg>
+                            AI Strategic Alignment
+                        </h2>
+                        <p style="font-size:0.78rem;color:var(--secondary);">Evaluating task alignment with your organization's vision &amp; mission.</p>
+                    </div>
+                    <button id="run-ai-btn" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Run Analysis
                     </button>
                 </div>
-            </header>
 
-            <div id="content-area" class="content-area">
-                <!-- Dashboard Content (Modules) -->
-                <div id="dashboard-view" class="view active">
-                    <div class="module-grid" id="module-grid">
-                        <!-- Module Cards will be injected here -->
+                <!-- Vision & Mission Panel -->
+                <div class="ai-insight-panel">
+                    <div class="ai-section-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Organization Vision &amp; Mission
                     </div>
-                </div>
-
-                <!-- Summary Health View -->
-                <div id="summary-view" class="view">
-                    <div class="summary-stats" id="summary-stats">
-                        <!-- Stats Summary will be injected here -->
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="form-group" style="gap:0.4rem;">
+                            <label>🎯 Vision Statement</label>
+                            <textarea class="vision-textarea" id="org-vision" placeholder="e.g. To be the #1 product company empowering every household…"></textarea>
+                        </div>
+                        <div class="form-group" style="gap:0.4rem;">
+                            <label>🚀 Mission Statement</label>
+                            <textarea class="vision-textarea" id="org-mission" placeholder="e.g. We build intuitive products that simplify everyday lives…"></textarea>
+                        </div>
                     </div>
-                    <div class="summary-blocks" id="summary-blocks">
-                        <!-- Detailed Module Health will be injected here -->
-                    </div>
-                </div>
-
-                <!-- HR & Personnel View -->
-                <div id="hr-view" class="view">
-                    <div class="hr-header">
-                        <h2>Team Management</h2>
-                        <button id="add-personal-btn" class="btn btn-secondary">
-                            <i data-lucide="user-plus"></i>
-                            <span>Add Personal</span>
+                    <div style="margin-top:0.75rem;display:flex;justify-content:flex-end;">
+                        <button id="save-vision-btn" class="btn btn-glass" style="font-size:0.78rem;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Save Vision &amp; Mission
                         </button>
                     </div>
-                    <div class="personal-grid" id="personal-grid">
-                        <!-- Personal Cards will be injected here -->
-                    </div>
                 </div>
 
-                <!-- Activity Log View -->
-                <div id="logs-view" class="view">
-                    <div class="logs-header">
-                        <h2>System Activity Logs</h2>
-                        <button id="analyze-logs-btn" class="btn btn-primary" style="background: linear-gradient(135deg, #1e40af, #2563eb); border:none; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
-                            <i data-lucide="sparkles"></i>
-                            <span>Analyze with AI</span>
-                        </button>
-                    </div>
+                <!-- AI Results -->
+                <div id="ai-results-area"></div>
+            </div>
 
-                    <!-- AI Insights Display Area -->
-                    <div id="ai-insights-container" style="display:none; margin-bottom: 2rem; animation: slideInSmooth 0.4s ease;">
-                        <div style="background: white; border-radius: 16px; border: 1px solid var(--gray-200); border-top: 4px solid var(--primary); padding: 1.5rem; box-shadow: var(--shadow-md);">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-                                <h3 style="font-size:1.15rem; color:var(--dark); display:flex; align-items:center; gap:0.5rem;"><i data-lucide="brain-circuit" style="color:var(--primary);"></i> AI Intelligence Insights</h3>
-                                <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" style="background:none; border:none; cursor:pointer; color:var(--secondary); font-size:1.2rem;">&times;</button>
-                            </div>
-                            <div id="ai-report-content" style="font-size:0.95rem; color:var(--secondary); line-height:1.6;">
-                                <!-- AI report injected here -->
-                                <div class="loading-animation" style="text-align:center; padding: 2rem;">
-                                    <div style="display:inline-block; width:30px; height:30px; border:3px solid var(--gray-200); border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite;"></div>
-                                    <p style="margin-top:1rem; font-weight:600;">Processing organization-wide logs for deep analysis...</p>
-                                </div>
-                            </div>
-                        </div>
+            <!-- ── HR VIEW ── -->
+            <div id="hr-view" class="view">
+                <div class="hr-header">
+                    <div>
+                        <h2 style="display:flex;align-items:center;gap:0.6rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Team Management
+                        </h2>
+                        <p style="font-size:0.78rem;color:var(--secondary);margin-top:0.15rem;">Manage personnel and define core responsibilities.</p>
                     </div>
-                    <div class="logs-container">
-                        <table class="logs-table">
-                            <thead>
-                                <tr>
-                                    <th>Status</th>
-                                    <th style="width:30%">Task & Description</th>
-                                    <th>Owner</th>
-                                    <th>Due / Completed</th>
-                                    <th>Timeline Audit</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logs-tbody">
-                                <!-- Log rows will be injected here -->
-                            </tbody>
-                        </table>
+                    <button id="add-personal-btn" class="btn btn-orange">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                        Add Member
+                    </button>
+                </div>
+                <div class="personal-grid" id="personal-grid"></div>
+            </div>
+
+            <!-- ── LOGS VIEW ── -->
+            <div id="logs-view" class="view">
+                <div class="logs-header">
+                    <div>
+                        <h2 style="display:flex;align-items:center;gap:0.6rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            Activity Logs
+                        </h2>
+                        <p style="font-size:0.78rem;color:var(--secondary);margin-top:0.15rem;">Full audit trail of all task changes.</p>
+                    </div>
+                    <button id="analyze-logs-btn" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4"/><path d="M12 10v12"/></svg>
+                        Analyse with AI
+                    </button>
+                </div>
+                <div id="ai-insights-container" style="display:none;" class="ai-insight-panel">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                        <div class="ai-section-title" style="margin-bottom:0;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4"/><path d="M12 10v12"/></svg>
+                            AI Intelligence Insights
+                        </div>
+                        <button onclick="document.getElementById('ai-insights-container').style.display='none'" class="close-modal">&times;</button>
+                    </div>
+                    <div id="ai-report-content"></div>
+                </div>
+                <div class="logs-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th style="width:30%">Task &amp; Description</th>
+                                <th>Owner</th>
+                                <th>Due / Completed</th>
+                                <th>Timeline Audit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div><!-- /content-area -->
+    </main>
+</div><!-- /app-container -->
+
+<!-- ═══ PROFILE MODAL ═══ -->
+<div id="profile-modal" class="modal">
+    <div class="modal-content" style="max-width:400px;">
+        <div class="modal-header">
+            <h2>My Profile</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div style="padding:1.5rem;display:flex;flex-direction:column;align-items:center;gap:1.25rem;">
+            <!-- Avatar upload -->
+            <div class="avatar-upload-wrap" onclick="document.getElementById('profile-img-input').click()" title="Change photo">
+                <div id="profile-initial" class="person-avatar" style="width:72px;height:72px;font-size:2rem;border-radius:20px;margin:0 auto;">J</div>
+                <div class="avatar-upload-overlay" style="border-radius:20px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+            </div>
+            <input type="file" id="profile-img-input" accept="image/*" style="display:none;">
+            <div style="text-align:center;">
+                <h3 id="profile-name" style="font-size:1.3rem;">—</h3>
+                <p id="profile-email" style="color:var(--secondary);font-size:0.85rem;margin-top:0.2rem;">—</p>
+            </div>
+            <div style="background:var(--gray-50);border-radius:var(--radius-md);padding:1rem;width:100%;display:flex;flex-direction:column;gap:0.75rem;border:1px solid var(--gray-200);">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.36 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.28 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <div>
+                        <div style="font-size:0.65rem;font-weight:700;color:var(--secondary);text-transform:uppercase;">Phone</div>
+                        <div id="profile-phone" style="font-size:0.9rem;font-weight:600;">—</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <div>
+                        <div style="font-size:0.65rem;font-weight:700;color:var(--secondary);text-transform:uppercase;">Status</div>
+                        <div style="font-size:0.9rem;font-weight:600;color:var(--success);">Verified Admin</div>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
-
-    <!-- Profile Modal -->
-    <div id="profile-modal" class="modal">
-        <div class="modal-content" style="max-width: 400px; text-align: center; padding-bottom: 2rem;">
-            <div class="modal-header">
-                <h2>User Profile</h2>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div style="padding: 2.5rem 2rem 1.5rem;">
-                <div id="profile-initial" style="width:70px; height:70px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; margin:0 auto 1.5rem; box-shadow: 0 4px 15px rgba(37,99,235,0.3);">J</div>
-                <h3 id="profile-name" style="font-size: 1.5rem; color: var(--dark); margin-bottom: 0.5rem;">—</h3>
-                <p id="profile-email" style="font-size: 0.95rem; color: var(--secondary); margin-bottom: 1.5rem;">—</p>
-                
-                <div style="background: var(--gray-100); border-radius: 12px; padding: 1rem; text-align: left; display: flex; flex-direction: column; gap: 1rem; border: 1px solid var(--gray-200);">
-                    <div style="display:flex; align-items:center; gap:0.75rem;">
-                        <i data-lucide="phone" style="color:var(--primary); width:20px; height:20px;"></i>
-                        <div>
-                            <div style="font-size:0.7rem; font-weight:700; color:var(--secondary); text-transform:uppercase;">Phone Number</div>
-                            <div id="profile-phone" style="font-size:0.95rem; font-weight:600; color:var(--dark);">—</div>
-                        </div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:0.75rem;">
-                        <i data-lucide="shield-check" style="color:var(--success); width:20px; height:20px;"></i>
-                        <div>
-                            <div style="font-size:0.7rem; font-weight:700; color:var(--secondary); text-transform:uppercase;">Account Status</div>
-                            <div style="font-size:0.95rem; font-weight:600; color:var(--success);">Verified Admin</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <button onclick="handleLogout()" class="btn btn-danger" style="margin: 0 auto; display: flex; padding: 0.75rem 2rem;">
-                <i data-lucide="log-out"></i>
+            <button onclick="handleLogout()" class="btn btn-danger" style="width:100%;justify-content:center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Logout
             </button>
         </div>
     </div>
+</div>
 
-    <!-- Task Modal -->
-    <div id="task-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Create New Task</h2>
-                <button class="close-modal">&times;</button>
+<!-- ═══ TASK MODAL ═══ -->
+<div id="task-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title">Create New Task</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="task-form">
+            <input type="hidden" id="task-id">
+            <div class="form-group input-icon-group">
+                <label for="task-name">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Task Name
+                </label>
+                <input type="text" id="task-name" placeholder="What needs to be done?" required>
             </div>
-            <form id="task-form">
-                <input type="hidden" id="task-id">
-                <div class="form-group">
-                    <label for="task-name">Task Name</label>
-                    <input type="text" id="task-name" placeholder="Enter task name" required>
+            
+            <div class="form-row">
+                <!-- Priority Segmented Control -->
+                <div class="form-group" style="flex:1;">
+                    <label>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                        Priority Level
+                    </label>
+                    <div class="segmented-control">
+                        <input type="radio" name="task-priority" id="pri-low" value="Low">
+                        <label for="pri-low"><span class="dot" style="background:var(--success)"></span> Low</label>
+                        
+                        <input type="radio" name="task-priority" id="pri-med" value="Medium" checked>
+                        <label for="pri-med"><span class="dot" style="background:var(--warning)"></span> Medium</label>
+                        
+                        <input type="radio" name="task-priority" id="pri-high" value="High">
+                        <label for="pri-high"><span class="dot" style="background:var(--danger)"></span> High</label>
+                    </div>
+                    <!-- Hidden select for app.js compatibility if needed, but I'll update app.js to read from radio -->
                 </div>
-                <div class="form-row-triple">
-                    <div class="form-group">
-                        <label for="task-department">Department</label>
+
+                <!-- Status Segmented Control -->
+                <div class="form-group" style="flex:1;">
+                    <label>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Task Status
+                    </label>
+                    <div class="segmented-control">
+                        <input type="radio" name="task-status" id="stat-not" value="Not Started" checked>
+                        <label for="stat-not">To Do</label>
+                        
+                        <input type="radio" name="task-status" id="stat-in" value="In Progress">
+                        <label for="stat-in">Doing</label>
+                        
+                        <input type="radio" name="task-status" id="stat-com" value="Completed">
+                        <label for="stat-com">Done</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row-triple">
+                <div class="form-group">
+                    <label for="task-department">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                        Department
+                    </label>
+                    <div class="select-wrapper">
                         <select id="task-department" required>
                             <option value="Product Research">Product Research</option>
                             <option value="Product Development">Product Development</option>
                             <option value="Product Marketing">Product Marketing</option>
                             <option value="Product Selling">Product Selling</option>
-                            <option value="Accounts & Finance">Accounts & Finance</option>
+                            <option value="Accounts &amp; Finance">Accounts &amp; Finance</option>
                             <option value="Client Success">Client Success</option>
                             <option value="HR Department">HR Department</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="task-priority">Priority</label>
-                        <select id="task-priority">
-                            <option value="Low">Low</option>
-                            <option value="Medium" selected>Medium</option>
-                            <option value="High">High</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-requested-by">Requested By</label>
+                </div>
+                <div class="form-group">
+                    <label for="task-requested-by">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Requested By
+                    </label>
+                    <div class="select-wrapper">
                         <select id="task-requested-by">
                             <option value="">Self</option>
                             <option value="Product Research">Product Research</option>
                             <option value="Product Development">Product Development</option>
                             <option value="Product Marketing">Product Marketing</option>
                             <option value="Product Selling">Product Selling</option>
-                            <option value="Accounts & Finance">Accounts & Finance</option>
+                            <option value="Accounts &amp; Finance">Accounts &amp; Finance</option>
                             <option value="Client Success">Client Success</option>
                             <option value="HR Department">HR Department</option>
                         </select>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="task-status">Status</label>
-                        <select id="task-status">
-                            <option value="Not Started">Not Started</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-progress">Progress (%)</label>
-                        <input type="number" id="task-progress" min="0" max="100" value="0">
-                    </div>
-                </div>
                 <div class="form-group">
-                    <label for="task-responsible">Responsible Person(s)</label>
-                    <div id="personal-selector" class="personal-selector">
-                        <!-- Checkboxes or multiselect will be here -->
-                        <div id="selected-personal-list" class="tag-list"></div>
-                        <select id="personal-dropdown">
-                            <option value="">Select Personal...</option>
-                        </select>
-                    </div>
+                    <label for="task-progress">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg>
+                        Progress (%)
+                    </label>
+                    <input type="number" id="task-progress" min="0" max="100" value="0">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="task-due-date">Due Date</label>
-                        <input type="date" id="task-due-date" required>
-                    </div>
-                    <div class="form-group" id="completed-date-group" style="display:none;">
-                        <label for="task-completed-date">Completed Date</label>
-                        <input type="date" id="task-completed-date">
-                    </div>
-                </div>
-                <div class="form-group" id="delay-reason-group" style="display:none;">
-                    <label for="task-delay-reason" style="color:var(--danger);">Delay Reason (Required for late completion)</label>
-                    <textarea id="task-delay-reason" placeholder="Explain the reason for delay..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="task-description">Description</label>
-                    <textarea id="task-description" placeholder="Task details and expectations" required></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="save-task-btn">Save Task</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Personal Modal -->
-    <div id="personal-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Add Team Member (Personal)</h2>
-                <button class="close-modal">&times;</button>
             </div>
-            <form id="personal-form">
-                <input type="hidden" id="person-id">
-                <div class="form-group">
-                    <label for="person-name">Full Name</label>
-                    <input type="text" id="person-name" placeholder="Enter name" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="person-role">Role</label>
-                        <input type="text" id="person-role" placeholder="e.g. Lead Researcher" required>
+            <div class="form-group">
+                <label for="personal-dropdown">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Responsible Team Members
+                </label>
+                <div id="personal-selector" style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-md);padding:0.5rem;">
+                    <div id="selected-personal-list" class="tag-list" style="margin-bottom:0.5rem;min-height:20px;display:flex;align-items:center;">
+                        <span style="color:var(--gray-400);font-size:0.8rem;font-style:italic;">No assignees selected...</span>
                     </div>
-                    <div class="form-group">
-                        <label for="person-dept">Department</label>
-                        <select id="person-dept">
-                            <option value="Product Research">Product Research</option>
-                            <option value="Product Development">Product Development</option>
-                            <option value="Product Marketing">Product Marketing</option>
-                            <option value="Product Selling">Product Selling</option>
-                            <option value="Accounts & Finance">Accounts & Finance</option>
-                            <option value="Client Success">Client Success</option>
-                            <option value="HR Department">HR Department</option>
-                        </select>
+                    <div class="select-wrapper">
+                        <select id="personal-dropdown"><option value="">+ Add Person to Task…</option></select>
                     </div>
                 </div>
+            </div>
+            <div class="form-row" style="margin-top:1rem;">
                 <div class="form-group">
-                    <label for="person-email">Email Address</label>
-                    <input type="email" id="person-email" placeholder="email@company.com">
+                    <label for="task-due-date">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Target Due Date
+                    </label>
+                    <input type="date" id="task-due-date" required>
                 </div>
-                <div class="form-group">
-                    <label for="person-responsibility">Core Responsibility</label>
-                    <textarea id="person-responsibility" placeholder="What does this person handle?"></textarea>
+                <div class="form-group" id="completed-date-group" style="display:none;">
+                    <label for="task-completed-date">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Date Completed
+                    </label>
+                    <input type="date" id="task-completed-date">
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Member</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="form-group" id="delay-reason-group" style="display:none;background:#fef2f2;border:1px solid #fecaca;padding:1rem;border-radius:var(--radius-md);">
+                <label for="task-delay-reason" style="color:var(--danger);font-weight:700;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Delay Reason (Required)
+                </label>
+                <textarea id="task-delay-reason" placeholder="Explain the primary bottleneck..." style="border-color:#fecaca;"></textarea>
+            </div>
+            <div class="form-group" style="margin-top:1rem;">
+                <label for="task-description">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    In-Depth Requirements & Expectations
+                </label>
+                <textarea id="task-description" placeholder="Provide full context here..." required></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="save-task-btn">Save Task</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <!-- Notification Container -->
-    <div id="notification-container"></div>
+<!-- ═══ PERSONAL MODAL ═══ -->
+<div id="personal-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="personal-modal-title">Add Team Member</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="personal-form">
+            <input type="hidden" id="person-id">
+            <!-- Photo upload row -->
+            <div style="display:flex;justify-content:center;margin-bottom:0.5rem;">
+                <div class="avatar-upload-wrap" onclick="document.getElementById('person-photo-input').click()" title="Upload photo">
+                    <div id="person-preview-avatar" class="person-avatar" style="width:64px;height:64px;font-size:1.5rem;border-radius:18px;">
+                        <span id="person-preview-initial">?</span>
+                    </div>
+                    <div class="avatar-upload-overlay" style="border-radius:18px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </div>
+                </div>
+                <input type="file" id="person-photo-input" accept="image/*" style="display:none;">
+            </div>
+            <input type="hidden" id="person-photo-data">
+            <div class="form-group">
+                <label for="person-name">Full Name</label>
+                <input type="text" id="person-name" placeholder="Enter name" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="person-role">Role / Title</label>
+                    <input type="text" id="person-role" placeholder="e.g. Lead Researcher" required>
+                </div>
+                <div class="form-group">
+                    <label for="person-dept">Department</label>
+                    <select id="person-dept">
+                        <option value="Product Research">Product Research</option>
+                        <option value="Product Development">Product Development</option>
+                        <option value="Product Marketing">Product Marketing</option>
+                        <option value="Product Selling">Product Selling</option>
+                        <option value="Accounts &amp; Finance">Accounts &amp; Finance</option>
+                        <option value="Client Success">Client Success</option>
+                        <option value="HR Department">HR Department</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="person-email">Email Address</label>
+                <input type="email" id="person-email" placeholder="email@company.com">
+            </div>
+            <div class="form-group">
+                <label for="person-responsibility">Core Responsibility</label>
+                <textarea id="person-responsibility" placeholder="What does this person handle?"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                <button type="submit" class="btn btn-orange">Save Member</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    <script src="app.js"></script>
+<!-- Notification Container -->
+<div id="notification-container"></div>
+
+<script src="app.js"></script>
 </body>
 </html>
