@@ -1,9 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const User = require('../models/User');
+
+// Helper to check DB is ready
+const dbReady = (res) => {
+    if (mongoose.connection.readyState !== 1) {
+        res.status(503).json({ error: 'Database not connected. Please check your MongoDB connection and try again.' });
+        return false;
+    }
+    return true;
+};
 
 // Sign Up
 router.post('/signup', async (req, res) => {
+    if (!dbReady(res)) return;
     try {
         const { name, email, phone, password } = req.body;
 
@@ -27,6 +38,7 @@ router.post('/signup', async (req, res) => {
 
 // Sign In
 router.post('/signin', async (req, res) => {
+    if (!dbReady(res)) return;
     try {
         const { email, password } = req.body;
 

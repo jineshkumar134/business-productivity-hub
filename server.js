@@ -10,8 +10,11 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ Connected exclusively to MongoDB Cloud for Deployment!'))
+mongoose.connect(process.env.MONGODB_URI, {
+  serverSelectionTimeoutMS: 8000,
+  connectTimeoutMS: 8000,
+})
+  .then(() => console.log('✅ Connected to MongoDB Atlas!'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err.message));
 
 // Middleware

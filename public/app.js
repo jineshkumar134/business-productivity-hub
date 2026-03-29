@@ -59,8 +59,7 @@ const el = {
     delayReasonGroup: $('delay-reason-group'),
     completedDateGroup: $('completed-date-group'),
     profileModal: $('profile-modal'),
-    exportAiBtn: $('export-ai-btn'),
-    exportHrBtn: $('export-hr-btn')
+    exportAiBtn: $('export-ai-btn')
 };
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
@@ -199,7 +198,6 @@ function setupEventListeners() {
 
     // Export PDF
     el.exportAiBtn?.addEventListener('click', () => exportToPDF('ai-results-area', 'AI_Strategic_Alignment.pdf'));
-    el.exportHrBtn?.addEventListener('click', () => exportToPDF('personal-grid', 'Team_Roster.pdf'));
 }
 
 async function exportToPDF(elementId, filename) {
