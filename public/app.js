@@ -57,6 +57,7 @@ const el = {
     aiInsightsContainer: $('ai-insights-container'),
     aiReportContent: $('ai-report-content'),
     delayReasonGroup: $('delay-reason-group'),
+    completedDateGroup: $('completed-date-group'),
     profileModal: $('profile-modal'),
     exportAiBtn: $('export-ai-btn'),
     exportHrBtn: $('export-hr-btn')
@@ -795,18 +796,33 @@ async function handleTaskSubmit(e){
     if(state.selectedPersonal.length===0){showNotification('Assign at least one person','error');return;}
     const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal};
     if(taskData.status==='Completed'&&taskData.completed_date&&new Date(taskData.completed_date)>new Date(taskData.due_date)&&!taskData.delay_reason){showNotification('Delay reason required','error');return;}
+    const btn = $('save-task-btn');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner-small"></div> Saving...'; }
     try{
-        const btn = $('save-task-btn');
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<div class="spinner-small"></div> Saving...';
-        
         const res=await fetch(id?`/api/tasks/${id}`:'/api/tasks',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(taskData)});
-        if(res.ok){showNotification(id?'Task updated ✅':'Task created ✅','success');el.taskModal.classList.remove('active');await fetchData();renderAll();}
-        
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-    }catch(err){showNotification('Failed to save task','error');}
+        if(res.ok){
+            const updatedData = await res.json();
+            if(id) {
+                state.tasks = state.tasks.map(t => (t._id === id || t.id === id) ? updatedData : t);
+            } else {
+                state.tasks.push(updatedData);
+            }
+            showNotification(id?'Task updated ✅':'Task created ✅','success');
+            el.taskModal.classList.remove('active');
+            // Fetch only logs since they are small and server-generated
+            fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });
+            renderAll();
+        } else {
+            let errMsg = 'Server error';
+            try { const j = await res.json(); errMsg = j.error || res.statusText; } catch(e){}
+            showNotification('Failed to save task: ' + errMsg, 'error');
+        }
+    }catch(err){
+        showNotification('Network error: ' + err.message, 'error');
+    } finally {
+        if(btn){ btn.disabled = false; btn.innerHTML = originalHtml; }
+    }
 }
 
 async function handlePersonalSubmit(e){
@@ -831,10 +847,15 @@ async function handlePersonalSubmit(e){
             { method: id?'PUT':'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(personData) }
         );
         if(res.ok){
+            const updatedPerson = await res.json();
+            if(id) {
+                state.personal = state.personal.map(p => (p._id === id || p.id === id) ? updatedPerson : p);
+            } else {
+                state.personal.push(updatedPerson);
+            }
             showNotification(id?'Member updated ✅':'Member added ✅','success');
             el.personalModal.classList.remove('active');
             state.personPhotoData='';
-            await fetchData();
             renderAll();
         } else {
             let errMsg = 'Server error';
@@ -880,8 +901,8 @@ function showNotification(msg,type='success'){const container=$('notification-co
 // ── GLOBALS ───────────────────────────────────────────────────────────────────
 window.openTaskModal=openTaskModal;
 window.editPersonal=id=>openPersonalModal(id);
-window.deleteTask=async id=>{if(!confirm('Delete this task?'))return;try{const r=await fetch(`/api/tasks/${id}`,{method:'DELETE'});if(r.ok){showNotification('Task deleted','success');await fetchData();renderAll();}}catch(e){showNotification('Error deleting task','error');}};
-window.deletePersonal=async id=>{if(!confirm('Remove this team member?'))return;try{await fetch(`/api/personal/${id}`,{method:'DELETE'});showNotification('Member removed','success');await fetchData();renderAll();}catch(e){showNotification('Error','error');}};
+window.deleteTask=async id=>{if(!confirm('Delete this task?'))return;try{const r=await fetch(`/api/tasks/${id}`,{method:'DELETE'});if(r.ok){showNotification('Task deleted','success');state.tasks = state.tasks.filter(t => t._id !== id && t.id !== id);fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });renderAll();}}catch(e){showNotification('Error deleting task','error');}};
+window.deletePersonal=async id=>{if(!confirm('Remove this team member?'))return;try{const r = await fetch(`/api/personal/${id}`,{method:'DELETE'});if(r.ok){showNotification('Member removed','success');state.personal = state.personal.filter(p => p._id !== id && p.id !== id);renderAll();}}catch(e){showNotification('Error','error');}};
 
 // ── START ─────────────────────────────────────────────────────────────────────
 init();
