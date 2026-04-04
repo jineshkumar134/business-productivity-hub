@@ -551,13 +551,13 @@
 
       <div class="mode-cards">
         <div class="mode-card active" data-mode="receive" onclick="setMode('receive')">
-          <div class="mode-card-title">A. Payment Receive Hui</div>
-          <div class="mode-card-desc">Aapko client / party ne payment di hai.</div>
+          <div class="mode-card-title">A. Payment Received</div>
+          <div class="mode-card-desc">Client or party has paid you.</div>
         </div>
 
         <div class="mode-card" data-mode="pay" onclick="setMode('pay')">
-          <div class="mode-card-title">B. Payment Deni Hai</div>
-          <div class="mode-card-desc">Aapko vendor / consultant ko payment karni hai.</div>
+          <div class="mode-card-title">B. Payment to be Made</div>
+          <div class="mode-card-desc">You need to pay a vendor or consultant.</div>
         </div>
       </div>
 
@@ -565,21 +565,21 @@
 
       <div class="grid">
         <div class="field">
-          <label for="knownAmountType">2. Aapko kaunsa amount already pata hai?</label>
+          <label for="knownAmountType">2. Which amount do you already know?</label>
           <select id="knownAmountType" onchange="updateLabels()">
-            <option value="net">Mujhe Final Amount Pata Hai</option>
-            <option value="invoice">Mujhe Invoice Total Pata Hai</option>
-            <option value="base">Mujhe Base Amount Pata Hai</option>
+            <option value="net">I know the Final Net Amount</option>
+            <option value="invoice">I know the Invoice Total</option>
+            <option value="base">I know the Base Amount</option>
           </select>
           <div class="muted" id="knownAmountHint">
-            Final amount means jo actual receive ya pay hona hai.
+            Final amount is the actual physical payment received or made.
           </div>
         </div>
 
         <div class="field">
-          <label for="amount" id="amountLabel">3. Amount Enter Karo</label>
-          <input type="number" id="amount" placeholder="Jaise 995168" min="0" step="0.01" />
-          <div class="muted" id="amountHint">Ye final received amount hoga.</div>
+          <label for="amount" id="amountLabel">3. Enter Amount</label>
+          <input type="number" id="amount" placeholder="e.g. 995168" min="0" step="0.01" />
+          <div class="muted" id="amountHint">This will be the final received amount.</div>
         </div>
 
         <div class="field">
@@ -591,7 +591,7 @@
             <option value="18" selected>18%</option>
             <option value="28">28%</option>
           </select>
-          <div class="muted">GST base amount par add hoga.</div>
+          <div class="muted">GST is calculated on the base amount.</div>
         </div>
 
         <div class="field">
@@ -603,7 +603,7 @@
             <option value="10" selected>10%</option>
             <option value="20">20%</option>
           </select>
-          <div class="muted">TDS sirf base amount par deduct hota hai.</div>
+          <div class="muted">TDS is only deducted from the base amount.</div>
         </div>
 
         <div class="field">
@@ -612,13 +612,13 @@
             <option value="yes" selected>Yes</option>
             <option value="no">No</option>
           </select>
-          <div class="muted">Rounded ya exact values dekh sakte ho.</div>
+          <div class="muted">View rounded or exact decimal values.</div>
         </div>
 
         <div class="field">
           <label for="currencySymbol">7. Currency Symbol</label>
           <input type="text" id="currencySymbol" value="₹" />
-          <div class="muted">Aap ₹, Rs., $ jo chaho use kar sakte ho.</div>
+          <div class="muted">Use ₹, Rs., $, or any other text.</div>
         </div>
 
         <div class="field full">
@@ -630,7 +630,7 @@
           </div>
 
           <div class="logic-strip receive" id="logicStrip">
-            Logic: Final amount known ho toh reverse calculation hogi. Invoice total known ho toh pehle base nikalega. Base known ho toh direct calculation hogi.
+            Logic: If Final Net is known, we use reverse calculation. If Invoice Total is known, we derive the base first. If Base is known, direct calculation is performed.
           </div>
         </div>
       </div>
@@ -688,7 +688,7 @@
       </div>
 
       <div class="summary-note receive" id="resultNote">
-        Calculation karne ke baad yahan summary aayegi.
+        Summary will appear here after calculation.
       </div>
     </div>
 
@@ -700,7 +700,7 @@
       <div class="steps" id="stepsContainer">
         <div class="step">
           <div class="step-title">Step 1</div>
-          <div class="step-text">Calculation ke baad yahan dynamic explanation aayega.</div>
+          <div class="step-text">A dynamic step-by-step explanation will appear here after calculation.</div>
         </div>
       </div>
     </div>
@@ -714,7 +714,7 @@
       <details open>
         <summary>Open Full Explanation</summary>
         <div class="step-text" id="formulaExplanation" style="margin-top:12px;">
-          Yahan full explanation aayega.
+          Full formula explanation will appear here.
         </div>
         <div class="pill" id="treatmentPill">Dynamic treatment ready after calculation.</div>
       </details>
@@ -795,29 +795,29 @@
 
       if(knownType === "net"){
         amountLabel.textContent = side === "receive"
-          ? "3. Final Received Amount Enter Karo"
-          : "3. Final Payment Amount Enter Karo";
+          ? "3. Enter Final Received Amount"
+          : "3. Enter Final Payment Amount";
 
         amountHint.textContent = side === "receive"
-          ? "Ye actual net amount hoga jo aapko mila."
-          : "Ye actual net amount hoga jo aap saamne wale ko doge.";
+          ? "This is the actual net amount you received."
+          : "This is the actual net amount you will pay.";
 
-        knownAmountHint.textContent = "Yahan woh amount choose karo jo abhi aapko exact pata hai.";
-        logicStrip.textContent = "Logic: Final amount known ho toh reverse calculation se base amount niklega.";
+        knownAmountHint.textContent = "Select the amount type that you currently know exact figures for.";
+        logicStrip.textContent = "Logic: If Final Net is known, we use a reverse formula to derive the base and GST.";
       }
 
       if(knownType === "invoice"){
-        amountLabel.textContent = "3. Invoice Total Enter Karo";
-        amountHint.textContent = "Ye GST included invoice total hoga.";
-        knownAmountHint.textContent = "Agar aapko poora invoice amount pata hai, toh yeh option choose karo.";
-        logicStrip.textContent = "Logic: Invoice total se pehle base niklega, fir TDS aur final amount niklega.";
+        amountLabel.textContent = "3. Enter Invoice Total";
+        amountHint.textContent = "This is the invoice total including GST.";
+        knownAmountHint.textContent = "Select this if you know the total amount on the invoice.";
+        logicStrip.textContent = "Logic: We split the invoice total into base and GST, then calculate TDS.";
       }
 
       if(knownType === "base"){
-        amountLabel.textContent = "3. Base Amount Enter Karo";
-        amountHint.textContent = "Ye GST aur TDS se pehle ka taxable amount hoga.";
-        knownAmountHint.textContent = "Agar aapko taxable/base amount pata hai, toh yeh option choose karo.";
-        logicStrip.textContent = "Logic: Base amount known ho toh GST add aur TDS deduct karke final amount niklega.";
+        amountLabel.textContent = "3. Enter Base Amount";
+        amountHint.textContent = "This is the taxable amount before GST and TDS.";
+        knownAmountHint.textContent = "Select this if you know the base/taxable amount.";
+        logicStrip.textContent = "Logic: We add GST and deduct TDS from the base to find the final net.";
       }
 
       applySideTheme(side);
@@ -845,14 +845,14 @@
         "routeResult"
       ].forEach(id => document.getElementById(id).textContent = "-");
 
-      document.getElementById("resultNote").textContent = "Calculation karne ke baad yahan summary aayegi.";
+      document.getElementById("resultNote").textContent = "Summary will appear here after calculation.";
       document.getElementById("stepsContainer").innerHTML = `
         <div class="step">
           <div class="step-title">Step 1</div>
-          <div class="step-text">Calculation ke baad yahan dynamic explanation aayega.</div>
+          <div class="step-text">A dynamic explanation will appear here after calculation.</div>
         </div>
       `;
-      document.getElementById("formulaExplanation").textContent = "Yahan full explanation aayega.";
+      document.getElementById("formulaExplanation").textContent = "Full explanation will appear here.";
       document.getElementById("treatmentPill").textContent = "Dynamic treatment ready after calculation.";
       updateLabels();
       applySideTheme("receive");
@@ -888,7 +888,7 @@
       const currencySymbol = getVal("currencySymbol") || "₹";
 
       if(isNaN(amount) || amount <= 0){
-        alert("Please valid amount enter karo.");
+        alert("Please enter a valid amount.");
         return;
       }
 
@@ -915,29 +915,29 @@
 
         stepsHTML = `
           <div class="step">
-            <div class="step-title">Step 1: Base amount already known tha</div>
+            <div class="step-title">Step 1: Base amount was already known</div>
             <div class="step-text">Base Amount = ${amount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 2: GST nikala</div>
+            <div class="step-title">Step 2: Calculated GST</div>
             <div class="step-text">GST Amount = Base × GST%
 GST Amount = ${baseAmount.toFixed(2)} × ${gstDecimal.toFixed(2)}
 GST Amount = ${gstAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 3: Invoice total nikala</div>
+            <div class="step-title">Step 3: Calculated Invoice total</div>
             <div class="step-text">Invoice Total = Base + GST
 Invoice Total = ${baseAmount.toFixed(2)} + ${gstAmount.toFixed(2)}
 Invoice Total = ${invoiceTotal.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 4: TDS nikala</div>
+            <div class="step-title">Step 4: Calculated TDS</div>
             <div class="step-text">TDS Amount = Base × TDS%
 TDS Amount = ${baseAmount.toFixed(2)} × ${tdsDecimal.toFixed(2)}
 TDS Amount = ${tdsAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 5: Final net amount nikala</div>
+            <div class="step-title">Step 5: Calculated Final net amount</div>
             <div class="step-text">Final Net Amount = Invoice Total - TDS
 Final Net Amount = ${invoiceTotal.toFixed(2)} - ${tdsAmount.toFixed(2)}
 Final Net Amount = ${finalNetAmount.toFixed(2)}</div>
@@ -947,13 +947,13 @@ Final Net Amount = ${finalNetAmount.toFixed(2)}</div>
         formulaText =
 `Known Amount Type: Base Amount
 
-1. Base amount directly given tha.
+1. Base amount was directly provided.
 2. GST = Base × GST%
 3. Invoice Total = Base + GST
 4. TDS = Base × TDS%
 5. Final Net Amount = Invoice Total - TDS
 
-Ye direct calculation route tha.`;
+This followed the direct calculation route.`;
       }
 
       if(knownType === "invoice"){
@@ -966,34 +966,34 @@ Ye direct calculation route tha.`;
 
         stepsHTML = `
           <div class="step">
-            <div class="step-title">Step 1: Invoice total already known tha</div>
+            <div class="step-title">Step 1: Invoice total was already known</div>
             <div class="step-text">Invoice Total = ${invoiceTotal.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 2: Base amount nikala by removing GST</div>
+            <div class="step-title">Step 2: Derived base amount by removing GST</div>
             <div class="step-text">Formula:
 Invoice Total = Base × (1 + GST%)
 
-Toh,
+So,
 Base = Invoice Total ÷ (1 + GST%)
 
 Base = ${invoiceTotal.toFixed(2)} ÷ ${(1 + gstDecimal).toFixed(2)}
 Base = ${baseAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 3: GST amount nikala</div>
+            <div class="step-title">Step 3: Calculated GST amount</div>
             <div class="step-text">GST Amount = Invoice Total - Base
 GST Amount = ${invoiceTotal.toFixed(2)} - ${baseAmount.toFixed(2)}
 GST Amount = ${gstAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 4: TDS amount nikala</div>
+            <div class="step-title">Step 4: Calculated TDS amount</div>
             <div class="step-text">TDS = Base × TDS%
 TDS = ${baseAmount.toFixed(2)} × ${tdsDecimal.toFixed(2)}
 TDS = ${tdsAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 5: Final net amount nikala</div>
+            <div class="step-title">Step 5: Calculated Final net amount</div>
             <div class="step-text">Final Net = Invoice Total - TDS
 Final Net = ${invoiceTotal.toFixed(2)} - ${tdsAmount.toFixed(2)}
 Final Net = ${finalNetAmount.toFixed(2)}</div>
@@ -1003,14 +1003,14 @@ Final Net = ${finalNetAmount.toFixed(2)}</div>
         formulaText =
 `Known Amount Type: Invoice Total
 
-1. Invoice Total GST included hota hai.
-2. Isliye pehle base amount nikalte hain:
+1. Invoice Total is inclusive of GST.
+2. First, we derive the base amount:
    Base = Invoice Total ÷ (1 + GST%)
 3. GST Amount = Invoice Total - Base
 4. TDS = Base × TDS%
 5. Final Net Amount = Invoice Total - TDS
 
-Is route me calculation invoice amount ke basis par hi ki gayi hai.`;
+Calculation is based on the provided Invoice Total.`;
       }
 
       if(knownType === "net"){
@@ -1023,44 +1023,44 @@ Is route me calculation invoice amount ke basis par hi ki gayi hai.`;
 
         stepsHTML = `
           <div class="step">
-            <div class="step-title">Step 1: Final net amount already known tha</div>
+            <div class="step-title">Step 1: Final net amount was already known</div>
             <div class="step-text">Final Net Amount = ${finalNetAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 2: Reverse formula banaya</div>
+            <div class="step-title">Step 2: Created reverse formula</div>
             <div class="step-text">Final Net = Invoice Total - TDS
-Aur
+And
 Invoice Total = Base + GST
 
 So,
 Final Net = Base × (1 + GST% - TDS%)</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 3: Base amount nikala</div>
+            <div class="step-title">Step 3: Calculated base amount</div>
             <div class="step-text">Base = Final Net ÷ (1 + GST% - TDS%)
 Base = ${finalNetAmount.toFixed(2)} ÷ ${(1 + gstDecimal - tdsDecimal).toFixed(2)}
 Base = ${baseAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 4: GST amount nikala</div>
+            <div class="step-title">Step 4: Calculated GST amount</div>
             <div class="step-text">GST = Base × GST%
 GST = ${baseAmount.toFixed(2)} × ${gstDecimal.toFixed(2)}
 GST = ${gstAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 5: Invoice total nikala</div>
+            <div class="step-title">Step 5: Calculated Invoice total</div>
             <div class="step-text">Invoice Total = Base + GST
 Invoice Total = ${baseAmount.toFixed(2)} + ${gstAmount.toFixed(2)}
 Invoice Total = ${invoiceTotal.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 6: TDS amount nikala</div>
+            <div class="step-title">Step 6: Calculated TDS amount</div>
             <div class="step-text">TDS = Base × TDS%
 TDS = ${baseAmount.toFixed(2)} × ${tdsDecimal.toFixed(2)}
 TDS = ${tdsAmount.toFixed(2)}</div>
           </div>
           <div class="step">
-            <div class="step-title">Step 7: Cross-check kiya</div>
+            <div class="step-title">Step 7: Cross-verification</div>
             <div class="step-text">Final Net = Invoice Total - TDS
 Final Net = ${invoiceTotal.toFixed(2)} - ${tdsAmount.toFixed(2)}
 Final Net = ${finalNetAmount.toFixed(2)}</div>
@@ -1070,8 +1070,8 @@ Final Net = ${finalNetAmount.toFixed(2)}</div>
         formulaText =
 `Known Amount Type: Final Net Amount
 
-1. Final Net Amount directly diya gaya tha.
-2. Reverse formula use hua:
+1. Final Net Amount was directly provided.
+2. Reverse formula applied:
    Final Net = Base × (1 + GST% - TDS%)
 3. Base = Final Net ÷ (1 + GST% - TDS%)
 4. GST = Base × GST%
@@ -1088,27 +1088,27 @@ Final Net = ${finalNetAmount.toFixed(2)}</div>
       document.getElementById("routeResult").textContent = routeText;
 
       const sideSummary = side === "receive"
-        ? "Receive Side: Ye final amount aapko milega after TDS deduction."
-        : "Pay Side: Ye final amount aap saamne wale ko pay karoge after TDS deduction.";
+        ? "Received Side: This is the final amount you receive after TDS deduction."
+        : "Payment Side: This is the final amount you pay after deducting TDS.";
 
       document.getElementById("resultNote").textContent =
 `Calculation Route: ${routeText}
 ${sideSummary}
-TDS hamesha base amount par calculate hota hai, GST par nahi.`;
+TDS is always calculated on the base amount, never on GST.`;
 
       document.getElementById("stepsContainer").innerHTML = stepsHTML;
       document.getElementById("formulaExplanation").textContent =
 `${formulaText}
 
 Dynamic Treatment:
-- Agar Base known ho: direct calculation.
-- Agar Invoice known ho: pehle GST remove karke base nikala.
-- Agar Final amount known ho: reverse formula se base nikala.
+- If Base is known: direct calculation.
+- If Invoice is known: derive base by removing GST.
+- If Final amount is known: calculate base via reverse formula.
 
 Transaction Side:
 ${side === "receive"
-? "- Aapko net amount receive hota hai.\n- Client TDS deduct karta hai."
-: "- Aap net amount pay karte ho.\n- Aap TDS deduct karke deposit karte ho."}`;
+? "- You receive the net amount.\n- Client deducts TDS."
+: "- You pay the net amount.\n- You deduct and deposit TDS."}`;
 
       document.getElementById("treatmentPill").textContent =
         side === "receive"
