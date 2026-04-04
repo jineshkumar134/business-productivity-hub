@@ -27,7 +27,8 @@ const state = {
     orgVision: localStorage.getItem('bh_vision') || '',
     orgMission: localStorage.getItem('bh_mission') || '',
     searchQuery: '',
-    personPhotoData: ''
+    personPhotoData: '',
+    theme: localStorage.getItem('bh_theme') || 'light'
 };
 
 // ── DOM Refs ──────────────────────────────────────────────────────────────────
@@ -59,16 +60,28 @@ const el = {
     delayReasonGroup: $('delay-reason-group'),
     completedDateGroup: $('completed-date-group'),
     profileModal: $('profile-modal'),
-    exportAiBtn: $('export-ai-btn')
+    exportAiBtn: $('export-ai-btn'),
+    themeToggle: $('theme-toggle'),
+    themeIcon: $('theme-icon')
 };
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
+    applyTheme();
     setupEventListeners();
     renderUserGreeting();
     loadVisionMission();
     await fetchData();
     renderAll();
+}
+
+function applyTheme() {
+    if (state.theme === 'dark') {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+    updateThemeIcon();
 }
 
 function loadVisionMission() {
@@ -198,6 +211,28 @@ function setupEventListeners() {
 
     // Export PDF
     el.exportAiBtn?.addEventListener('click', () => exportToPDF('ai-results-area', 'AI_Strategic_Alignment.pdf'));
+
+    // Theme Toggle
+    el.themeToggle?.addEventListener('click', toggleTheme);
+}
+
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    state.theme = isDark ? 'dark' : 'light';
+    localStorage.setItem('bh_theme', state.theme);
+    updateThemeIcon();
+    
+    // Also notify if it's a significant change
+    showNotification(`${isDark ? 'Dark' : 'Light'} theme applied`, 'success');
+}
+
+function updateThemeIcon() {
+    if (!el.themeIcon) return;
+    if (state.theme === 'dark') {
+        el.themeIcon.innerHTML = `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
+    } else {
+        el.themeIcon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+    }
 }
 
 async function exportToPDF(elementId, filename) {
@@ -273,6 +308,7 @@ const VIEW_META = {
     ai:        { t:'AI Strategic Alignment',        d:'Evaluate tasks against your organization\'s vision & mission.' },
     hr:        { t:'Team Management',               d:'Manage personnel and define core responsibilities.' },
     logs:      { t:'Activity Logs',                 d:'Full audit trail of all system changes and task updates.' },
+    invoicing: { t:'Invoicing Calculator',          d:'Estimate GST and TDS for your transactions with ease.' },
 };
 function switchView(viewName) {
     state.currentView = viewName;
@@ -716,7 +752,7 @@ function renderLogs() {
                 <td><div style="font-weight:700;color:var(--dark);">${log.task_name||'System'}</div><div style="font-size:0.72rem;color:var(--secondary);">${log.task_description||log.description||''}</div>${log.requested_by?`<div style="font-size:0.65rem;color:var(--primary);font-weight:700;">Ref: ${log.requested_by}</div>`:''}</td>
                 <td>${(log.responsible||[]).map(r=>`<div style="font-size:0.78rem;font-weight:600;color:var(--primary);">• ${r}</div>`).join('')||'—'}</td>
                 <td><div style="font-size:0.78rem;">Due: <strong>${log.due_date?new Date(log.due_date).toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric'}):'—'}</strong></div>${log.completed_date?`<div style="font-size:0.78rem;">Done: <strong style="color:var(--success);">${new Date(log.completed_date).toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric'})}</strong></div>`:''}</td>
-                <td>${isLate?`<div style="padding:0.35rem 0.5rem;background:rgba(239,68,68,0.07);border-radius:6px;border-left:3px solid var(--danger);"><div style="color:var(--danger);font-size:0.68rem;font-weight:700;">DELAY</div><div style="font-size:0.7rem;color:var(--secondary);">"${log.delay_reason||'No reason'}"</div></div>`:'<div style="color:var(--success);font-weight:600;font-size:0.78rem;">✅ On Time</div>'}<div style="font-size:0.62rem;color:var(--gray-400);margin-top:0.25rem;">${new Date(log.timestamp).toLocaleString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div></td>
+                <td>${isLate?`<div style="padding:0.35rem 0.6rem;background:rgba(239,68,68,0.12);border-radius:6px;border-left:3px solid var(--danger);"><div style="color:var(--danger);font-size:0.68rem;font-weight:800;">DELAY</div><div style="font-size:0.7rem;color:var(--secondary);">"${log.delay_reason||'No reason'}"</div></div>`:'<div style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.35rem 0.6rem;background:rgba(16,185,129,0.12);color:var(--success);border-radius:6px;font-weight:700;font-size:0.75rem;">✅ On Time</div>'}<div style="font-size:0.62rem;color:var(--gray-400);margin-top:0.3rem;">${new Date(log.timestamp).toLocaleString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div></td>
             </tr>`;
         }).join('');
 }
