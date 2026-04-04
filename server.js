@@ -11,11 +11,20 @@ const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
-  serverSelectionTimeoutMS: 8000,
-  connectTimeoutMS: 8000,
+  serverSelectionTimeoutMS: 15000,
+  connectTimeoutMS: 15000,
 })
-  .then(() => console.log('✅ Connected to MongoDB Atlas!'))
-  .catch(err => console.error('❌ MongoDB Connection Error:', err.message));
+  .then(() => {
+    console.log('✅ Connected to MongoDB Atlas!');
+    // Start Server ONLY after DB is connected
+    app.listen(PORT, () => {
+        console.log(`🚀 Business Hub Running on http://localhost:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    process.exit(1); // Exit if DB connection fails
+  });
 
 // Middleware
 app.use(cors());
@@ -41,7 +50,3 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`🚀 Business Hub Running on http://localhost:${PORT}`);
-});

@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoicing Calculator</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#eef4ff;
+      --bg2:#f8fbff;
+      --card:#ffffff;
+      --text:#142033;
+      --muted:#64748b;
+      --primary:#2563eb;
+      --primary-dark:#1d4ed8;
+      --border:#dbe7f5;
+      --soft:#f8fbff;
+      --shadow:0 18px 45px rgba(37,99,235,0.10);
+      --radius:20px;
+
+      --receive-main:#16a34a;
+      --receive-soft:#ecfdf3;
+      --receive-border:#b7ebc5;
+
+      --pay-main:#ea580c;
+      --pay-soft:#fff7ed;
+      --pay-border:#fdc9a8;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family:"Inter", sans-serif;
+      background:
+        radial-gradient(circle at top left, #dbeafe 0%, transparent 30%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      color:var(--text);
+      line-height:1.5;
+    }
+
+    .container{
+      max-width:1200px;
+      margin:24px auto;
+      padding:0 16px 36px;
+    }
+
+    .hero,
+    .card{
+      background:rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(219,231,245,0.9);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px;
+      margin-bottom:16px;
+    }
+
+    .hero{
+      position:relative;
+      overflow:hidden;
+      background:linear-gradient(135deg, #ffffff 0%, #f6f9ff 45%, #eef5ff 100%);
+      padding:28px 26px;
+    }
+
+    .hero::before{
+      content:"";
+      position:absolute;
+      top:-40px;
+      right:-30px;
+      width:180px;
+      height:180px;
+      background:radial-gradient(circle, rgba(37,99,235,0.14) 0%, rgba(37,99,235,0.03) 55%, transparent 70%);
+      border-radius:50%;
+    }
+
+    .hero::after{
+      content:"";
+      position:absolute;
+      bottom:-50px;
+      left:-30px;
+      width:160px;
+      height:160px;
+      background:radial-gradient(circle, rgba(22,163,74,0.10) 0%, rgba(22,163,74,0.02) 55%, transparent 70%);
+      border-radius:50%;
+    }
+
+    .hero-content{
+      position:relative;
+      z-index:1;
+    }
+
+    .hero-mini{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 14px;
+      border-radius:999px;
+      background:#ffffff;
+      border:1px solid #d9e7fb;
+      color:#315a9c;
+      font-size:12px;
+      font-weight:600;
+      margin-bottom:14px;
+      font-family:"Poppins", sans-serif;
+    }
+
+    .hero-dot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:linear-gradient(135deg, #2563eb, #16a34a);
+    }
+
+    h1{
+      margin:0 0 8px;
+      font-size:34px;
+      line-height:1.15;
+      font-weight:700;
+      letter-spacing:-0.4px;
+      font-family:"Poppins", sans-serif;
+      color:#10233d;
+    }
+
+    .subtitle{
+      margin:0;
+      font-size:14px;
+      color:var(--muted);
+      font-weight:500;
+      max-width:680px;
+      font-family:"Inter", sans-serif;
+    }
+
+    h2{
+      margin:0;
+      font-size:22px;
+      line-height:1.2;
+      font-weight:700;
+      font-family:"Poppins", sans-serif;
+    }
+
+    .section-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .section-head small{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:500;
+      font-family:"Inter", sans-serif;
+    }
+
+    .mode-cards{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+      margin-bottom:16px;
+    }
+
+    .mode-card{
+      border:2px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#fff;
+      cursor:pointer;
+      transition:0.22s ease;
+      user-select:none;
+    }
+
+    .mode-card:hover{
+      transform:translateY(-1px);
+    }
+
+    .mode-card.active[data-mode="receive"]{
+      border-color:var(--receive-main);
+      background:var(--receive-soft);
+      box-shadow:0 8px 22px rgba(22,163,74,0.10);
+    }
+
+    .mode-card.active[data-mode="pay"]{
+      border-color:var(--pay-main);
+      background:var(--pay-soft);
+      box-shadow:0 8px 22px rgba(234,88,12,0.10);
+    }
+
+    .mode-card-title{
+      font-size:15px;
+      font-weight:600;
+      margin-bottom:4px;
+      font-family:"Poppins", sans-serif;
+    }
+
+    .mode-card-desc{
+      font-size:12.5px;
+      color:var(--muted);
+      font-weight:500;
+      line-height:1.45;
+      font-family:"Inter", sans-serif;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+    }
+
+    .field{
+      background:var(--soft);
+      border:1px solid #e5eef8;
+      border-radius:16px;
+      padding:12px;
+    }
+
+    .full{ grid-column:1 / -1; }
+
+    label{
+      display:block;
+      margin-bottom:7px;
+      font-size:13px;
+      font-weight:600;
+      color:#17263c;
+      font-family:"Poppins", sans-serif;
+    }
+
+    select,
+    input[type="number"],
+    input[type="text"]{
+      width:100%;
+      border:1.8px solid var(--border);
+      background:white;
+      border-radius:12px;
+      padding:11px 12px;
+      font-size:14px;
+      font-weight:500;
+      color:var(--text);
+      outline:none;
+      font-family:"Inter", sans-serif;
+      transition:0.2s ease;
+    }
+
+    select:focus,
+    input:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(37,99,235,0.10);
+    }
+
+    .muted{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:11.5px;
+      font-weight:500;
+      line-height:1.45;
+      font-family:"Inter", sans-serif;
+    }
+
+    .btn-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:4px;
+    }
+
+    button{
+      border:none;
+      border-radius:12px;
+      padding:11px 16px;
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+      font-family:"Poppins", sans-serif;
+      transition:0.2s ease;
+    }
+
+    .btn-primary{
+      background:linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color:white;
+      box-shadow:0 10px 20px rgba(37,99,235,0.18);
+    }
+
+    .btn-secondary{
+      background:#f6f9fd;
+      color:var(--text);
+      border:1px solid var(--border);
+    }
+
+    .logic-strip{
+      margin-top:12px;
+      padding:12px 14px;
+      background:#f8fbff;
+      border:1px solid #dfeaf8;
+      border-radius:14px;
+      font-size:12.5px;
+      font-weight:500;
+      color:#42526b;
+      font-family:"Inter", sans-serif;
+    }
+
+    .logic-strip.receive{
+      background:var(--receive-soft);
+      border-color:var(--receive-border);
+      color:#166534;
+    }
+
+    .logic-strip.pay{
+      background:var(--pay-soft);
+      border-color:var(--pay-border);
+      color:#9a3412;
+    }
+
+    .result-table-wrap{
+      overflow-x:auto;
+      border:1px solid #e5eef8;
+      border-radius:16px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+    }
+
+    th, td{
+      padding:12px 14px;
+      text-align:left;
+      border-bottom:1px solid #edf2f8;
+      font-size:13.5px;
+      font-family:"Inter", sans-serif;
+    }
+
+    th{
+      background:#f8fbff;
+      font-size:11.5px;
+      text-transform:uppercase;
+      letter-spacing:0.4px;
+      color:#607089;
+      font-weight:600;
+      white-space:nowrap;
+      font-family:"Poppins", sans-serif;
+    }
+
+    td.label-cell{
+      font-weight:600;
+      color:#1f2d3d;
+      white-space:nowrap;
+      width:220px;
+      font-family:"Poppins", sans-serif;
+    }
+
+    td.value-cell{
+      font-weight:600;
+      font-size:14px;
+      white-space:nowrap;
+      font-family:"Inter", sans-serif;
+    }
+
+    tr.highlight-receive td{
+      background:var(--receive-soft);
+    }
+
+    tr.highlight-pay td{
+      background:var(--pay-soft);
+    }
+
+    .tag{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:600;
+      border:1px solid transparent;
+      font-family:"Poppins", sans-serif;
+    }
+
+    .tag.receive{
+      background:var(--receive-soft);
+      border-color:var(--receive-border);
+      color:#166534;
+    }
+
+    .tag.pay{
+      background:var(--pay-soft);
+      border-color:var(--pay-border);
+      color:#9a3412;
+    }
+
+    .summary-note{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:14px;
+      background:#f8fbff;
+      border:1px solid #e5eef8;
+      color:var(--muted);
+      font-size:12.5px;
+      font-weight:500;
+      white-space:pre-line;
+      font-family:"Inter", sans-serif;
+    }
+
+    .summary-note.receive{
+      background:var(--receive-soft);
+      border-color:var(--receive-border);
+      color:#166534;
+    }
+
+    .summary-note.pay{
+      background:var(--pay-soft);
+      border-color:var(--pay-border);
+      color:#9a3412;
+    }
+
+    .steps{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .step{
+      border:1px solid #e5eef8;
+      border-radius:14px;
+      padding:14px 16px;
+      background:#fff;
+    }
+
+    .step-title{
+      font-size:16px;
+      font-weight:600;
+      margin-bottom:6px;
+      font-family:"Poppins", sans-serif;
+    }
+
+    .step-text{
+      font-size:13.5px;
+      font-weight:500;
+      color:#24344c;
+      white-space:pre-line;
+      font-family:"Inter", sans-serif;
+    }
+
+    details{
+      border:1px solid #e5eef8;
+      border-radius:14px;
+      padding:14px 16px;
+      background:#fff;
+    }
+
+    summary{
+      cursor:pointer;
+      font-size:15px;
+      font-weight:600;
+      outline:none;
+      font-family:"Poppins", sans-serif;
+    }
+
+    .pill{
+      display:inline-block;
+      margin-top:8px;
+      padding:6px 11px;
+      border-radius:999px;
+      background:#eef8ff;
+      color:#0b5cab;
+      font-size:11px;
+      font-weight:600;
+      border:1px solid #cde5ff;
+      font-family:"Poppins", sans-serif;
+    }
+
+    @media (max-width: 950px){
+      .grid{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    @media (max-width: 760px){
+      .mode-cards,
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      h1{ font-size:28px; }
+
+      th, td{
+        padding:10px 12px;
+      }
+
+      td.value-cell{
+        font-size:14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="hero">
+      <div class="hero-content">
+        <div class="hero-mini">
+          <span class="hero-dot"></span>
+          Smart GST + TDS Calculation
+        </div>
+        <h1>Invoicing Calculator</h1>
+        <p class="subtitle">
+          Simple calculator to quickly understand base amount, GST, TDS, invoice total, and final received or payable amount.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
+        <h2>1. Transaction Side</h2>
+        <small>Choose your situation</small>
+      </div>
+
+      <div class="mode-cards">
+        <div class="mode-card active" data-mode="receive" onclick="setMode('receive')">
+          <div class="mode-card-title">A. Payment Receive Hui</div>
+          <div class="mode-card-desc">Aapko client / party ne payment di hai.</div>
+        </div>
+
+        <div class="mode-card" data-mode="pay" onclick="setMode('pay')">
+          <div class="mode-card-title">B. Payment Deni Hai</div>
+          <div class="mode-card-desc">Aapko vendor / consultant ko payment karni hai.</div>
+        </div>
+      </div>
+
+      <input type="hidden" id="transactionSide" value="receive" />
+
+      <div class="grid">
+        <div class="field">
+          <label for="knownAmountType">2. Aapko kaunsa amount already pata hai?</label>
+          <select id="knownAmountType" onchange="updateLabels()">
+            <option value="net">Mujhe Final Amount Pata Hai</option>
+            <option value="invoice">Mujhe Invoice Total Pata Hai</option>
+            <option value="base">Mujhe Base Amount Pata Hai</option>
+          </select>
+          <div class="muted" id="knownAmountHint">
+            Final amount means jo actual receive ya pay hona hai.
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="amount" id="amountLabel">3. Amount Enter Karo</label>
+          <input type="number" id="amount" placeholder="Jaise 995168" min="0" step="0.01" />
+          <div class="muted" id="amountHint">Ye final received amount hoga.</div>
+        </div>
+
+        <div class="field">
+          <label for="gstRate">4. GST Rate</label>
+          <select id="gstRate">
+            <option value="0">0%</option>
+            <option value="5">5%</option>
+            <option value="12">12%</option>
+            <option value="18" selected>18%</option>
+            <option value="28">28%</option>
+          </select>
+          <div class="muted">GST base amount par add hoga.</div>
+        </div>
+
+        <div class="field">
+          <label for="tdsRate">5. TDS Rate</label>
+          <select id="tdsRate">
+            <option value="1">1%</option>
+            <option value="2">2%</option>
+            <option value="5">5%</option>
+            <option value="10" selected>10%</option>
+            <option value="20">20%</option>
+          </select>
+          <div class="muted">TDS sirf base amount par deduct hota hai.</div>
+        </div>
+
+        <div class="field">
+          <label for="roundOff">6. Round Off</label>
+          <select id="roundOff">
+            <option value="yes" selected>Yes</option>
+            <option value="no">No</option>
+          </select>
+          <div class="muted">Rounded ya exact values dekh sakte ho.</div>
+        </div>
+
+        <div class="field">
+          <label for="currencySymbol">7. Currency Symbol</label>
+          <input type="text" id="currencySymbol" value="₹" />
+          <div class="muted">Aap ₹, Rs., $ jo chaho use kar sakte ho.</div>
+        </div>
+
+        <div class="field full">
+          <div class="btn-row">
+            <button class="btn-primary" onclick="calculateAmount()">Calculate</button>
+            <button class="btn-secondary" onclick="resetForm()">Reset</button>
+            <button class="btn-secondary" onclick="copyResults()">Copy Result</button>
+          </div>
+
+          <div class="logic-strip receive" id="logicStrip">
+            Logic: Final amount known ho toh reverse calculation hogi. Invoice total known ho toh pehle base nikalega. Base known ho toh direct calculation hogi.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
+        <h2>2. Results</h2>
+        <small>Single-view tabular layout</small>
+      </div>
+
+      <div class="result-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+              <th>Type</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTableBody">
+            <tr>
+              <td class="label-cell">Base Amount</td>
+              <td class="value-cell" id="baseAmountResult">-</td>
+              <td><span class="tag receive" id="baseTag">Receive</span></td>
+              <td>Taxable amount before GST and TDS</td>
+            </tr>
+            <tr>
+              <td class="label-cell">GST Amount</td>
+              <td class="value-cell" id="gstAmountResult">-</td>
+              <td><span class="tag receive" id="gstTag">Receive</span></td>
+              <td>GST added on base amount</td>
+            </tr>
+            <tr>
+              <td class="label-cell">Invoice Total</td>
+              <td class="value-cell" id="invoiceTotalResult">-</td>
+              <td><span class="tag receive" id="invoiceTag">Receive</span></td>
+              <td>Base + GST</td>
+            </tr>
+            <tr>
+              <td class="label-cell">TDS Amount</td>
+              <td class="value-cell" id="tdsAmountResult">-</td>
+              <td><span class="tag receive" id="tdsTag">Receive</span></td>
+              <td>TDS deducted on base amount</td>
+            </tr>
+            <tr class="highlight-receive" id="finalRow">
+              <td class="label-cell" id="finalBoxLabel">Final Received Amount</td>
+              <td class="value-cell" id="finalAmountResult">-</td>
+              <td><span class="tag receive" id="finalTag">Receive</span></td>
+              <td id="routeResult">-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="summary-note receive" id="resultNote">
+        Calculation karne ke baad yahan summary aayegi.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
+        <h2>3. One by One Detailed Steps</h2>
+        <small>Known amount ke according steps change honge</small>
+      </div>
+      <div class="steps" id="stepsContainer">
+        <div class="step">
+          <div class="step-title">Step 1</div>
+          <div class="step-text">Calculation ke baad yahan dynamic explanation aayega.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
+        <h2>4. Full Formula Explanation</h2>
+        <small>Dynamic treatment</small>
+      </div>
+
+      <details open>
+        <summary>Open Full Explanation</summary>
+        <div class="step-text" id="formulaExplanation" style="margin-top:12px;">
+          Yahan full explanation aayega.
+        </div>
+        <div class="pill" id="treatmentPill">Dynamic treatment ready after calculation.</div>
+      </details>
+    </div>
+  </div>
+
+  <script>
+    function getNum(id){
+      return parseFloat(document.getElementById(id).value);
+    }
+
+    function getVal(id){
+      return document.getElementById(id).value;
+    }
+
+    function formatAmount(value, roundOff, currencySymbol){
+      if(isNaN(value)) return "-";
+      const finalValue = roundOff === "yes" ? Math.round(value) : value;
+      const options = roundOff === "yes"
+        ? { maximumFractionDigits: 0 }
+        : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+      return currencySymbol + Number(finalValue).toLocaleString("en-IN", options);
+    }
+
+    function applySideTheme(side){
+      const logicStrip = document.getElementById("logicStrip");
+      const resultNote = document.getElementById("resultNote");
+      const finalRow = document.getElementById("finalRow");
+
+      logicStrip.classList.remove("receive", "pay");
+      resultNote.classList.remove("receive", "pay");
+      finalRow.classList.remove("highlight-receive", "highlight-pay");
+
+      const tagIds = ["baseTag","gstTag","invoiceTag","tdsTag","finalTag"];
+      tagIds.forEach(id=>{
+        const el = document.getElementById(id);
+        el.classList.remove("receive","pay");
+        el.classList.add(side);
+        el.textContent = side === "receive" ? "Receive" : "Pay";
+      });
+
+      if(side === "receive"){
+        logicStrip.classList.add("receive");
+        resultNote.classList.add("receive");
+        finalRow.classList.add("highlight-receive");
+      }else{
+        logicStrip.classList.add("pay");
+        resultNote.classList.add("pay");
+        finalRow.classList.add("highlight-pay");
+      }
+    }
+
+    function setMode(mode){
+      document.getElementById("transactionSide").value = mode;
+      document.querySelectorAll(".mode-card").forEach(card=>{
+        card.classList.toggle("active", card.dataset.mode === mode);
+      });
+      applySideTheme(mode);
+      updateLabels();
+    }
+
+    function updateLabels(){
+      const side = getVal("transactionSide");
+      const knownType = getVal("knownAmountType");
+
+      const amountLabel = document.getElementById("amountLabel");
+      const amountHint = document.getElementById("amountHint");
+      const knownAmountHint = document.getElementById("knownAmountHint");
+      const finalBoxLabel = document.getElementById("finalBoxLabel");
+      const logicStrip = document.getElementById("logicStrip");
+
+      if(side === "receive"){
+        finalBoxLabel.textContent = "Final Received Amount";
+      } else {
+        finalBoxLabel.textContent = "Final Payment Amount";
+      }
+
+      if(knownType === "net"){
+        amountLabel.textContent = side === "receive"
+          ? "3. Final Received Amount Enter Karo"
+          : "3. Final Payment Amount Enter Karo";
+
+        amountHint.textContent = side === "receive"
+          ? "Ye actual net amount hoga jo aapko mila."
+          : "Ye actual net amount hoga jo aap saamne wale ko doge.";
+
+        knownAmountHint.textContent = "Yahan woh amount choose karo jo abhi aapko exact pata hai.";
+        logicStrip.textContent = "Logic: Final amount known ho toh reverse calculation se base amount niklega.";
+      }
+
+      if(knownType === "invoice"){
+        amountLabel.textContent = "3. Invoice Total Enter Karo";
+        amountHint.textContent = "Ye GST included invoice total hoga.";
+        knownAmountHint.textContent = "Agar aapko poora invoice amount pata hai, toh yeh option choose karo.";
+        logicStrip.textContent = "Logic: Invoice total se pehle base niklega, fir TDS aur final amount niklega.";
+      }
+
+      if(knownType === "base"){
+        amountLabel.textContent = "3. Base Amount Enter Karo";
+        amountHint.textContent = "Ye GST aur TDS se pehle ka taxable amount hoga.";
+        knownAmountHint.textContent = "Agar aapko taxable/base amount pata hai, toh yeh option choose karo.";
+        logicStrip.textContent = "Logic: Base amount known ho toh GST add aur TDS deduct karke final amount niklega.";
+      }
+
+      applySideTheme(side);
+    }
+
+    function resetForm(){
+      document.getElementById("transactionSide").value = "receive";
+      document.getElementById("knownAmountType").value = "net";
+      document.getElementById("amount").value = "";
+      document.getElementById("gstRate").value = "18";
+      document.getElementById("tdsRate").value = "10";
+      document.getElementById("roundOff").value = "yes";
+      document.getElementById("currencySymbol").value = "₹";
+
+      document.querySelectorAll(".mode-card").forEach(card=>{
+        card.classList.toggle("active", card.dataset.mode === "receive");
+      });
+
+      [
+        "baseAmountResult",
+        "gstAmountResult",
+        "invoiceTotalResult",
+        "tdsAmountResult",
+        "finalAmountResult",
+        "routeResult"
+      ].forEach(id => document.getElementById(id).textContent = "-");
+
+      document.getElementById("resultNote").textContent = "Calculation karne ke baad yahan summary aayegi.";
+      document.getElementById("stepsContainer").innerHTML = `
+        <div class="step">
+          <div class="step-title">Step 1</div>
+          <div class="step-text">Calculation ke baad yahan dynamic explanation aayega.</div>
+        </div>
+      `;
+      document.getElementById("formulaExplanation").textContent = "Yahan full explanation aayega.";
+      document.getElementById("treatmentPill").textContent = "Dynamic treatment ready after calculation.";
+      updateLabels();
+      applySideTheme("receive");
+    }
+
+    function calculateFromBase(baseAmount, gstRate, tdsRate){
+      const gstDecimal = gstRate / 100;
+      const tdsDecimal = tdsRate / 100;
+
+      const gstAmount = baseAmount * gstDecimal;
+      const invoiceTotal = baseAmount + gstAmount;
+      const tdsAmount = baseAmount * tdsDecimal;
+      const finalNetAmount = invoiceTotal - tdsAmount;
+
+      return {
+        gstDecimal,
+        tdsDecimal,
+        baseAmount,
+        gstAmount,
+        invoiceTotal,
+        tdsAmount,
+        finalNetAmount
+      };
+    }
+
+    function calculateAmount(){
+      const side = getVal("transactionSide");
+      const knownType = getVal("knownAmountType");
+      const amount = getNum("amount");
+      const gstRate = getNum("gstRate");
+      const tdsRate = getNum("tdsRate");
+      const roundOff = getVal("roundOff");
+      const currencySymbol = getVal("currencySymbol") || "₹";
+
+      if(isNaN(amount) || amount <= 0){
+        alert("Please valid amount enter karo.");
+        return;
+      }
+
+      const gstDecimal = gstRate / 100;
+      const tdsDecimal = tdsRate / 100;
+
+      let baseAmount = 0;
+      let gstAmount = 0;
+      let invoiceTotal = 0;
+      let tdsAmount = 0;
+      let finalNetAmount = 0;
+      let routeText = "";
+      let stepsHTML = "";
+      let formulaText = "";
+
+      if(knownType === "base"){
+        const result = calculateFromBase(amount, gstRate, tdsRate);
+        baseAmount = result.baseAmount;
+        gstAmount = result.gstAmount;
+        invoiceTotal = result.invoiceTotal;
+        tdsAmount = result.tdsAmount;
+        finalNetAmount = result.finalNetAmount;
+        routeText = "Base → GST → Invoice → TDS → Net";
+
+        stepsHTML = `
+          <div class="step">
+            <div class="step-title">Step 1: Base amount already known tha</div>
+            <div class="step-text">Base Amount = ${amount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 2: GST nikala</div>
+            <div class="step-text">GST Amount = Base × GST%
+GST Amount = ${baseAmount.toFixed(2)} × ${gstDecimal.toFixed(2)}
+GST Amount = ${gstAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 3: Invoice total nikala</div>
+            <div class="step-text">Invoice Total = Base + GST
+Invoice Total = ${baseAmount.toFixed(2)} + ${gstAmount.toFixed(2)}
+Invoice Total = ${invoiceTotal.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 4: TDS nikala</div>
+            <div class="step-text">TDS Amount = Base × TDS%
+TDS Amount = ${baseAmount.toFixed(2)} × ${tdsDecimal.toFixed(2)}
+TDS Amount = ${tdsAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 5: Final net amount nikala</div>
+            <div class="step-text">Final Net Amount = Invoice Total - TDS
+Final Net Amount = ${invoiceTotal.toFixed(2)} - ${tdsAmount.toFixed(2)}
+Final Net Amount = ${finalNetAmount.toFixed(2)}</div>
+          </div>
+        `;
+
+        formulaText =
+`Known Amount Type: Base Amount
+
+1. Base amount directly given tha.
+2. GST = Base × GST%
+3. Invoice Total = Base + GST
+4. TDS = Base × TDS%
+5. Final Net Amount = Invoice Total - TDS
+
+Ye direct calculation route tha.`;
+      }
+
+      if(knownType === "invoice"){
+        invoiceTotal = amount;
+        baseAmount = invoiceTotal / (1 + gstDecimal);
+        gstAmount = invoiceTotal - baseAmount;
+        tdsAmount = baseAmount * tdsDecimal;
+        finalNetAmount = invoiceTotal - tdsAmount;
+        routeText = "Invoice → Base → GST Split → TDS → Net";
+
+        stepsHTML = `
+          <div class="step">
+            <div class="step-title">Step 1: Invoice total already known tha</div>
+            <div class="step-text">Invoice Total = ${invoiceTotal.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 2: Base amount nikala by removing GST</div>
+            <div class="step-text">Formula:
+Invoice Total = Base × (1 + GST%)
+
+Toh,
+Base = Invoice Total ÷ (1 + GST%)
+
+Base = ${invoiceTotal.toFixed(2)} ÷ ${(1 + gstDecimal).toFixed(2)}
+Base = ${baseAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 3: GST amount nikala</div>
+            <div class="step-text">GST Amount = Invoice Total - Base
+GST Amount = ${invoiceTotal.toFixed(2)} - ${baseAmount.toFixed(2)}
+GST Amount = ${gstAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 4: TDS amount nikala</div>
+            <div class="step-text">TDS = Base × TDS%
+TDS = ${baseAmount.toFixed(2)} × ${tdsDecimal.toFixed(2)}
+TDS = ${tdsAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 5: Final net amount nikala</div>
+            <div class="step-text">Final Net = Invoice Total - TDS
+Final Net = ${invoiceTotal.toFixed(2)} - ${tdsAmount.toFixed(2)}
+Final Net = ${finalNetAmount.toFixed(2)}</div>
+          </div>
+        `;
+
+        formulaText =
+`Known Amount Type: Invoice Total
+
+1. Invoice Total GST included hota hai.
+2. Isliye pehle base amount nikalte hain:
+   Base = Invoice Total ÷ (1 + GST%)
+3. GST Amount = Invoice Total - Base
+4. TDS = Base × TDS%
+5. Final Net Amount = Invoice Total - TDS
+
+Is route me calculation invoice amount ke basis par hi ki gayi hai.`;
+      }
+
+      if(knownType === "net"){
+        finalNetAmount = amount;
+        baseAmount = finalNetAmount / (1 + gstDecimal - tdsDecimal);
+        gstAmount = baseAmount * gstDecimal;
+        invoiceTotal = baseAmount + gstAmount;
+        tdsAmount = baseAmount * tdsDecimal;
+        routeText = "Net → Base → GST → Invoice → TDS Cross-check";
+
+        stepsHTML = `
+          <div class="step">
+            <div class="step-title">Step 1: Final net amount already known tha</div>
+            <div class="step-text">Final Net Amount = ${finalNetAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 2: Reverse formula banaya</div>
+            <div class="step-text">Final Net = Invoice Total - TDS
+Aur
+Invoice Total = Base + GST
+
+So,
+Final Net = Base × (1 + GST% - TDS%)</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 3: Base amount nikala</div>
+            <div class="step-text">Base = Final Net ÷ (1 + GST% - TDS%)
+Base = ${finalNetAmount.toFixed(2)} ÷ ${(1 + gstDecimal - tdsDecimal).toFixed(2)}
+Base = ${baseAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 4: GST amount nikala</div>
+            <div class="step-text">GST = Base × GST%
+GST = ${baseAmount.toFixed(2)} × ${gstDecimal.toFixed(2)}
+GST = ${gstAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 5: Invoice total nikala</div>
+            <div class="step-text">Invoice Total = Base + GST
+Invoice Total = ${baseAmount.toFixed(2)} + ${gstAmount.toFixed(2)}
+Invoice Total = ${invoiceTotal.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 6: TDS amount nikala</div>
+            <div class="step-text">TDS = Base × TDS%
+TDS = ${baseAmount.toFixed(2)} × ${tdsDecimal.toFixed(2)}
+TDS = ${tdsAmount.toFixed(2)}</div>
+          </div>
+          <div class="step">
+            <div class="step-title">Step 7: Cross-check kiya</div>
+            <div class="step-text">Final Net = Invoice Total - TDS
+Final Net = ${invoiceTotal.toFixed(2)} - ${tdsAmount.toFixed(2)}
+Final Net = ${finalNetAmount.toFixed(2)}</div>
+          </div>
+        `;
+
+        formulaText =
+`Known Amount Type: Final Net Amount
+
+1. Final Net Amount directly diya gaya tha.
+2. Reverse formula use hua:
+   Final Net = Base × (1 + GST% - TDS%)
+3. Base = Final Net ÷ (1 + GST% - TDS%)
+4. GST = Base × GST%
+5. Invoice Total = Base + GST
+6. TDS = Base × TDS%
+7. Cross-check: Final Net = Invoice Total - TDS`;
+      }
+
+      document.getElementById("baseAmountResult").textContent = formatAmount(baseAmount, roundOff, currencySymbol);
+      document.getElementById("gstAmountResult").textContent = formatAmount(gstAmount, roundOff, currencySymbol);
+      document.getElementById("invoiceTotalResult").textContent = formatAmount(invoiceTotal, roundOff, currencySymbol);
+      document.getElementById("tdsAmountResult").textContent = formatAmount(tdsAmount, roundOff, currencySymbol);
+      document.getElementById("finalAmountResult").textContent = formatAmount(finalNetAmount, roundOff, currencySymbol);
+      document.getElementById("routeResult").textContent = routeText;
+
+      const sideSummary = side === "receive"
+        ? "Receive Side: Ye final amount aapko milega after TDS deduction."
+        : "Pay Side: Ye final amount aap saamne wale ko pay karoge after TDS deduction.";
+
+      document.getElementById("resultNote").textContent =
+`Calculation Route: ${routeText}
+${sideSummary}
+TDS hamesha base amount par calculate hota hai, GST par nahi.`;
+
+      document.getElementById("stepsContainer").innerHTML = stepsHTML;
+      document.getElementById("formulaExplanation").textContent =
+`${formulaText}
+
+Dynamic Treatment:
+- Agar Base known ho: direct calculation.
+- Agar Invoice known ho: pehle GST remove karke base nikala.
+- Agar Final amount known ho: reverse formula se base nikala.
+
+Transaction Side:
+${side === "receive"
+? "- Aapko net amount receive hota hai.\n- Client TDS deduct karta hai."
+: "- Aap net amount pay karte ho.\n- Aap TDS deduct karke deposit karte ho."}`;
+
+      document.getElementById("treatmentPill").textContent =
+        side === "receive"
+          ? "Currently showing: Receive side dynamic treatment"
+          : "Currently showing: Pay side dynamic treatment";
+
+      applySideTheme(side);
+    }
+
+    function copyResults(){
+      const text = `
+GST + TDS Dynamic Calculation Result
+
+Base Amount: ${document.getElementById("baseAmountResult").textContent}
+GST Amount: ${document.getElementById("gstAmountResult").textContent}
+Invoice Total: ${document.getElementById("invoiceTotalResult").textContent}
+TDS Amount: ${document.getElementById("tdsAmountResult").textContent}
+Final Net Amount: ${document.getElementById("finalAmountResult").textContent}
+Calculation Route: ${document.getElementById("routeResult").textContent}
+
+Summary:
+${document.getElementById("resultNote").textContent}
+      `.trim();
+
+      navigator.clipboard.writeText(text)
+        .then(() => alert("Result copied successfully."))
+        .catch(() => alert("Copy failed. Please copy manually."));
+    }
+
+    updateLabels();
+    applySideTheme("receive");
+  </script>
+</body>
+</html>

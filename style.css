@@ -1,0 +1,210 @@
+/*
+Theme Name: holisticprogressreport
+Theme URI: https://holisticprogressreport.com/your-theme
+Author: Navneet Kumar
+Author URI: https://holisticprogressreport.com
+Description: A custom WordPress theme for holisticprogressreport
+Version: 1.0
+License: GNU General Public License v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: holisticprogressreport
+*/
+
+/* ─── Reset & Base ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #1a1a2e;
+  background-color: #f9fafb;
+  line-height: 1.6;
+}
+
+/* ─── Orange Brand Colour ───────────────────────────────── */
+:root {
+  --orange: #f97316;
+  --orange-light: #fdba74;
+  --orange-dark: #ea6c00;
+  --blue-dark: #1e3a8a;
+  --navy: #0f172a;
+}
+
+/* ─── CTA Button ────────────────────────────────────────── */
+.cta-btn {
+  background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+  color: #fff !important;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(249,115,22,0.45);
+  filter: brightness(1.05);
+}
+.cta-btn:active { transform: translateY(0); }
+
+/* ─── Gradient Text ─────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--orange) 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Section Badge ─────────────────────────────────────── */
+.section-badge {
+  display: inline-block;
+  background: #fff7ed;
+  color: var(--orange-dark);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-radius: 999px;
+  padding: 6px 16px;
+  border: 1px solid #fed7aa;
+}
+.section-badge.light {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border-color: rgba(255,255,255,0.3);
+}
+
+/* ─── Hero Section ──────────────────────────────────────── */
+.hero-section {
+  background: linear-gradient(160deg, #f0f4ff 0%, #fff7ed 50%, #f9fafb 100%);
+  position: relative;
+}
+.hero-bg-blob {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ─── Stat Cards ────────────────────────────────────────── */
+.stat-card {
+  background: linear-gradient(135deg, #fff 0%, #f0f4ff 100%);
+  border: 1px solid #e2e8f0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.stat-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+/* ─── Demo Section ──────────────────────────────────────── */
+.demo-section {
+  background: linear-gradient(160deg, #f0f4ff 0%, #fff7ed 100%);
+}
+.demo-section input:focus {
+  border-color: var(--orange) !important;
+}
+
+/* ─── Benefit Icon Box ──────────────────────────────────── */
+.benefit-icon {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+/* ─── Why Now Cards ─────────────────────────────────────── */
+.why-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.why-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+/* ─── Transform Dark Section ────────────────────────────── */
+.transform-section {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+}
+.step-card {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(12px);
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+.step-card:hover {
+  transform: translateY(-6px);
+  background: rgba(255,255,255,0.12);
+}
+.step-number {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(249,115,22,0.4);
+}
+
+/* ─── Testimonials ──────────────────────────────────────── */
+.testimonial-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.testimonial-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--orange) 0%, #7c3aed 100%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ─── Video Modal ───────────────────────────────────────── */
+.modal-hidden  { display: none; }
+.modal-visible { display: flex; }
+.modal-backdrop {
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+}
+
+/* ─── Mobile Menu ───────────────────────────────────────── */
+.mobile-menu-hidden { display: none; }
+.mobile-menu-visible { display: block; }
+
+/* ─── Smooth Scroll Offset (for sticky header) ──────────── */
+section[id] { scroll-margin-top: 90px; }
+
+/* ─── Animations ────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease both;
+}
+
+/* ─── Responsive Utilities ──────────────────────────────── */
+@media (max-width: 768px) {
+  .hero-section h1 { font-size: 2.2rem; }
+}
