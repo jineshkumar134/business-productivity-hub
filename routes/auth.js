@@ -12,9 +12,16 @@ const dbReady = (res) => {
     return true;
 };
 
-// Sign Up
+// Sign Up — Admin only (requires ADMIN_SECRET header)
 router.post('/signup', async (req, res) => {
     if (!dbReady(res)) return;
+
+    // 🔒 Admin secret gate
+    const providedSecret = req.headers['x-admin-secret'] || req.body.adminSecret;
+    if (!providedSecret || providedSecret !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({ error: 'Access denied. User accounts can only be created by an Admin.' });
+    }
+
     try {
         const { name, email, phone, password } = req.body;
 

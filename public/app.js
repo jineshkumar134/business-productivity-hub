@@ -336,11 +336,16 @@ const VIEW_META = {
     logs:      { t:'Activity Logs',                 d:'Full audit trail of all system changes and task updates.' },
     invoicing: { t:'Invoicing Calculator',          d:'Estimate GST and TDS for your transactions with ease.' },
     documents: { t:'Document Center',               d:'Upload and manage core organizational files and documents.' },
+    admin:     { t:'Admin Panel',                    d:'Create and manage user accounts. Admin access only.' },
 };
 function switchView(viewName) {
     state.currentView = viewName;
     el.navItems.forEach(item => item.classList.toggle('active', item.getAttribute('data-view') === viewName));
+    // Handle all normal views
     el.views.forEach(v => v.classList.toggle('active', v.id === `${viewName}-view`));
+    // Handle admin-view separately (it's outside content-area)
+    const adminView = $('admin-view');
+    if (adminView) adminView.style.display = viewName === 'admin' ? 'block' : 'none';
     const meta = VIEW_META[viewName] || { t:'', d:'' };
     el.viewTitle.textContent = meta.t;
     el.viewDesc.textContent = meta.d;
@@ -1145,5 +1150,55 @@ async function deleteDocument(id) {
 }
 window.deleteDocument = deleteDocument;
 
+// ── ADMIN: CREATE USER ────────────────────────────────────────────────────────
+function setupAdminPanel() {
+    const form = $('admin-create-user-form');
+    if (!form) return;
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = $('admin-create-btn');
+        const msgEl = $('admin-msg');
+        const name     = $('admin-new-name').value.trim();
+        const email    = $('admin-new-email').value.trim();
+        const phone    = $('admin-new-phone').value.trim();
+        const password = $('admin-new-password').value;
+        const secret   = $('admin-secret-input').value;
+
+        btn.disabled = true;
+        btn.innerHTML = `<span style="opacity:0.7">Creating…</span>`;
+        msgEl.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-secret': secret
+                },
+                body: JSON.stringify({ name, email, phone, password })
+            });
+            const data = await res.json();
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create User Account`;
+
+            if (!res.ok) {
+                msgEl.style.cssText = 'display:block;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #fecaca;';
+                msgEl.textContent = '❌ ' + (data.error || 'Failed to create user.');
+            } else {
+                msgEl.style.cssText = 'display:block;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid #6ee7b7;';
+                msgEl.textContent = `✅ Account created for ${data.user.name} (${data.user.email}). Share credentials manually.`;
+                form.reset();
+                showNotification(`User "${data.user.name}" created successfully!`, 'success');
+            }
+        } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = `Create User Account`;
+            msgEl.style.cssText = 'display:block;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #fecaca;';
+            msgEl.textContent = '❌ Network error: ' + err.message;
+        }
+    });
+}
+
 // ── START ─────────────────────────────────────────────────────────────────────
+setupAdminPanel();
 init();
