@@ -253,5 +253,15 @@ body::before {
 
 /* Responsive */
 @media (max-width: 480px) {
-    .auth-card { padding: 1.75rem; }
+    .auth-container { margin: 1rem 0.75rem; }
+    .auth-card { padding: 1.5rem 1.25rem; border-radius: 10px; }
+    .auth-logo h1 { font-size: 1.2rem; }
+    .auth-logo { margin-bottom: 1.5rem; }
+    .form-group input { font-size: 0.85rem; }
+    .auth-btn { font-size: 0.85rem; }
+}
+
+@media (max-width: 360px) {
+    .auth-container { margin: 0.5rem; }
+    .auth-card { padding: 1.25rem 1rem; }
 }
