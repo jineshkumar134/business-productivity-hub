@@ -21,14 +21,15 @@ const getDeptConfig = (name) => DEPT_CONFIG.find(d => d.name === name) || { colo
 // ── State ─────────────────────────────────────────────────────────────────────
 const state = {
     currentView: 'dashboard',
-    tasks: [], personal: [], logs: [],
+    tasks: [], personal: [], logs: [], documents: [],
     selectedPersonal: [],
     departments: DEPT_CONFIG.map(d => d.name),
     orgVision: localStorage.getItem('bh_vision') || '',
     orgMission: localStorage.getItem('bh_mission') || '',
     searchQuery: '',
     personPhotoData: '',
-    theme: localStorage.getItem('bh_theme') || 'light'
+    theme: localStorage.getItem('bh_theme') || 'light',
+    pendingUploadFile: null
 };
 
 // ── DOM Refs ──────────────────────────────────────────────────────────────────
@@ -62,7 +63,13 @@ const el = {
     profileModal: $('profile-modal'),
     exportAiBtn: $('export-ai-btn'),
     themeToggle: $('theme-toggle'),
-    themeIcon: $('theme-icon')
+    themeIcon: $('theme-icon'),
+    docFileInput: $('doc-file-input'),
+    documentModal: $('document-modal'),
+    documentForm: $('document-form'),
+    documentsTbody: $('documents-tbody'),
+    docSearch: $('doc-search'),
+    docCategoryFilter: $('doc-category-filter')
 };
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
@@ -116,16 +123,35 @@ function setupEventListeners() {
 
     el.closeModalBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            el.taskModal.classList.remove('active');
-            el.personalModal.classList.remove('active');
-            el.profileModal.classList.remove('active');
+            el.taskModal?.classList.remove('active');
+            el.personalModal?.classList.remove('active');
+            el.profileModal?.classList.remove('active');
+            el.documentModal?.classList.remove('active');
         });
     });
 
     // Close modal on backdrop click
-    [el.taskModal, el.personalModal, el.profileModal].forEach(m => {
+    [el.taskModal, el.personalModal, el.profileModal, el.documentModal].forEach(m => {
         m?.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
     });
+
+    // Document file selector
+    el.docFileInput?.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        $('doc-display-name').value = file.name;
+        $('doc-category').value = 'Other';
+        $('doc-description').value = '';
+        state.pendingUploadFile = file;
+        el.documentModal.classList.add('active');
+    });
+
+    // Document form submit
+    el.documentForm?.addEventListener('submit', handleDocumentSubmit);
+
+    // Document filters
+    $('doc-search')?.addEventListener('input', renderDocuments);
+    $('doc-category-filter')?.addEventListener('change', renderDocuments);
 
     // Forms
     el.taskForm?.addEventListener('submit', handleTaskSubmit);
@@ -309,6 +335,7 @@ const VIEW_META = {
     hr:        { t:'Team Management',               d:'Manage personnel and define core responsibilities.' },
     logs:      { t:'Activity Logs',                 d:'Full audit trail of all system changes and task updates.' },
     invoicing: { t:'Invoicing Calculator',          d:'Estimate GST and TDS for your transactions with ease.' },
+    documents: { t:'Document Center',               d:'Upload and manage core organizational files and documents.' },
 };
 function switchView(viewName) {
     state.currentView = viewName;
@@ -323,12 +350,13 @@ function switchView(viewName) {
 // ── DATA ──────────────────────────────────────────────────────────────────────
 async function fetchData() {
     try {
-        const [tRes, pRes, lRes] = await Promise.all([
+        const [tRes, pRes, lRes, dRes] = await Promise.all([
             fetch('/api/tasks').then(r => r.json()),
             fetch('/api/personal').then(r => r.json()),
             fetch('/api/logs').then(r => r.json()),
+            fetch('/api/documents').then(r => r.json()).catch(() => [])
         ]);
-        state.tasks = tRes; state.personal = pRes; state.logs = lRes;
+        state.tasks = tRes; state.personal = pRes; state.logs = lRes; state.documents = dRes;
     } catch(err) { showNotification('Error fetching data', 'error'); }
 }
 
@@ -339,6 +367,7 @@ function renderAll() {
     else if (v === 'ai') renderAIView();
     else if (v === 'hr') renderPersonal();
     else if (v === 'logs') renderLogs();
+    else if (v === 'documents') renderDocuments();
     renderPersonalDropdown();
 }
 
@@ -656,7 +685,7 @@ async function handleAIAlignmentAnalysis() {
         const misaligned = data.departmentScores.filter(d=>d.status==='Misaligned');
         
         resultsArea.innerHTML = `
-        ${!data.hasKey ? `<div style="background:var(--warning);color:white;padding:0.6rem;text-align:center;font-size:0.8rem;font-weight:600;border-radius:var(--radius-sm);margin-bottom:1rem;">⚠️ Using deterministic fallback analysis. Provide a GEMINI_API_KEY in backend .env to unlock full GenAI insights.</div>` : ''}
+        ${!data.hasKey ? `<div style="background:var(--warning);color:white;padding:0.6rem;text-align:center;font-size:0.8rem;font-weight:600;border-radius:var(--radius-sm);margin-bottom:1rem;">⚠️ Using deterministic fallback analysis. Provide a GROQ_API_KEY in backend .env to unlock full GenAI insights.</div>` : ''}
         <div class="ai-insight-panel" style="margin-bottom:1rem;">
             <div class="ai-section-title">📊 Strategic Alignment Score</div>
             <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
@@ -937,6 +966,184 @@ window.openTaskModal=openTaskModal;
 window.editPersonal=id=>openPersonalModal(id);
 window.deleteTask=async id=>{if(!confirm('Delete this task?'))return;try{const r=await fetch(`/api/tasks/${id}`,{method:'DELETE'});if(r.ok){showNotification('Task deleted','success');state.tasks = state.tasks.filter(t => t._id !== id && t.id !== id);fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });renderAll();}}catch(e){showNotification('Error deleting task','error');}};
 window.deletePersonal=async id=>{if(!confirm('Remove this team member?'))return;try{const r = await fetch(`/api/personal/${id}`,{method:'DELETE'});if(r.ok){showNotification('Member removed','success');state.personal = state.personal.filter(p => p._id !== id && p.id !== id);renderAll();}}catch(e){showNotification('Error','error');}};
+
+// ── DOCUMENT CENTER HANDLERS ──────────────────────────────────────────────────
+async function handleDocumentSubmit(e) {
+    e.preventDefault();
+    const file = state.pendingUploadFile;
+    if (!file) return;
+    
+    const btn = $('save-doc-btn');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner-small"></div> Uploading...'; }
+    
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+        const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+        const docData = {
+            name: $('doc-display-name').value,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            data: ev.target.result,
+            category: $('doc-category').value,
+            description: $('doc-description').value,
+            uploadedBy: user.name || 'User'
+        };
+        
+        try {
+            const res = await fetch('/api/documents', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(docData)
+            });
+            
+            if (res.ok) {
+                showNotification('Document uploaded successfully ✅', 'success');
+                el.documentModal.classList.remove('active');
+                
+                const [docs, logs] = await Promise.all([
+                    fetch('/api/documents').then(r => r.json()),
+                    fetch('/api/logs').then(r => r.json())
+                ]);
+                state.documents = docs;
+                state.logs = logs;
+                renderAll();
+            } else {
+                let errMsg = 'Upload failed';
+                try { const j = await res.json(); errMsg = j.error || res.statusText; } catch(e){}
+                showNotification('Failed to upload: ' + errMsg, 'error');
+            }
+        } catch (err) {
+            showNotification('Network error: ' + err.message, 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+            state.pendingUploadFile = null;
+            el.docFileInput.value = '';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function renderDocuments() {
+    const tbody = $('documents-tbody');
+    if (!tbody) return;
+    
+    const query = $('doc-search')?.value?.toLowerCase() || '';
+    const categoryFilter = $('doc-category-filter')?.value || 'All';
+    
+    let filtered = state.documents || [];
+    if (categoryFilter !== 'All') {
+        filtered = filtered.filter(d => d.category === categoryFilter);
+    }
+    if (query) {
+        filtered = filtered.filter(d => d.name?.toLowerCase().includes(query) || d.category?.toLowerCase().includes(query) || d.description?.toLowerCase().includes(query));
+    }
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--secondary); padding: 2rem;">No documents match your filters.</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = filtered.map(doc => {
+        const dateStr = doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+        
+        let sizeStr = '0 B';
+        if (doc.size > 1024 * 1024) {
+            sizeStr = (doc.size / (1024 * 1024)).toFixed(2) + ' MB';
+        } else if (doc.size > 1024) {
+            sizeStr = (doc.size / 1024).toFixed(1) + ' KB';
+        } else if (doc.size) {
+            sizeStr = doc.size + ' B';
+        }
+        
+        return `
+        <tr>
+            <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <div>
+                        <div style="font-weight: 700; color: var(--dark);">${doc.name}</div>
+                        ${doc.description ? `<div style="font-size: 0.72rem; color: var(--secondary); margin-top: 0.1rem;">${doc.description}</div>` : ''}
+                    </div>
+                </div>
+            </td>
+            <td><span style="font-size:0.75rem; font-weight:700; color:var(--primary); background:rgba(99,102,241,0.1); padding:0.2rem 0.6rem; border-radius:50px;">${doc.category}</span></td>
+            <td><span style="font-size: 0.78rem; font-weight: 600; color: var(--secondary);">${sizeStr}</span></td>
+            <td><span style="font-size: 0.78rem; font-weight: 600; color: var(--dark);">${doc.uploadedBy || 'User'}</span></td>
+            <td><span style="font-size: 0.78rem; color: var(--secondary);">${dateStr}</span></td>
+            <td style="text-align: right;">
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button class="btn btn-glass" onclick="downloadDocument('${doc._id || doc.id}')" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteDocument('${doc._id || doc.id}')" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        🗑️ Delete
+                    </button>
+                </div>
+            </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+async function downloadDocument(id) {
+    showNotification('Retrieving file...', 'success');
+    try {
+        const res = await fetch(`/api/documents/${id}`);
+        if (!res.ok) throw new Error('Could not fetch document content');
+        const doc = await res.json();
+        
+        // Extract base64 and MIME type
+        const parts = doc.data.split(',');
+        if (parts.length < 2) throw new Error('Invalid document data format');
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+        
+        // Decode base64 to raw binary data
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        
+        // Create blob and ObjectURL for safe download
+        const blob = new Blob([u8arr], { type: mime });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('Download started ✅', 'success');
+    } catch (err) {
+        showNotification('Download failed: ' + err.message, 'error');
+    }
+}
+window.downloadDocument = downloadDocument;
+
+async function deleteDocument(id) {
+    if (!confirm('Are you sure you want to permanently delete this document?')) return;
+    try {
+        const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showNotification('Document deleted successfully ✅', 'success');
+            state.documents = state.documents.filter(d => d._id !== id && d.id !== id);
+            fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });
+            renderAll();
+        } else {
+            showNotification('Failed to delete document', 'error');
+        }
+    } catch (err) {
+        showNotification('Error: ' + err.message, 'error');
+    }
+}
+window.deleteDocument = deleteDocument;
 
 // ── START ─────────────────────────────────────────────────────────────────────
 init();

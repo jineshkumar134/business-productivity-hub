@@ -38,12 +38,14 @@ const personalRoutes = require('./routes/personal');
 const logRoutes = require('./routes/logs');
 const authRoutes = require('./routes/auth');
 const aiRoutes = require('./routes/ai');
+const documentRoutes = require('./routes/documents');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/personal', personalRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/documents', documentRoutes);
 
 // Catch-all route to serve the SPA
 app.use((req, res) => {
