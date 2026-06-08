@@ -341,11 +341,7 @@ const VIEW_META = {
 function switchView(viewName) {
     state.currentView = viewName;
     el.navItems.forEach(item => item.classList.toggle('active', item.getAttribute('data-view') === viewName));
-    // Handle all normal views
     el.views.forEach(v => v.classList.toggle('active', v.id === `${viewName}-view`));
-    // Handle admin-view separately (it's outside content-area)
-    const adminView = $('admin-view');
-    if (adminView) adminView.style.display = viewName === 'admin' ? 'block' : 'none';
     const meta = VIEW_META[viewName] || { t:'', d:'' };
     el.viewTitle.textContent = meta.t;
     el.viewDesc.textContent = meta.d;
