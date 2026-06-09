@@ -21,37 +21,23 @@ router.post('/', async (req, res) => {
         const newPerson = new Personal(req.body);
         await newPerson.save();
 
-        // Auto-create a User login account if email is provided
-        let generatedCredentials = null;
-        if (req.body.email) {
+        // Auto-create a User login account if email and password are provided
+        if (req.body.email && req.body.password) {
             const User = require('../models/User');
             const existingUser = await User.findOne({ email: req.body.email.toLowerCase() });
             if (!existingUser) {
-                // Generate a random 8-char password
-                const crypto = require('crypto');
-                const generatedPassword = crypto.randomBytes(4).toString('hex'); // e.g. "a3f1b9c2"
-
                 const newUser = new User({
                     name: req.body.name,
                     email: req.body.email.toLowerCase(),
                     phone: req.body.phone || '0000000000',
-                    password: generatedPassword,
+                    password: req.body.password,
                     role: 'staff'
                 });
                 await newUser.save();
-
-                generatedCredentials = {
-                    email: req.body.email.toLowerCase(),
-                    password: generatedPassword // plain text — shown once to admin
-                };
             }
         }
 
-        const response = newPerson.toObject();
-        if (generatedCredentials) {
-            response.generatedCredentials = generatedCredentials;
-        }
-        res.status(201).json(response);
+        res.status(201).json(newPerson);
     } catch (err) {
         res.status(400).json({ error: err.message });
     }

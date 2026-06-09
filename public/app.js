@@ -1175,7 +1175,7 @@ function openPersonalModal(personId=null){
         const person=state.personal.find(p=>p._id===personId);if(!person)return;
         $('person-id').value=person._id; $('person-name').value=person.name;
         $('person-role').value=person.role; $('person-dept').value=person.department;
-        $('person-email').value=person.email||''; $('person-responsibility').value=person.responsibility||'';
+        $('person-email').value=person.email||''; $('person-password').value=''; $('person-responsibility').value=person.responsibility||'';
         if(pInit)pInit.textContent=person.name.charAt(0).toUpperCase();
         if(person.photoData){state.personPhotoData=person.photoData;$('person-photo-data').value=person.photoData;const av=$('person-preview-avatar');if(av){const img=document.createElement('img');img.src=person.photoData;img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:18px;';av.appendChild(img);}}
         $('personal-modal-title').textContent='Edit Team Member';
@@ -1275,6 +1275,7 @@ async function handlePersonalSubmit(e){
         role:$('person-role').value,
         department:$('person-dept').value,
         email:$('person-email').value,
+        password:$('person-password').value,
         responsibility:$('person-responsibility').value,
         photoData
     };
@@ -1298,11 +1299,7 @@ async function handlePersonalSubmit(e){
             state.personPhotoData='';
             renderAll();
 
-            // Show generated login credentials to Admin (only on new member creation)
-            if (!id && updatedPerson.generatedCredentials) {
-                const creds = updatedPerson.generatedCredentials;
-                showCredentialsPopup(creds.email, creds.password, personData.name);
-            }
+            // The password popup logic has been removed as per user request.
         } else {
             let errMsg = 'Server error';
             try { const j=await res.json(); errMsg=j.error||res.statusText; } catch(e){}
@@ -1315,52 +1312,7 @@ async function handlePersonalSubmit(e){
     }
 }
 
-function showCredentialsPopup(email, password, name) {
-    // Create a modal overlay with credentials
-    const overlay = document.createElement('div');
-    overlay.id = 'credentials-popup';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:1.5rem;';
-    overlay.innerHTML = `
-        <div style="background:white;border-radius:20px;padding:2rem;max-width:460px;width:100%;box-shadow:0 25px 50px rgba(0,0,0,0.25);animation:modalScale 0.3s cubic-bezier(0.34,1.56,0.64,1);">
-            <div style="text-align:center;margin-bottom:1.5rem;">
-                <div style="width:56px;height:56px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                </div>
-                <h3 style="font-size:1.15rem;font-weight:800;color:#0f172a;margin-bottom:0.3rem;">✅ Staff Account Created</h3>
-                <p style="font-size:0.8rem;color:#64748b;">Login credentials for <strong>${name}</strong></p>
-            </div>
-            <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.85rem;">
-                    <span style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">📧 Email</span>
-                    <span style="font-size:0.9rem;font-weight:700;color:#0f172a;font-family:monospace;">${email}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">🔑 Password</span>
-                    <span style="font-size:0.9rem;font-weight:700;color:#0f172a;font-family:monospace;background:#fef3c7;padding:0.2rem 0.6rem;border-radius:6px;">${password}</span>
-                </div>
-            </div>
-            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:0.75rem 1rem;margin-bottom:1.25rem;">
-                <p style="font-size:0.75rem;color:#92400e;font-weight:600;">⚠️ Save these credentials now! The password is shown only once and cannot be recovered.</p>
-            </div>
-            <div style="display:flex;gap:0.75rem;">
-                <button onclick="copyCredentials('${email}','${password}','${name}')" style="flex:1;padding:0.75rem;background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;border:none;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:'Poppins',sans-serif;">📋 Copy Credentials</button>
-                <button onclick="document.getElementById('credentials-popup').remove()" style="flex:1;padding:0.75rem;background:#f1f5f9;color:#0f172a;border:1px solid #e2e8f0;border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:'Poppins',sans-serif;">Close</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-}
-
-function copyCredentials(email, password, name) {
-    const text = `Staff Login Credentials for ${name}\nEmail: ${email}\nPassword: ${password}\nLogin at: ${window.location.origin}`;
-    navigator.clipboard.writeText(text).then(() => {
-        showNotification('Credentials copied to clipboard! 📋','success');
-    }).catch(() => {
-        // Fallback
-        prompt('Copy these credentials:', text);
-    });
-}
+// The showCredentialsPopup and copyCredentials helpers have been removed.
 
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
