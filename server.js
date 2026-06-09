@@ -39,6 +39,7 @@ const logRoutes = require('./routes/logs');
 const authRoutes = require('./routes/auth');
 const aiRoutes = require('./routes/ai');
 const documentRoutes = require('./routes/documents');
+const departmentRoutes = require('./routes/departments');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/personal', personalRoutes);
@@ -46,6 +47,7 @@ app.use('/api/logs', logRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/departments', departmentRoutes);
 
 // Catch-all route to serve the SPA
 app.use((req, res) => {

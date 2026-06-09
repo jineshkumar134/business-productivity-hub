@@ -26,6 +26,9 @@ router.get('/:id', async (req, res) => {
 
 // Upload document
 router.post('/', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
     try {
         const newDoc = new Document(req.body);
         await newDoc.save();
@@ -49,6 +52,9 @@ router.post('/', async (req, res) => {
 
 // Delete document
 router.delete('/:id', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
     try {
         const doc = await Document.findById(req.params.id);
         if (!doc) return res.status(404).json({ error: 'Document not found' });

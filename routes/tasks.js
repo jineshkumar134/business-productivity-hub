@@ -15,6 +15,9 @@ router.get('/', async (req, res) => {
 
 // Create task
 router.post('/', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
     try {
         const newTask = new Task(req.body);
         await newTask.save();
@@ -40,8 +43,27 @@ router.post('/', async (req, res) => {
 // Update task
 router.put('/:id', async (req, res) => {
     try {
-        const titleChange = req.body.task_name && req.body.status;
-        const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const userRole = req.headers['x-user-role'] || 'staff';
+        let updateData = req.body;
+        
+        if (userRole !== 'admin') {
+            const existingTask = await Task.findById(req.params.id);
+            if (!existingTask) {
+                return res.status(404).json({ error: 'Task not found' });
+            }
+            if (existingTask.is_locked) {
+                return res.status(403).json({ error: 'Task is locked. Only admins can edit it.' });
+            }
+            updateData = {
+                status: req.body.status !== undefined ? req.body.status : existingTask.status,
+                progress: req.body.progress !== undefined ? req.body.progress : existingTask.progress,
+                completed_date: req.body.completed_date !== undefined ? req.body.completed_date : existingTask.completed_date,
+                delay_reason: req.body.delay_reason !== undefined ? req.body.delay_reason : existingTask.delay_reason,
+                is_locked: true
+            };
+        }
+
+        const updatedTask = await Task.findByIdAndUpdate(req.params.id, updateData, { new: true });
         
         if (updatedTask) {
             await Log.create({
@@ -54,7 +76,7 @@ router.put('/:id', async (req, res) => {
                 completed_date: updatedTask.completed_date,
                 delay_reason: updatedTask.delay_reason,
                 requested_by: updatedTask.requested_by,
-                description: `Task "${updatedTask.task_name}" status: ${updatedTask.status} (${updatedTask.progress}%)`
+                description: `Task "${updatedTask.task_name}" status: ${updatedTask.status} (${updatedTask.progress}%)${updatedTask.is_locked ? ' [Locked]' : ''}`
             });
             res.json(updatedTask);
         } else {
@@ -67,6 +89,9 @@ router.put('/:id', async (req, res) => {
 
 // Delete task
 router.delete('/:id', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
     try {
         const task = await Task.findById(req.params.id);
         if (!task) return res.status(404).json({ message: 'Task not found' });
@@ -82,6 +107,25 @@ router.delete('/:id', async (req, res) => {
         });
         
         res.json({ message: 'Task deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// Add comment to task
+router.post('/:id/comments', async (req, res) => {
+    try {
+        const { text, author } = req.body;
+        if (!text || !author) {
+            return res.status(400).json({ error: 'Text and author are required' });
+        }
+        
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ message: 'Task not found' });
+        
+        task.comments.push({ text, author, timestamp: new Date() });
+        await task.save();
+        
+        res.status(201).json(task);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

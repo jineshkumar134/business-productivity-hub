@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const User = require('../models/User');
+const Personal = require('../models/Personal');
 
 // Helper to check DB is ready
 const dbReady = (res) => {
@@ -23,7 +24,7 @@ router.post('/signup', async (req, res) => {
     }
 
     try {
-        const { name, email, phone, password } = req.body;
+        const { name, email, phone, password, role, department } = req.body;
 
         // Check if user already exists
         const existingUser = await User.findOne({ email });
@@ -31,12 +32,25 @@ router.post('/signup', async (req, res) => {
             return res.status(400).json({ error: 'User with this email already exists' });
         }
 
-        const newUser = new User({ name, email, phone, password });
+        const newUser = new User({ name, email, phone, password, role: role || 'staff' });
         await newUser.save();
+
+        // Automatically create or update corresponding Personal profile
+        await Personal.findOneAndUpdate(
+            { email: email.toLowerCase() },
+            {
+                name,
+                role: role === 'admin' ? 'Admin' : 'Staff',
+                department: department || 'HR Department',
+                responsibility: role === 'admin' ? 'System Administrator' : 'Team Member',
+                email: email.toLowerCase()
+            },
+            { upsert: true, new: true }
+        );
 
         res.status(201).json({
             message: 'Account created successfully!',
-            user: { id: newUser._id, name: newUser.name, email: newUser.email, phone: newUser.phone }
+            user: { id: newUser._id, name: newUser.name, email: newUser.email, phone: newUser.phone, role: newUser.role }
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -61,7 +75,7 @@ router.post('/signin', async (req, res) => {
 
         res.json({
             message: 'Login successful!',
-            user: { id: user._id, name: user.name, email: user.email, phone: user.phone }
+            user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

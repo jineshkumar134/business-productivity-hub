@@ -3,6 +3,9 @@ const router = express.Router();
 const Groq = require('groq-sdk');
 
 router.post('/align', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
     try {
         const { vision, mission, tasks, departments } = req.body;
         const apiKey = process.env.GROQ_API_KEY;

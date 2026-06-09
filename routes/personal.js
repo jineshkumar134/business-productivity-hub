@@ -14,6 +14,9 @@ router.get('/', async (req, res) => {
 
 // Create personal
 router.post('/', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
     try {
         const newPerson = new Personal(req.body);
         await newPerson.save();
@@ -25,6 +28,9 @@ router.post('/', async (req, res) => {
 
 // Update personal
 router.put('/:id', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
     try {
         const updatedPerson = await Personal.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (updatedPerson) {
@@ -39,6 +45,9 @@ router.put('/:id', async (req, res) => {
 
 // Delete personal
 router.delete('/:id', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
     try {
         const person = await Personal.findByIdAndDelete(req.params.id);
         if (person) {

@@ -6,6 +6,23 @@
 // ── Auth Guard ──────────────────────────────────────────────────────────────
 if (!localStorage.getItem('bh_user')) window.location.href = '/login.html';
 
+// ── Fetch Interceptor for Auth Headers ─────────────────────────────────────────
+const originalFetch = window.fetch;
+window.fetch = function(url, options = {}) {
+    const urlStr = String(url);
+    if (urlStr.includes('/api/') && !urlStr.includes('/api/auth/signin')) {
+        options.headers = options.headers || {};
+        const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+        if (user.role) {
+            options.headers['x-user-role'] = user.role;
+        }
+        if (user.name) {
+            options.headers['x-user-name'] = user.name;
+        }
+    }
+    return originalFetch(url, options);
+};
+
 // ── Dept Config ──────────────────────────────────────────────────────────────
 const DEPT_CONFIG = [
     { name:'Product Research',    color:'#6366f1', bg:'rgba(99,102,241,0.12)',  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>` },
@@ -16,14 +33,27 @@ const DEPT_CONFIG = [
     { name:'Client Success',      color:'#ec4899', bg:'rgba(236,72,153,0.12)',  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>` },
     { name:'HR Department',       color:'#f59e0b', bg:'rgba(245,158,11,0.12)',  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>` },
 ];
-const getDeptConfig = (name) => DEPT_CONFIG.find(d => d.name === name) || { color:'#6366f1', bg:'rgba(99,102,241,0.12)', icon:'' };
+const getDeptConfig = (name) => {
+    // Check dynamic departments first (they carry color+bg)
+    const dyn = state?.deptObjects?.find(d => d.name === name);
+    if (dyn) {
+        const fallbackIcon = DEPT_CONFIG.find(d=>d.name===name)?.icon || defaultDeptIcon();
+        const icon = (dyn.icon && dyn.icon !== 'building') ? dyn.icon : fallbackIcon;
+        return { color: dyn.color, bg: dyn.bg, icon };
+    }
+    return DEPT_CONFIG.find(d => d.name === name) || { color:'#6366f1', bg:'rgba(99,102,241,0.12)', icon: defaultDeptIcon() };
+};
+function defaultDeptIcon() {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>`;
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const state = {
     currentView: 'dashboard',
     tasks: [], personal: [], logs: [], documents: [],
+    deptObjects: [], // full department objects from DB
     selectedPersonal: [],
-    departments: DEPT_CONFIG.map(d => d.name),
+    departments: DEPT_CONFIG.map(d => d.name), // names only, synced from deptObjects
     orgVision: localStorage.getItem('bh_vision') || '',
     orgMission: localStorage.getItem('bh_mission') || '',
     searchQuery: '',
@@ -75,11 +105,82 @@ const el = {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
     applyTheme();
+    setupRoleAccess();     // hides admin-only items for staff
     setupEventListeners();
     renderUserGreeting();
     loadVisionMission();
-    await fetchData();
-    renderAll();
+    await fetchData();     // load data first
+    
+    // Set initial view AFTER data is loaded so portal renders correctly
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const isAdmin = user.role === 'admin';
+    switchView(isAdmin ? 'dashboard' : 'my-portal');
+
+    // Start background polling for real-time updates (every 4 seconds)
+    setInterval(syncDataInBackground, 4000);
+}
+
+async function syncDataInBackground() {
+    try {
+        if (!localStorage.getItem('bh_user')) return;
+
+        const [tRes, pRes, lRes, dRes, deptsRes] = await Promise.all([
+            fetch('/api/tasks').then(r => r.json()),
+            fetch('/api/personal').then(r => r.json()),
+            fetch('/api/logs').then(r => r.json()),
+            fetch('/api/documents').then(r => r.json()).catch(() => []),
+            fetch('/api/departments').then(r => r.json()).catch(() => [])
+        ]);
+
+        const tasksChanged = JSON.stringify(state.tasks) !== JSON.stringify(tRes);
+        const personalChanged = JSON.stringify(state.personal) !== JSON.stringify(pRes);
+        const logsChanged = JSON.stringify(state.logs) !== JSON.stringify(lRes);
+        const docsChanged = JSON.stringify(state.documents) !== JSON.stringify(dRes);
+        
+        const deptNames = deptsRes.map(d => d.name);
+        const deptsChanged = JSON.stringify(state.departments) !== JSON.stringify(deptNames);
+
+        let shouldRender = tasksChanged || personalChanged || logsChanged || docsChanged || deptsChanged;
+
+        if (tasksChanged) state.tasks = tRes;
+        if (personalChanged) state.personal = pRes;
+        if (logsChanged) state.logs = lRes;
+        if (docsChanged) state.documents = dRes;
+        
+        if (deptsChanged) {
+            state.deptObjects = deptsRes;
+            state.departments = deptNames;
+            populateDeptDropdowns();
+        }
+
+        if (shouldRender) {
+            renderAll();
+        }
+
+        // If task modal is open, keep comments list fresh in real-time
+        const modal = $('task-modal');
+        const activeTaskId = (modal && modal.classList.contains('active')) ? $('task-id').value : null;
+        if (activeTaskId) {
+            const task = state.tasks.find(t => t._id === activeTaskId || t.id === activeTaskId);
+            if (task) {
+                renderTaskComments(task.comments || []);
+            }
+        }
+    } catch (err) {
+        console.warn('Sync failed:', err);
+    }
+}
+
+function setupRoleAccess() {
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const isAdmin = user.role === 'admin';
+    
+    // Hide admin-only nav/UI items for Staff users
+    if (!isAdmin) {
+        document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+            el.style.display = 'none';
+        });
+    }
 }
 
 function applyTheme() {
@@ -156,6 +257,9 @@ function setupEventListeners() {
     // Forms
     el.taskForm?.addEventListener('submit', handleTaskSubmit);
     el.personalForm?.addEventListener('submit', handlePersonalSubmit);
+
+    // Comments
+    $('btn-add-comment')?.addEventListener('click', handleCommentSubmit);
 
     // Personal selector
     el.personalDropdown?.addEventListener('change', e => {
@@ -291,16 +395,46 @@ function checkTaskConstraints() {
     } else {
         el.delayReasonGroup.style.display = 'none';
     }
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const isAdmin = user.role === 'admin';
+    const isLocked = $('task-is-locked')?.checked;
+
     el.taskForm.querySelectorAll('input:not([type="radio"]), select, textarea').forEach(inp => {
-        if (!['task-completed-date','task-due-date','task-delay-reason','task-id'].includes(inp.id)) {
-            inp.disabled = isCompleted;
+        // IDs that non-admins can edit
+        const staffEditable = ['task-progress', 'task-completed-date', 'task-delay-reason', 'task-new-comment'];
+        
+        let shouldDisable = isCompleted || (isLocked && !isAdmin);
+        if (!isAdmin && !staffEditable.includes(inp.id)) {
+            shouldDisable = true; // Non-admins can't edit core fields
+        }
+
+        if (!['task-completed-date','task-due-date','task-delay-reason','task-id'].includes(inp.id) || !isAdmin) {
+            // Keep completed date editable if completed, but if it's a field they shouldn't edit, disable it
+            if (isCompleted && inp.id === 'task-completed-date' && isAdmin) shouldDisable = false;
+            inp.disabled = shouldDisable;
         }
     });
+
     el.taskForm.querySelectorAll('input[type="radio"]').forEach(inp => {
-        if (inp.name !== 'task-status') inp.disabled = isCompleted;
+        let shouldDisable = isCompleted || (isLocked && !isAdmin);
+        if (!isAdmin && inp.name !== 'task-status') {
+            shouldDisable = true; // Non-admins can't edit priority
+        }
+        inp.disabled = shouldDisable;
     });
+
     const pDrop = $('personal-dropdown');
-    if(pDrop) pDrop.disabled = isCompleted;
+    if(pDrop) pDrop.disabled = isCompleted || (isLocked && !isAdmin) || !isAdmin;
+    
+    // Always enable the new comment field and post button
+    const commentInp = $('task-new-comment');
+    const commentBtn = $('btn-add-comment');
+    if (commentInp) commentInp.disabled = false;
+    if (commentBtn) commentBtn.disabled = false;
+    
+    // Save button disabled if locked and not admin
+    const saveBtn = $('save-task-btn');
+    if (saveBtn) saveBtn.disabled = isLocked && !isAdmin;
 }
 
 function renderUserGreeting() {
@@ -329,6 +463,7 @@ window.handleLogout = handleLogout;
 
 // ── VIEW SWITCHER ─────────────────────────────────────────────────────────────
 const VIEW_META = {
+    'my-portal': { t:'My Portal',                  d:'Manage your assigned tasks and collaborate.' },
     dashboard: { t:'Dashboard Overview',           d:'Monitor organizational performance in real-time.' },
     summary:   { t:'Organizational Working',        d:'Live pipeline and health of all departments.' },
     ai:        { t:'AI Strategic Alignment',        d:'Evaluate tasks against your organization\'s vision & mission.' },
@@ -346,19 +481,75 @@ function switchView(viewName) {
     el.viewTitle.textContent = meta.t;
     el.viewDesc.textContent = meta.d;
     renderAll();
+    if (viewName === 'admin') renderDeptAdminList();
 }
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
 async function fetchData() {
     try {
-        const [tRes, pRes, lRes, dRes] = await Promise.all([
+        const [tRes, pRes, lRes, dRes, deptsRes] = await Promise.all([
             fetch('/api/tasks').then(r => r.json()),
             fetch('/api/personal').then(r => r.json()),
             fetch('/api/logs').then(r => r.json()),
-            fetch('/api/documents').then(r => r.json()).catch(() => [])
+            fetch('/api/documents').then(r => r.json()).catch(() => []),
+            fetch('/api/departments').then(r => r.json()).catch(() => [])
         ]);
         state.tasks = tRes; state.personal = pRes; state.logs = lRes; state.documents = dRes;
+
+        // If no departments in DB yet, seed with defaults
+        if (!deptsRes || deptsRes.length === 0) {
+            await seedDefaultDepartments();
+        } else {
+            state.deptObjects = deptsRes;
+            state.departments = deptsRes.map(d => d.name);
+        }
+
+        populateDeptDropdowns();
     } catch(err) { showNotification('Error fetching data', 'error'); }
+}
+
+async function seedDefaultDepartments() {
+    try {
+        const promises = DEPT_CONFIG.map(d => fetch('/api/departments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: d.name, color: d.color, bg: d.bg })
+        }).then(r => r.json()).catch(() => null));
+        const results = await Promise.all(promises);
+        const saved = results.filter(Boolean);
+        // Fetch fresh list
+        const fresh = await fetch('/api/departments').then(r => r.json()).catch(() => []);
+        state.deptObjects = fresh.length ? fresh : DEPT_CONFIG.map(d => ({...d, _id: d.name}));
+        state.departments = state.deptObjects.map(d => d.name);
+    } catch(e) {
+        // Fallback to hardcoded
+        state.deptObjects = DEPT_CONFIG.map(d => ({...d, _id: d.name}));
+        state.departments = DEPT_CONFIG.map(d => d.name);
+    }
+}
+
+function populateDeptDropdowns() {
+    const depts = state.departments;
+    const selects = [
+        document.getElementById('task-department'),
+        document.getElementById('task-requested-by'),
+        document.getElementById('person-dept'),
+        document.getElementById('admin-new-dept')
+    ];
+    selects.forEach(sel => {
+        if (!sel) return;
+        const isRequestedBy = sel.id === 'task-requested-by';
+        const currentVal = sel.value;
+        sel.innerHTML = isRequestedBy ? '<option value="">Self</option>' : '';
+        depts.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            sel.appendChild(opt);
+        });
+        // restore previous value if still valid
+        if (currentVal && depts.includes(currentVal)) sel.value = currentVal;
+    });
 }
 
 function renderAll() {
@@ -369,7 +560,72 @@ function renderAll() {
     else if (v === 'hr') renderPersonal();
     else if (v === 'logs') renderLogs();
     else if (v === 'documents') renderDocuments();
+    else if (v === 'my-portal') renderMyPortal();
     renderPersonalDropdown();
+}
+
+// ── MY PORTAL ─────────────────────────────────────────────────────────────────
+function renderMyPortal() {
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const myName = user.name;
+    const isAdmin = user.role === 'admin';
+    
+    // Show role badge
+    const badge = $('portal-role-badge');
+    if (badge) {
+        badge.textContent = isAdmin ? '⚙ Admin' : '👤 Staff';
+        badge.style.background = isAdmin ? 'rgba(167,139,250,0.15)' : 'rgba(99,102,241,0.12)';
+        badge.style.color = isAdmin ? '#8b5cf6' : 'var(--primary)';
+    }
+    
+    // Filter tasks for this user (case-insensitive and trimmed)
+    let myTasks = state.tasks.filter(t => t.responsible && t.responsible.some(r => r.trim().toLowerCase() === (myName || '').trim().toLowerCase()));
+    
+    if (state.searchQuery) {
+        myTasks = myTasks.filter(t => t.task_name?.toLowerCase().includes(state.searchQuery) || t.description?.toLowerCase().includes(state.searchQuery));
+    }
+
+    const todo = myTasks.filter(t => t.status === 'Not Started');
+    const inProg = myTasks.filter(t => t.status === 'In Progress');
+    const comp = myTasks.filter(t => t.status === 'Completed');
+
+    if ($('portal-todo-count')) $('portal-todo-count').textContent = todo.length;
+    if ($('portal-inprog-count')) $('portal-inprog-count').textContent = inProg.length;
+    if ($('portal-comp-count')) $('portal-comp-count').textContent = comp.length;
+
+    const emptyMsg = myTasks.length === 0 && isAdmin
+        ? 'No tasks assigned to you yet. You can assign tasks to yourself from the Dashboard.'
+        : 'No tasks here yet.';
+
+    const renderList = (tasks, containerId) => {
+        const c = $(containerId);
+        if (!c) return;
+        if (tasks.length === 0) {
+            c.innerHTML = `<div style="color:var(--gray-400);font-size:0.8rem;text-align:center;padding:1rem 0;">${tasks === todo && myTasks.length === 0 ? emptyMsg : 'No tasks'}</div>`;
+            return;
+        }
+        c.innerHTML = tasks.map(t => {
+            const dateStr = t.due_date ? new Date(t.due_date).toLocaleDateString('en', { month:'short', day:'numeric' }) : 'No date';
+            const overdue = t.status !== 'Completed' && t.due_date && new Date(t.due_date) < new Date() ? 'color:var(--danger);' : '';
+            const commentCount = (t.comments || []).length;
+            return `
+            <div class="task-item" onclick="openTaskModal('${t._id}', null)" style="background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:0.85rem;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;position:relative;">
+                <div style="font-weight:600;font-size:0.85rem;color:var(--dark);margin-bottom:0.3rem;">${t.task_name} ${t.is_locked ? '<span style="font-size:0.75rem;" title="Locked">🔒</span>' : ''}</div>
+                <div style="font-size:0.75rem;color:var(--secondary);margin-bottom:0.6rem;">${t.department}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:0.72rem;font-weight:600;${overdue}">📅 ${dateStr}</span>
+                    <div style="display:flex;gap:0.4rem;align-items:center;">
+                        ${commentCount > 0 ? `<span style="font-size:0.7rem;color:var(--secondary);">💬 ${commentCount}</span>` : ''}
+                        <span style="background:var(--gray-100);padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:600;">${t.progress}%</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    };
+
+    renderList(todo, 'portal-todo-list');
+    renderList(inProg, 'portal-inprogress-list');
+    renderList(comp, 'portal-completed-list');
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -407,6 +663,62 @@ function renderDashboard() {
         const bar = $('b-bar'); if (bar) bar.style.width = overall + '%';
     }, 80);
 
+    // Risk Alerts
+    const riskAlerts = $('dashboard-risk-alerts');
+    if (riskAlerts) {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const highRiskTasks = tasks.filter(t => {
+            if (t.status === 'Completed') return false;
+            let isOverdue = false;
+            if (t.due_date) {
+                const due = new Date(t.due_date);
+                due.setHours(0,0,0,0);
+                if (due < today) isOverdue = true;
+            }
+            return t.priority === 'High' || isOverdue || t.delay_reason;
+        });
+
+        if (highRiskTasks.length > 0) {
+            riskAlerts.style.display = 'flex';
+            riskAlerts.innerHTML = `
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); padding: 1rem 1.5rem;">
+                    <h3 style="color: #ef4444; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-weight: 700;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        High Risk & Overdue Alerts
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        ${highRiskTasks.map(t => {
+                            let reason = t.delay_reason ? t.delay_reason : (t.priority === 'High' ? 'High priority pending task.' : 'Task is overdue.');
+                            let isOverdue = false;
+                            if (t.due_date) {
+                                const due = new Date(t.due_date); due.setHours(0,0,0,0);
+                                if (due < today) isOverdue = true;
+                            }
+                            return `
+                            <div style="background: white; padding: 0.8rem 1rem; border-radius: 8px; border-left: 4px solid #ef4444; display: flex; flex-direction: column; gap: 0.3rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: pointer;" onclick="openTaskModal('${t._id}')">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <span style="font-weight: 700; font-size: 0.9rem; color: var(--dark);">${t.task_name}</span>
+                                    <span style="font-size: 0.7rem; font-weight: 700; background: ${isOverdue ? '#ef4444' : '#f97316'}; color: white; padding: 0.15rem 0.5rem; border-radius: 20px;">${isOverdue ? 'Overdue' : 'High Risk'}</span>
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--secondary);">
+                                    <strong>Why it's at risk / not done:</strong> ${reason}
+                                </div>
+                                <div style="font-size: 0.75rem; color: #ef4444; margin-top: 0.2rem; font-weight: 600;">
+                                    Assigned to: ${(t.responsible||[]).join(', ')||'Unassigned'} • Dept: ${t.department}
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+            riskAlerts.style.display = 'none';
+        }
+    }
+
     // Module cards
     el.moduleGrid.innerHTML = '';
     state.departments.forEach(dept => {
@@ -420,7 +732,6 @@ function renderDashboard() {
         card.className = 'module-card';
         card.style.setProperty('--dept-color', cfg.color);
         card.style.cssText += `--dept-color:${cfg.color};`;
-        card.querySelector?.('before');
         card.innerHTML = `
             <style>#mc-${dept.replace(/\W/g,'')}{}</style>
             <div class="module-card-header">
@@ -448,7 +759,7 @@ function renderDashboard() {
                 <div class="mini-task-item" onclick="openTaskModal('${t._id}')">
                     <div class="mini-task-row">
                         <div style="flex-grow:1;">
-                            <div class="mini-task-content" style="font-weight:700;font-size:0.88rem;">${t.task_name}</div>
+                            <div class="mini-task-content" style="font-weight:700;font-size:0.88rem;">${t.task_name} ${t.is_locked ? '<span style="font-size:0.75rem;" title="Locked">🔒</span>' : ''}</div>
                             ${t.description ? `<div style="font-size:0.72rem;color:var(--secondary);margin-top:0.2rem;line-height:1.4;">${t.description.slice(0,80)}${t.description.length>80?'…':''}</div>` : ''}
                         </div>
                         <button class="mini-delete-btn" onclick="event.stopPropagation();deleteTask('${t._id}')" title="Delete">
@@ -813,19 +1124,47 @@ function openTaskModal(taskId=null,dept=null){
         $('task-due-date').value=task.due_date?task.due_date.split('T')[0]:'';
         $('task-completed-date').value=task.completed_date?task.completed_date.split('T')[0]:'';
         $('task-delay-reason').value=task.delay_reason||'';$('task-description').value=task.description||'';
+        const lockCb = $('task-is-locked'); if(lockCb) lockCb.checked = task.is_locked || false;
         state.selectedPersonal=[...(task.responsible||[])]; renderSelectedPersonal();
         $('modal-title').textContent='Edit Task';
         const c=task.status==='Completed'; el.completedDateGroup.style.display=c?'block':'none';
-        el.taskForm.querySelectorAll('input,select,textarea').forEach(i=>{i.disabled=c&&!['task-completed-date','task-status','task-due-date','task-delay-reason','task-id'].includes(i.id);});
-        $('personal-dropdown').disabled=c;
+        renderTaskComments(task.comments || []);
     } else {
         $('task-id').value=''; if(dept)$('task-department').value=dept;
         $('task-requested-by').value=''; $('modal-title').textContent='Create New Task';
         el.completedDateGroup.style.display='none'; el.delayReasonGroup.style.display='none';
-        el.taskForm.querySelectorAll('input,select,textarea').forEach(i=>i.disabled=false);
-        $('personal-dropdown').disabled=false;
+        $('task-comments-container').style.display='none';
+        const lockCb = $('task-is-locked'); if(lockCb) lockCb.checked = false;
     }
     el.taskModal.classList.add('active'); checkTaskConstraints();
+}
+
+function renderTaskComments(comments) {
+    const container = $('task-comments-container');
+    const list = $('task-comments-list');
+    if (!container || !list) return;
+    
+    // Always show container when editing
+    container.style.display = 'block';
+    
+    if (!comments || comments.length === 0) {
+        list.innerHTML = '<div style="color:var(--gray-400);font-style:italic;">No comments yet.</div>';
+        return;
+    }
+    
+    list.innerHTML = comments.map(c => {
+        const d = new Date(c.timestamp).toLocaleString('en', { month:'short', day:'numeric', hour:'numeric', minute:'numeric' });
+        return `
+        <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:0.6rem;font-size:0.8rem;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;">
+                <span style="font-weight:700;color:var(--dark);">${c.author}</span>
+                <span style="color:var(--secondary);font-size:0.7rem;">${d}</span>
+            </div>
+            <div style="color:var(--text);word-break:break-word;line-height:1.4;">${c.text}</div>
+        </div>
+        `;
+    }).join('');
+    list.scrollTop = list.scrollHeight;
 }
 
 function openPersonalModal(personId=null){
@@ -854,11 +1193,48 @@ function openProfileModal(){
 window.openProfileModal=openProfileModal;
 
 // ── FORM HANDLERS ──────────────────────────────────────────────────────────────
+async function handleCommentSubmit() {
+    const taskId = $('task-id').value;
+    const text = $('task-new-comment').value.trim();
+    if (!taskId || !text) return;
+
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const author = user.name || 'Unknown';
+
+    const btn = $('btn-add-comment');
+    if (btn) btn.disabled = true;
+
+    try {
+        const res = await fetch(`/api/tasks/${taskId}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, author })
+        });
+        if (res.ok) {
+            const updatedTask = await res.json();
+            // Update local state
+            state.tasks = state.tasks.map(t => (t._id === taskId || t.id === taskId) ? updatedTask : t);
+            // Re-render comments without closing modal
+            renderTaskComments(updatedTask.comments);
+            $('task-new-comment').value = '';
+            
+            // Optionally update UI behind if it affects progress/status
+            renderAll();
+        } else {
+            showNotification('Failed to add comment', 'error');
+        }
+    } catch(err) {
+        showNotification('Error adding comment', 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
 async function handleTaskSubmit(e){
     e.preventDefault();
     const id=$('task-id').value;
     if(state.selectedPersonal.length===0){showNotification('Assign at least one person','error');return;}
-    const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal};
+    const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal, is_locked: $('task-is-locked')?.checked || false};
     if(taskData.status==='Completed'&&taskData.completed_date&&new Date(taskData.completed_date)>new Date(taskData.due_date)&&!taskData.delay_reason){showNotification('Delay reason required','error');return;}
     const btn = $('save-task-btn');
     const originalHtml = btn ? btn.innerHTML : '';
@@ -967,6 +1343,78 @@ window.openTaskModal=openTaskModal;
 window.editPersonal=id=>openPersonalModal(id);
 window.deleteTask=async id=>{if(!confirm('Delete this task?'))return;try{const r=await fetch(`/api/tasks/${id}`,{method:'DELETE'});if(r.ok){showNotification('Task deleted','success');state.tasks = state.tasks.filter(t => t._id !== id && t.id !== id);fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });renderAll();}}catch(e){showNotification('Error deleting task','error');}};
 window.deletePersonal=async id=>{if(!confirm('Remove this team member?'))return;try{const r = await fetch(`/api/personal/${id}`,{method:'DELETE'});if(r.ok){showNotification('Member removed','success');state.personal = state.personal.filter(p => p._id !== id && p.id !== id);renderAll();}}catch(e){showNotification('Error','error');}};
+
+// ── DEPARTMENT MANAGEMENT ────────────────────────────────────────────────────
+async function loadAndRenderDepts() {
+    try {
+        const res = await fetch('/api/departments').then(r => r.json());
+        state.deptObjects = res;
+        state.departments = res.map(d => d.name);
+        populateDeptDropdowns();
+        renderDeptAdminList();
+    } catch(e) { showNotification('Failed to reload departments', 'error'); }
+}
+
+function renderDeptAdminList() {
+    const container = document.getElementById('dept-admin-list');
+    if (!container) return;
+    if (state.deptObjects.length === 0) {
+        container.innerHTML = '<p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">No departments yet.</p>';
+        return;
+    }
+    container.innerHTML = state.deptObjects.map(d => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.65rem 0.85rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;margin-bottom:0.5rem;">
+            <div style="display:flex;align-items:center;gap:0.6rem;">
+                <div style="width:12px;height:12px;border-radius:50%;background:${d.color};flex-shrink:0;"></div>
+                <span style="font-weight:600;font-size:0.88rem;">${d.name}</span>
+            </div>
+
+        </div>
+    `).join('');
+}
+
+window.deleteDepartment = async (id, name) => {
+    if (!confirm(`Delete department "${name}"? Tasks assigned to it will remain but unlinked.`)) return;
+    try {
+        const r = await fetch(`/api/departments/${id}`, { method: 'DELETE' });
+        if (r.ok) {
+            showNotification(`"${name}" removed`, 'success');
+            await loadAndRenderDepts();
+            renderAll();
+        }
+    } catch(e) { showNotification('Error deleting department', 'error'); }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('add-dept-form');
+    if (!form) return;
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('new-dept-name');
+        const name = nameInput?.value?.trim();
+        if (!name) return;
+        const btn = document.getElementById('add-dept-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+        try {
+            const res = await fetch('/api/departments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed');
+            if (nameInput) nameInput.value = '';
+            showNotification(`"${name}" department added! ✅`, 'success');
+            await loadAndRenderDepts();
+            renderAll();
+        } catch(e) {
+            showNotification(e.message || 'Error adding department', 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Add Department'; }
+        }
+    });
+});
+
 
 // ── DOCUMENT CENTER HANDLERS ──────────────────────────────────────────────────
 async function handleDocumentSubmit(e) {
@@ -1154,11 +1602,13 @@ function setupAdminPanel() {
         e.preventDefault();
         const btn = $('admin-create-btn');
         const msgEl = $('admin-msg');
-        const name     = $('admin-new-name').value.trim();
-        const email    = $('admin-new-email').value.trim();
-        const phone    = $('admin-new-phone').value.trim();
-        const password = $('admin-new-password').value;
-        const secret   = $('admin-secret-input').value;
+        const name       = $('admin-new-name').value.trim();
+        const email      = $('admin-new-email').value.trim();
+        const phone      = $('admin-new-phone').value.trim();
+        const password   = $('admin-new-password').value;
+        const role       = $('admin-new-role').value;
+        const department = $('admin-new-dept').value;
+        const secret     = $('admin-secret-input').value;
 
         btn.disabled = true;
         btn.innerHTML = `<span style="opacity:0.7">Creating…</span>`;
@@ -1171,7 +1621,7 @@ function setupAdminPanel() {
                     'Content-Type': 'application/json',
                     'x-admin-secret': secret
                 },
-                body: JSON.stringify({ name, email, phone, password })
+                body: JSON.stringify({ name, email, phone, password, role, department })
             });
             const data = await res.json();
             btn.disabled = false;
@@ -1185,6 +1635,8 @@ function setupAdminPanel() {
                 msgEl.textContent = `✅ Account created for ${data.user.name} (${data.user.email}). Share credentials manually.`;
                 form.reset();
                 showNotification(`User "${data.user.name}" created successfully!`, 'success');
+                // Refresh local data immediately so the new user is instantly assignable
+                fetchData().then(() => renderAll());
             }
         } catch (err) {
             btn.disabled = false;
