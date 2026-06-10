@@ -20,7 +20,8 @@ router.post('/signup', async (req, res) => {
     // 🔒 Admin secret gate
     const providedSecret = req.headers['x-admin-secret'] || req.body.adminSecret;
     const safeProvided = providedSecret ? providedSecret.trim() : '';
-    const safeExpected = process.env.ADMIN_SECRET ? process.env.ADMIN_SECRET.trim() : '';
+    const actualSecret = process.env.ADMIN_SECRET || 'BizHub@AdminOnly2024';
+    const safeExpected = actualSecret.trim();
     
     console.log(`[DEBUG SIGNUP] Provided: "${safeProvided}" Expected: "${safeExpected}"`);
     
