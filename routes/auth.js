@@ -19,7 +19,12 @@ router.post('/signup', async (req, res) => {
 
     // 🔒 Admin secret gate
     const providedSecret = req.headers['x-admin-secret'] || req.body.adminSecret;
-    if (!providedSecret || providedSecret !== process.env.ADMIN_SECRET) {
+    const safeProvided = providedSecret ? providedSecret.trim() : '';
+    const safeExpected = process.env.ADMIN_SECRET ? process.env.ADMIN_SECRET.trim() : '';
+    
+    console.log(`[DEBUG SIGNUP] Provided: "${safeProvided}" Expected: "${safeExpected}"`);
+    
+    if (!safeProvided || safeProvided !== safeExpected) {
         return res.status(403).json({ error: 'Access denied. User accounts can only be created by an Admin.' });
     }
 
