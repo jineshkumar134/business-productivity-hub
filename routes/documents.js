@@ -26,9 +26,6 @@ router.get('/:id', async (req, res) => {
 
 // Upload document
 router.post('/', async (req, res) => {
-    if (req.headers['x-user-role'] !== 'admin') {
-        return res.status(403).json({ error: 'Access denied. Admins only.' });
-    }
     try {
         const newDoc = new Document(req.body);
         await newDoc.save();

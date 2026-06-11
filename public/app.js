@@ -398,33 +398,34 @@ function checkTaskConstraints() {
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
     const isAdmin = user.role === 'admin';
     const isLocked = $('task-is-locked')?.checked;
+    const isNewTask = !$('task-id').value;
 
     el.taskForm.querySelectorAll('input:not([type="radio"]), select, textarea').forEach(inp => {
         // IDs that non-admins can edit
         const staffEditable = ['task-progress', 'task-completed-date', 'task-delay-reason', 'task-new-comment'];
         
         let shouldDisable = isCompleted || (isLocked && !isAdmin);
-        if (!isAdmin && !staffEditable.includes(inp.id)) {
-            shouldDisable = true; // Non-admins can't edit core fields
+        if (!isAdmin && !isNewTask && !staffEditable.includes(inp.id)) {
+            shouldDisable = true; // Non-admins can't edit core fields of EXISTING tasks
         }
 
-        if (!['task-completed-date','task-due-date','task-delay-reason','task-id'].includes(inp.id) || !isAdmin) {
+        if (!['task-completed-date','task-due-date','task-delay-reason','task-id'].includes(inp.id) || (!isAdmin && !isNewTask)) {
             // Keep completed date editable if completed, but if it's a field they shouldn't edit, disable it
-            if (isCompleted && inp.id === 'task-completed-date' && isAdmin) shouldDisable = false;
+            if (isCompleted && inp.id === 'task-completed-date' && (isAdmin || isNewTask)) shouldDisable = false;
             inp.disabled = shouldDisable;
         }
     });
 
     el.taskForm.querySelectorAll('input[type="radio"]').forEach(inp => {
         let shouldDisable = isCompleted || (isLocked && !isAdmin);
-        if (!isAdmin && inp.name !== 'task-status') {
-            shouldDisable = true; // Non-admins can't edit priority
+        if (!isAdmin && !isNewTask && inp.name !== 'task-status') {
+            shouldDisable = true; // Non-admins can't edit priority of existing tasks
         }
         inp.disabled = shouldDisable;
     });
 
     const pDrop = $('personal-dropdown');
-    if(pDrop) pDrop.disabled = isCompleted || (isLocked && !isAdmin) || !isAdmin;
+    if(pDrop) pDrop.disabled = isCompleted || (isLocked && !isAdmin) || (!isAdmin && !isNewTask);
     
     // Always enable the new comment field and post button
     const commentInp = $('task-new-comment');
@@ -578,8 +579,12 @@ function renderMyPortal() {
         badge.style.color = isAdmin ? '#8b5cf6' : 'var(--primary)';
     }
     
-    // Filter tasks for this user (case-insensitive and trimmed)
-    let myTasks = state.tasks.filter(t => t.responsible && t.responsible.some(r => r.trim().toLowerCase() === (myName || '').trim().toLowerCase()));
+    // Filter tasks for this user (case-insensitive and trimmed) OR if they requested the task
+    let myTasks = state.tasks.filter(t => {
+        const isResponsible = t.responsible && t.responsible.some(r => r.trim().toLowerCase() === (myName || '').trim().toLowerCase());
+        const isRequester = t.requested_by && t.requested_by.trim().toLowerCase() === (myName || '').trim().toLowerCase();
+        return isResponsible || isRequester;
+    });
     
     if (state.searchQuery) {
         myTasks = myTasks.filter(t => t.task_name?.toLowerCase().includes(state.searchQuery) || t.description?.toLowerCase().includes(state.searchQuery));
@@ -1113,6 +1118,7 @@ async function handleAIAnalysis() {
 // ── MODALS ────────────────────────────────────────────────────────────────────
 function openTaskModal(taskId=null,dept=null){
     el.taskForm.reset(); state.selectedPersonal=[]; renderSelectedPersonal();
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
     if(taskId){
         const task=state.tasks.find(t=>t._id===taskId);if(!task)return;
         $('task-id').value=task._id; $('task-name').value=task.task_name;
@@ -1131,7 +1137,7 @@ function openTaskModal(taskId=null,dept=null){
         renderTaskComments(task.comments || []);
     } else {
         $('task-id').value=''; if(dept)$('task-department').value=dept;
-        $('task-requested-by').value=''; $('modal-title').textContent='Create New Task';
+        $('task-requested-by').value=user.name||''; $('modal-title').textContent='Create New Task';
         el.completedDateGroup.style.display='none'; el.delayReasonGroup.style.display='none';
         $('task-comments-container').style.display='none';
         const lockCb = $('task-is-locked'); if(lockCb) lockCb.checked = false;
@@ -1531,9 +1537,11 @@ function renderDocuments() {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Download
                     </button>
+                    ${JSON.parse(localStorage.getItem('bh_user') || '{}').role === 'admin' ? `
                     <button class="btn btn-danger" onclick="deleteDocument('${doc._id || doc.id}')" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
                         🗑️ Delete
                     </button>
+                    ` : ''}
                 </div>
             </td>
         </tr>

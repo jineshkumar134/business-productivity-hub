@@ -15,9 +15,6 @@ router.get('/', async (req, res) => {
 
 // Create task
 router.post('/', async (req, res) => {
-    if (req.headers['x-user-role'] !== 'admin') {
-        return res.status(403).json({ error: 'Access denied. Admins only.' });
-    }
     try {
         const newTask = new Task(req.body);
         await newTask.save();
@@ -58,8 +55,7 @@ router.put('/:id', async (req, res) => {
                 status: req.body.status !== undefined ? req.body.status : existingTask.status,
                 progress: req.body.progress !== undefined ? req.body.progress : existingTask.progress,
                 completed_date: req.body.completed_date !== undefined ? req.body.completed_date : existingTask.completed_date,
-                delay_reason: req.body.delay_reason !== undefined ? req.body.delay_reason : existingTask.delay_reason,
-                is_locked: true
+                delay_reason: req.body.delay_reason !== undefined ? req.body.delay_reason : existingTask.delay_reason
             };
         }
 
