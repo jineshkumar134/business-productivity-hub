@@ -320,11 +320,10 @@ function setupEventListeners() {
         reader.readAsDataURL(file);
     });
 
-    // Search
+    // Search - works on ALL views
     $('global-search')?.addEventListener('input', e => {
-        state.searchQuery = e.target.value.toLowerCase();
-        if (state.currentView === 'dashboard') renderDashboard();
-        else if (state.currentView === 'hr') renderPersonal();
+        state.searchQuery = e.target.value.toLowerCase().trim();
+        renderAll();
     });
 
     // Save vision/mission
