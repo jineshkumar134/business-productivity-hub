@@ -13,15 +13,23 @@ window.fetch = function(url, options = {}) {
     if (urlStr.includes('/api/') && !urlStr.includes('/api/auth/signin')) {
         options.headers = options.headers || {};
         const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
-        if (user.role) {
-            options.headers['x-user-role'] = user.role;
-        }
-        if (user.name) {
-            options.headers['x-user-name'] = user.name;
-        }
+        if (user.role)       options.headers['x-user-role']       = user.role;
+        if (user.name)       options.headers['x-user-name']       = user.name;
+        if (user.division)   options.headers['x-user-division']   = user.division;
+        if (user.department) options.headers['x-user-department'] = user.department;
     }
     return originalFetch(url, options);
 };
+
+// ── Role Hierarchy helpers ──────────────────────────────────────────────────
+const ROLE_LEVELS = { owner: 5, admin: 4, division_head: 3, dept_leader: 2, employee: 1 };
+const ROLE_DISPLAY = {
+    owner: '👑 Owner', admin: '⚙ Admin',
+    division_head: '🏢 Division Head', dept_leader: '📋 Dept Leader', employee: '👤 Employee'
+};
+function hasMinRole(userRole, minRole) {
+    return (ROLE_LEVELS[userRole] || 0) >= (ROLE_LEVELS[minRole] || 0);
+}
 
 // ── Dept Config ──────────────────────────────────────────────────────────────
 const DEPT_CONFIG = [
@@ -51,7 +59,8 @@ function defaultDeptIcon() {
 const state = {
     currentView: 'dashboard',
     tasks: [], personal: [], logs: [], documents: [],
-    deptObjects: [], // full department objects from DB
+    deptObjects: [],   // full department objects from DB
+    divisions: [],     // division objects from DB
     selectedPersonal: [],
     departments: DEPT_CONFIG.map(d => d.name), // names only, synced from deptObjects
     orgVision: localStorage.getItem('bh_vision') || '',
@@ -105,16 +114,16 @@ const el = {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
     applyTheme();
-    setupRoleAccess();     // hides admin-only items for staff
+    setupRoleAccess();     // hides/shows items based on role level
     setupEventListeners();
     renderUserGreeting();
     loadVisionMission();
     await fetchData();     // load data first
     
-    // Set initial view AFTER data is loaded so portal renders correctly
+    // Set initial view AFTER data is loaded
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
-    const isAdmin = user.role === 'admin';
-    switchView(isAdmin ? 'dashboard' : 'my-portal');
+    const isHighLevel = hasMinRole(user.role, 'admin');
+    switchView(isHighLevel ? 'dashboard' : 'my-portal');
 
     // Start background polling for real-time updates (every 4 seconds)
     setInterval(syncDataInBackground, 4000);
@@ -124,33 +133,41 @@ async function syncDataInBackground() {
     try {
         if (!localStorage.getItem('bh_user')) return;
 
-        const [tRes, pRes, lRes, dRes, deptsRes] = await Promise.all([
+        const [tRes, pRes, lRes, dRes, deptsRes, divisionsRes] = await Promise.all([
             fetch('/api/tasks').then(r => r.json()),
             fetch('/api/personal').then(r => r.json()),
             fetch('/api/logs').then(r => r.json()),
             fetch('/api/documents').then(r => r.json()).catch(() => []),
-            fetch('/api/departments').then(r => r.json()).catch(() => [])
+            fetch('/api/departments').then(r => r.json()).catch(() => []),
+            fetch('/api/divisions').then(r => r.json()).catch(() => [])
         ]);
 
         const tasksChanged = JSON.stringify(state.tasks) !== JSON.stringify(tRes);
         const personalChanged = JSON.stringify(state.personal) !== JSON.stringify(pRes);
         const logsChanged = JSON.stringify(state.logs) !== JSON.stringify(lRes);
         const docsChanged = JSON.stringify(state.documents) !== JSON.stringify(dRes);
+        const divisionsChanged = JSON.stringify(state.divisions) !== JSON.stringify(divisionsRes);
         
         const deptNames = deptsRes.map(d => d.name);
         const deptsChanged = JSON.stringify(state.departments) !== JSON.stringify(deptNames);
 
-        let shouldRender = tasksChanged || personalChanged || logsChanged || docsChanged || deptsChanged;
+        let shouldRender = tasksChanged || personalChanged || logsChanged || docsChanged || deptsChanged || divisionsChanged;
 
         if (tasksChanged) state.tasks = tRes;
         if (personalChanged) state.personal = pRes;
         if (logsChanged) state.logs = lRes;
         if (docsChanged) state.documents = dRes;
+        if (divisionsChanged) state.divisions = divisionsRes || [];
         
         if (deptsChanged) {
             state.deptObjects = deptsRes;
             state.departments = deptNames;
             populateDeptDropdowns();
+        }
+
+        if (deptsChanged || divisionsChanged || personalChanged) {
+            populateHierarchyDropdowns();
+            renderDivisionAdminList();
         }
 
         if (shouldRender) {
@@ -173,14 +190,40 @@ async function syncDataInBackground() {
 
 function setupRoleAccess() {
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
-    const isAdmin = user.role === 'admin';
-    
-    // Hide admin-only nav/UI items for Staff users
-    if (!isAdmin) {
-        document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
-            el.style.display = 'none';
-        });
-    }
+    const role = user.role || 'employee';
+
+    // [data-admin-only] → owner + admin
+    document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+        el.style.display = hasMinRole(role, 'admin') ? '' : 'none';
+    });
+
+    // [data-min-role] attribute → show only if user meets minimum level
+    document.querySelectorAll('[data-min-role]').forEach(el => {
+        const minRole = el.getAttribute('data-min-role');
+        el.style.display = hasMinRole(role, minRole) ? '' : 'none';
+    });
+
+    // Employee cannot see HR section
+    const hrNav = document.getElementById('nav-hr');
+    if (hrNav) hrNav.style.display = hasMinRole(role, 'dept_leader') ? '' : 'none';
+
+    // Dashboard only for division_head and above
+    const dashNav = document.getElementById('nav-dashboard');
+    if (dashNav) dashNav.style.display = hasMinRole(role, 'division_head') ? '' : 'none';
+
+    // Admin panel only for owner/admin
+    const adminNav = document.getElementById('nav-admin');
+    if (adminNav) adminNav.style.display = hasMinRole(role, 'admin') ? '' : 'none';
+
+    // Summary only for division_head+
+    const summaryNav = document.getElementById('nav-summary');
+    if (summaryNav) summaryNav.style.display = hasMinRole(role, 'division_head') ? '' : 'none';
+
+    // Invoicing + Activity log hidden always (per previous request)
+    const invoicingNav = document.getElementById('nav-invoicing');
+    const logsNav      = document.getElementById('nav-logs');
+    if (invoicingNav) invoicingNav.style.display = 'none';
+    if (logsNav)      logsNav.style.display      = 'none';
 }
 
 function applyTheme() {
@@ -395,7 +438,7 @@ function checkTaskConstraints() {
         el.delayReasonGroup.style.display = 'none';
     }
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
-    const isAdmin = user.role === 'admin';
+    const isAdmin = hasMinRole(user.role, 'admin');
     const isLocked = $('task-is-locked')?.checked;
     const isNewTask = !$('task-id').value;
 
@@ -405,7 +448,7 @@ function checkTaskConstraints() {
         
         let shouldDisable = isCompleted || (isLocked && !isAdmin);
         if (!isAdmin && !isNewTask && !staffEditable.includes(inp.id)) {
-            shouldDisable = true; // Non-admins can't edit core fields of EXISTING tasks
+            shouldDisable = true; // Non-admins (division heads, dept leaders, employees) can't edit core fields of EXISTING tasks
         }
 
         if (!['task-completed-date','task-due-date','task-delay-reason','task-id'].includes(inp.id) || (!isAdmin && !isNewTask)) {
@@ -481,20 +524,26 @@ function switchView(viewName) {
     el.viewTitle.textContent = meta.t;
     el.viewDesc.textContent = meta.d;
     renderAll();
-    if (viewName === 'admin') renderDeptAdminList();
+    if (viewName === 'admin') {
+        renderDeptAdminList();
+        renderDivisionAdminList();
+        populateHierarchyDropdowns();
+    }
 }
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
 async function fetchData() {
     try {
-        const [tRes, pRes, lRes, dRes, deptsRes] = await Promise.all([
+        const [tRes, pRes, lRes, dRes, deptsRes, divisionsRes] = await Promise.all([
             fetch('/api/tasks').then(r => r.json()),
             fetch('/api/personal').then(r => r.json()),
             fetch('/api/logs').then(r => r.json()),
             fetch('/api/documents').then(r => r.json()).catch(() => []),
-            fetch('/api/departments').then(r => r.json()).catch(() => [])
+            fetch('/api/departments').then(r => r.json()).catch(() => []),
+            fetch('/api/divisions').then(r => r.json()).catch(() => [])
         ]);
         state.tasks = tRes; state.personal = pRes; state.logs = lRes; state.documents = dRes;
+        state.divisions = divisionsRes || [];
 
         // If no departments in DB yet, seed with defaults
         if (!deptsRes || deptsRes.length === 0) {
@@ -505,6 +554,8 @@ async function fetchData() {
         }
 
         populateDeptDropdowns();
+        populateHierarchyDropdowns();
+        renderDivisionAdminList();
     } catch(err) { showNotification('Error fetching data', 'error'); }
 }
 
@@ -568,14 +619,13 @@ function renderAll() {
 function renderMyPortal() {
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
     const myName = user.name;
-    const isAdmin = user.role === 'admin';
     
     // Show role badge
     const badge = $('portal-role-badge');
     if (badge) {
-        badge.textContent = isAdmin ? '⚙ Admin' : '👤 Staff';
-        badge.style.background = isAdmin ? 'rgba(167,139,250,0.15)' : 'rgba(99,102,241,0.12)';
-        badge.style.color = isAdmin ? '#8b5cf6' : 'var(--primary)';
+        badge.textContent = ROLE_DISPLAY[user.role] || user.role || '👤 Employee';
+        badge.style.background = 'rgba(99,102,241,0.12)';
+        badge.style.color = 'var(--primary)';
     }
     
     // Filter tasks for this user (case-insensitive and trimmed) OR if they requested the task
@@ -586,7 +636,13 @@ function renderMyPortal() {
     });
     
     if (state.searchQuery) {
-        myTasks = myTasks.filter(t => t.task_name?.toLowerCase().includes(state.searchQuery) || t.description?.toLowerCase().includes(state.searchQuery));
+        myTasks = myTasks.filter(t => 
+            t.task_name?.toLowerCase().includes(state.searchQuery) || 
+            t.description?.toLowerCase().includes(state.searchQuery) ||
+            (t.responsible && t.responsible.some(r => r.toLowerCase().includes(state.searchQuery))) ||
+            t.requested_by?.toLowerCase().includes(state.searchQuery) ||
+            t.department?.toLowerCase().includes(state.searchQuery)
+        );
     }
 
     const todo = myTasks.filter(t => t.status === 'Not Started');
@@ -635,7 +691,13 @@ function renderMyPortal() {
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard() {
     const tasks = state.searchQuery
-        ? state.tasks.filter(t => t.task_name?.toLowerCase().includes(state.searchQuery) || t.description?.toLowerCase().includes(state.searchQuery))
+        ? state.tasks.filter(t => 
+            t.task_name?.toLowerCase().includes(state.searchQuery) || 
+            t.description?.toLowerCase().includes(state.searchQuery) ||
+            (t.responsible && t.responsible.some(r => r.toLowerCase().includes(state.searchQuery))) ||
+            t.requested_by?.toLowerCase().includes(state.searchQuery) ||
+            t.department?.toLowerCase().includes(state.searchQuery)
+          )
         : state.tasks;
 
     const total = tasks.length;
@@ -1354,13 +1416,14 @@ window.editPersonal=id=>openPersonalModal(id);
 window.deleteTask=async id=>{if(!confirm('Delete this task?'))return;try{const r=await fetch(`/api/tasks/${id}`,{method:'DELETE'});if(r.ok){showNotification('Task deleted','success');state.tasks = state.tasks.filter(t => t._id !== id && t.id !== id);fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });renderAll();}}catch(e){showNotification('Error deleting task','error');}};
 window.deletePersonal=async id=>{if(!confirm('Remove this team member?'))return;try{const r = await fetch(`/api/personal/${id}`,{method:'DELETE'});if(r.ok){showNotification('Member removed','success');state.personal = state.personal.filter(p => p._id !== id && p.id !== id);renderAll();}}catch(e){showNotification('Error','error');}};
 
-// ── DEPARTMENT MANAGEMENT ────────────────────────────────────────────────────
+// ── DEPARTMENT & DIVISION MANAGEMENT ─────────────────────────────────────────
 async function loadAndRenderDepts() {
     try {
         const res = await fetch('/api/departments').then(r => r.json());
         state.deptObjects = res;
         state.departments = res.map(d => d.name);
         populateDeptDropdowns();
+        populateHierarchyDropdowns();
         renderDeptAdminList();
     } catch(e) { showNotification('Failed to reload departments', 'error'); }
 }
@@ -1368,20 +1431,51 @@ async function loadAndRenderDepts() {
 function renderDeptAdminList() {
     const container = document.getElementById('dept-admin-list');
     if (!container) return;
-    if (state.deptObjects.length === 0) {
+    if (!state.deptObjects || state.deptObjects.length === 0) {
         container.innerHTML = '<p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">No departments yet.</p>';
         return;
     }
     container.innerHTML = state.deptObjects.map(d => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.65rem 0.85rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;margin-bottom:0.5rem;">
-            <div style="display:flex;align-items:center;gap:0.6rem;">
-                <div style="width:12px;height:12px;border-radius:50%;background:${d.color};flex-shrink:0;"></div>
-                <span style="font-weight:600;font-size:0.88rem;">${d.name}</span>
+        <div style="padding:0.75rem 1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;margin-bottom:0.75rem;display:flex;flex-direction:column;gap:0.5rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:0.6rem;">
+                    <div style="width:12px;height:12px;border-radius:50%;background:${d.color || '#6366f1'};flex-shrink:0;"></div>
+                    <span style="font-weight:700;font-size:0.9rem;color:var(--dark);">${d.name}</span>
+                </div>
+                <button class="btn btn-danger" onclick="deleteDepartment('${d._id}', '${d.name}')" style="padding:0.25rem 0.6rem;font-size:0.7rem;line-height:1;">Delete</button>
             </div>
-
+            <div style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;color:var(--secondary);background:white;padding:0.5rem;border-radius:6px;border:1px solid var(--gray-100);">
+                <div>🏢 Division: <strong style="color:var(--dark);">${d.division || 'None'}</strong></div>
+                <div>👤 Leader: <strong style="color:var(--dark);">${d.deptLeader || 'None'}</strong></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;margin-top:0.25rem;">
+                <input type="checkbox" id="vis-${d._id}" ${d.employeeVisibility ? 'checked' : ''} onchange="toggleDeptVisibility('${d._id}', this.checked)" style="width:auto;cursor:pointer;">
+                <label for="vis-${d._id}" style="font-weight:500;cursor:pointer;color:var(--text);">Allow employees to see other employee's tasks</label>
+            </div>
         </div>
     `).join('');
 }
+
+window.toggleDeptVisibility = async (id, employeeVisibility) => {
+    try {
+        const res = await fetch(`/api/departments/${id}/visibility`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ employeeVisibility })
+        });
+        if (res.ok) {
+            showNotification('Employee task visibility updated', 'success');
+            await loadAndRenderDepts();
+        } else {
+            const data = await res.json();
+            showNotification(data.error || 'Failed to update visibility', 'error');
+            await loadAndRenderDepts();
+        }
+    } catch(e) {
+        showNotification('Error updating visibility', 'error');
+        await loadAndRenderDepts();
+    }
+};
 
 window.deleteDepartment = async (id, name) => {
     if (!confirm(`Delete department "${name}"? Tasks assigned to it will remain but unlinked.`)) return;
@@ -1395,34 +1489,130 @@ window.deleteDepartment = async (id, name) => {
     } catch(e) { showNotification('Error deleting department', 'error'); }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('add-dept-form');
-    if (!form) return;
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nameInput = document.getElementById('new-dept-name');
-        const name = nameInput?.value?.trim();
-        if (!name) return;
-        const btn = document.getElementById('add-dept-btn');
-        if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
-        try {
-            const res = await fetch('/api/departments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed');
-            if (nameInput) nameInput.value = '';
-            showNotification(`"${name}" department added! ✅`, 'success');
-            await loadAndRenderDepts();
+function renderDivisionAdminList() {
+    const container = document.getElementById('division-admin-list');
+    if (!container) return;
+    if (!state.divisions || state.divisions.length === 0) {
+        container.innerHTML = '<p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">No divisions yet.</p>';
+        return;
+    }
+    container.innerHTML = state.divisions.map(d => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.65rem 0.85rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;margin-bottom:0.5rem;">
+            <div style="display:flex;align-items:center;gap:0.6rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${d.color || '#6366f1'}" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span style="font-weight:600;font-size:0.88rem;">${d.name}</span>
+            </div>
+            <button class="btn btn-danger" onclick="deleteDivision('${d._id}', '${d.name}')" style="padding:0.25rem 0.6rem;font-size:0.7rem;line-height:1;">Delete</button>
+        </div>
+    `).join('');
+}
+
+window.deleteDivision = async (id, name) => {
+    if (!confirm(`Delete division "${name}"? This is permanent.`)) return;
+    try {
+        const r = await fetch(`/api/divisions/${id}`, { method: 'DELETE' });
+        if (r.ok) {
+            showNotification(`Division "${name}" deleted`, 'success');
+            await fetchData();
             renderAll();
-        } catch(e) {
-            showNotification(e.message || 'Error adding department', 'error');
-        } finally {
-            if (btn) { btn.disabled = false; btn.textContent = 'Add Department'; }
+        } else {
+            const data = await r.json();
+            showNotification(data.error || 'Failed to delete division', 'error');
+        }
+    } catch(e) { showNotification('Error deleting division', 'error'); }
+};
+
+function populateHierarchyDropdowns() {
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const userRole = user.role || 'employee';
+
+    // Populate role selection based on logged in user's role hierarchy
+    const roleSelect = document.getElementById('admin-new-role');
+    if (roleSelect) {
+        roleSelect.innerHTML = '';
+        const allowedRoles = Object.keys(ROLE_LEVELS).filter(r => ROLE_LEVELS[userRole] > ROLE_LEVELS[r]);
+        // Also allow owner to create owners if needed
+        if (userRole === 'owner') {
+            allowedRoles.push('owner');
+        }
+        allowedRoles.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = ROLE_DISPLAY[r] || r;
+            roleSelect.appendChild(opt);
+        });
+    }
+
+    // Populate Division selects
+    const divSelects = [
+        document.getElementById('admin-new-division'),
+        document.getElementById('new-dept-division')
+    ];
+    divSelects.forEach(sel => {
+        if (!sel) return;
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">None / Select Division</option>';
+        (state.divisions || []).forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.name;
+            opt.textContent = d.name;
+            sel.appendChild(opt);
+        });
+        if ([...sel.options].some(o => o.value === currentVal)) {
+            sel.value = currentVal;
         }
     });
+
+    // Populate Dept Leaders select in Dept Manager
+    const leaderSelect = document.getElementById('new-dept-leader');
+    if (leaderSelect) {
+        const currentVal = leaderSelect.value;
+        leaderSelect.innerHTML = '<option value="">Select Dept Leader (Optional)</option>';
+        (state.personal || []).forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.name;
+            opt.textContent = `${p.name} (${p.role})`;
+            leaderSelect.appendChild(opt);
+        });
+        if ([...leaderSelect.options].some(o => o.value === currentVal)) {
+            leaderSelect.value = currentVal;
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Dept form
+    const form = document.getElementById('add-dept-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('new-dept-name');
+            const name = nameInput?.value?.trim();
+            if (!name) return;
+            const division = document.getElementById('new-dept-division')?.value || '';
+            const deptLeader = document.getElementById('new-dept-leader')?.value || '';
+
+            const btn = document.getElementById('add-dept-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+            try {
+                const res = await fetch('/api/departments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, division, deptLeader })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed');
+                if (nameInput) nameInput.value = '';
+                showNotification(`"${name}" department added! ✅`, 'success');
+                await loadAndRenderDepts();
+                renderAll();
+            } catch(e) {
+                showNotification(e.message || 'Error adding department', 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Add Department'; }
+            }
+        });
+    }
 });
 
 
@@ -1536,7 +1726,7 @@ function renderDocuments() {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Download
                     </button>
-                    ${JSON.parse(localStorage.getItem('bh_user') || '{}').role === 'admin' ? `
+                    ${hasMinRole(JSON.parse(localStorage.getItem('bh_user') || '{}').role, 'admin') ? `
                     <button class="btn btn-danger" onclick="deleteDocument('${doc._id || doc.id}')" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
                         🗑️ Delete
                     </button>
@@ -1606,57 +1796,95 @@ async function deleteDocument(id) {
 }
 window.deleteDocument = deleteDocument;
 
-// ── ADMIN: CREATE USER ────────────────────────────────────────────────────────
+// ── ADMIN: CREATE USER & DIVISION MANAGEMENT ─────────────────────────────────
 function setupAdminPanel() {
     const form = $('admin-create-user-form');
-    if (!form) return;
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = $('admin-create-btn');
-        const msgEl = $('admin-msg');
-        const name       = $('admin-new-name').value.trim();
-        const email      = $('admin-new-email').value.trim();
-        const phone      = $('admin-new-phone').value.trim();
-        const password   = $('admin-new-password').value;
-        const role       = $('admin-new-role').value;
-        const department = $('admin-new-dept').value;
-        const secret     = $('admin-secret-input').value;
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = $('admin-create-btn');
+            const msgEl = $('admin-msg');
+            const name       = $('admin-new-name').value.trim();
+            const email      = $('admin-new-email').value.trim();
+            const phone      = $('admin-new-phone').value.trim();
+            const password   = $('admin-new-password').value;
+            const role       = $('admin-new-role').value;
+            const division   = $('admin-new-division').value;
+            const department = $('admin-new-dept').value;
+            const secret     = $('admin-secret-input').value;
 
-        btn.disabled = true;
-        btn.innerHTML = `<span style="opacity:0.7">Creating…</span>`;
-        msgEl.style.display = 'none';
+            btn.disabled = true;
+            btn.innerHTML = `<span style="opacity:0.7">Creating…</span>`;
+            msgEl.style.display = 'none';
 
-        try {
-            const res = await fetch('/api/auth/signup', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-admin-secret': secret
-                },
-                body: JSON.stringify({ name, email, phone, password, role, department })
-            });
-            const data = await res.json();
-            btn.disabled = false;
-            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create User Account`;
+            try {
+                const res = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-secret': secret
+                    },
+                    body: JSON.stringify({ name, email, phone, password, role, division, department })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create User Account`;
 
-            if (!res.ok) {
+                if (!res.ok) {
+                    msgEl.style.cssText = 'display:block;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #fecaca;';
+                    msgEl.textContent = '❌ ' + (data.error || 'Failed to create user.');
+                } else {
+                    msgEl.style.cssText = 'display:block;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid #6ee7b7;';
+                    msgEl.textContent = `✅ Account created for ${data.user.name} (${data.user.email}). Share credentials manually.`;
+                    form.reset();
+                    showNotification(`User "${data.user.name}" created successfully!`, 'success');
+                    // Refresh local data immediately so the new user is instantly assignable
+                    fetchData().then(() => renderAll());
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = `Create User Account`;
                 msgEl.style.cssText = 'display:block;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #fecaca;';
-                msgEl.textContent = '❌ ' + (data.error || 'Failed to create user.');
-            } else {
-                msgEl.style.cssText = 'display:block;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid #6ee7b7;';
-                msgEl.textContent = `✅ Account created for ${data.user.name} (${data.user.email}). Share credentials manually.`;
-                form.reset();
-                showNotification(`User "${data.user.name}" created successfully!`, 'success');
-                // Refresh local data immediately so the new user is instantly assignable
-                fetchData().then(() => renderAll());
+                msgEl.textContent = '❌ Network error: ' + err.message;
             }
-        } catch (err) {
-            btn.disabled = false;
-            btn.innerHTML = `Create User Account`;
-            msgEl.style.cssText = 'display:block;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #fecaca;';
-            msgEl.textContent = '❌ Network error: ' + err.message;
-        }
-    });
+        });
+    }
+
+    // Division Form Listener
+    const divForm = $('add-division-form');
+    if (divForm) {
+        divForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = $('new-division-name');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            const btn = $('add-division-btn');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.textContent = 'Adding…';
+
+            try {
+                const res = await fetch('/api/divisions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to add division');
+                
+                nameInput.value = '';
+                showNotification(`Division "${name}" added successfully!`, 'success');
+                await fetchData();
+                renderAll();
+            } catch (err) {
+                showNotification(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+    }
 }
 
 // ── START ─────────────────────────────────────────────────────────────────────

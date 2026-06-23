@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Department = require('../models/Department');
+const { requireMinRole } = require('../middleware/roleCheck');
 
 // Palette of colors for auto-assignment
 const COLOR_PALETTE = [
@@ -14,30 +15,35 @@ const COLOR_PALETTE = [
     { color: '#14b8a6', bg: 'rgba(20,184,166,0.12)' },
     { color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
     { color: '#84cc16', bg: 'rgba(132,204,22,0.12)' },
-    { color: '#06b6d4', bg: 'rgba(6,182,212,0.12)' },
-    { color: '#a855f7', bg: 'rgba(168,85,247,0.12)' },
 ];
 
 // GET all departments
 router.get('/', async (req, res) => {
     try {
-        const departments = await Department.find().sort({ createdAt: 1 });
+        const role     = req.headers['x-user-role']     || 'employee';
+        const userDiv  = req.headers['x-user-division'] || '';
+        const userDept = req.headers['x-user-department'] || '';
+
+        let departments = await Department.find().sort({ createdAt: 1 });
+
+        if (role === 'division_head') {
+            departments = departments.filter(d => d.division === userDiv);
+        } else if (role === 'dept_leader' || role === 'employee') {
+            departments = departments.filter(d => d.name === userDept);
+        }
+
         res.json(departments);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// POST create a department
-router.post('/', async (req, res) => {
-    if (req.headers['x-user-role'] !== 'admin') {
-        return res.status(403).json({ error: 'Access denied. Admins only.' });
-    }
+// POST create department — admin and above
+router.post('/', requireMinRole('admin'), async (req, res) => {
     try {
-        const { name, color, bg } = req.body;
+        const { name, color, bg, division, deptLeader } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ error: 'Department name is required' });
 
-        // Auto-pick color if not provided
         const count = await Department.countDocuments();
         const palette = COLOR_PALETTE[count % COLOR_PALETTE.length];
 
@@ -45,6 +51,8 @@ router.post('/', async (req, res) => {
             name: name.trim(),
             color: color || palette.color,
             bg: bg || palette.bg,
+            division: division || '',
+            deptLeader: deptLeader || ''
         });
         await dept.save();
         res.status(201).json(dept);
@@ -54,14 +62,35 @@ router.post('/', async (req, res) => {
     }
 });
 
-// DELETE a department
-router.delete('/:id', async (req, res) => {
-    if (req.headers['x-user-role'] !== 'admin') {
-        return res.status(403).json({ error: 'Access denied. Admins only.' });
-    }
+// DELETE department — owner and admin only
+router.delete('/:id', requireMinRole('admin'), async (req, res) => {
     try {
         await Department.findByIdAndDelete(req.params.id);
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PATCH toggle employee visibility — dept_leader and above
+router.patch('/:id/visibility', async (req, res) => {
+    const role = req.headers['x-user-role'] || 'employee';
+    if (!['owner', 'admin', 'division_head', 'dept_leader'].includes(role)) {
+        return res.status(403).json({ error: 'Only department leaders and above can change visibility.' });
+    }
+    try {
+        const dept = await Department.findById(req.params.id);
+        if (!dept) return res.status(404).json({ error: 'Department not found' });
+
+        // dept_leader can only modify their own department
+        const userDept = req.headers['x-user-department'] || '';
+        if (role === 'dept_leader' && dept.name !== userDept) {
+            return res.status(403).json({ error: 'You can only modify your own department.' });
+        }
+
+        dept.employeeVisibility = req.body.employeeVisibility;
+        await dept.save();
+        res.json(dept);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
