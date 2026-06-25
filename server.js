@@ -17,13 +17,13 @@ mongoose.connect(process.env.MONGODB_URI, {
   .then(async () => {
     console.log('✅ Connected to MongoDB Atlas!');
 
-    // ── Auto-migrate old roles (admin→owner, staff→employee) ─────────────────
+    // ── Auto-migrate old roles (owner→admin, staff→employee) ─────────────────
     try {
         const User = require('./models/User');
-        const adminMigrated = await User.updateMany({ role: 'admin' }, { $set: { role: 'owner' } });
+        const ownerMigrated = await User.updateMany({ role: 'owner' }, { $set: { role: 'admin' } });
         const staffMigrated = await User.updateMany({ role: 'staff' }, { $set: { role: 'employee' } });
-        if (adminMigrated.modifiedCount > 0 || staffMigrated.modifiedCount > 0) {
-            console.log(`🔄 Role migration: ${adminMigrated.modifiedCount} admin→owner, ${staffMigrated.modifiedCount} staff→employee`);
+        if (ownerMigrated.modifiedCount > 0 || staffMigrated.modifiedCount > 0) {
+            console.log(`🔄 Role migration: ${ownerMigrated.modifiedCount} owner→admin, ${staffMigrated.modifiedCount} staff→employee`);
         }
     } catch (err) {
         console.warn('⚠️  Role migration skipped:', err.message);

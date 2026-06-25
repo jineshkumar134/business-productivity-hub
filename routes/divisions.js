@@ -3,7 +3,7 @@ const router = express.Router();
 const Division = require('../models/Division');
 const { requireMinRole } = require('../middleware/roleCheck');
 
-// GET all divisions — owner, admin, division_head can see
+// GET all divisions — admin, division_head can see
 router.get('/', async (req, res) => {
     try {
         const role = req.headers['x-user-role'] || 'employee';
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST create division — owner or admin only
+// POST create division — admin only
 router.post('/', requireMinRole('admin'), async (req, res) => {
     try {
         const { name, color, bg } = req.body;
@@ -42,8 +42,8 @@ router.post('/', requireMinRole('admin'), async (req, res) => {
     }
 });
 
-// DELETE division — owner only
-router.delete('/:id', requireMinRole('owner'), async (req, res) => {
+// DELETE division — admin and above
+router.delete('/:id', requireMinRole('admin'), async (req, res) => {
     try {
         await Division.findByIdAndDelete(req.params.id);
         res.json({ success: true });

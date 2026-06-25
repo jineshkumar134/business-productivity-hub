@@ -62,7 +62,7 @@ router.post('/', requireMinRole('admin'), async (req, res) => {
     }
 });
 
-// DELETE department — owner and admin only
+// DELETE department — admin only
 router.delete('/:id', requireMinRole('admin'), async (req, res) => {
     try {
         await Department.findByIdAndDelete(req.params.id);
@@ -75,7 +75,7 @@ router.delete('/:id', requireMinRole('admin'), async (req, res) => {
 // PATCH toggle employee visibility — dept_leader and above
 router.patch('/:id/visibility', async (req, res) => {
     const role = req.headers['x-user-role'] || 'employee';
-    if (!['owner', 'admin', 'division_head', 'dept_leader'].includes(role)) {
+    if (!['admin', 'division_head', 'dept_leader'].includes(role)) {
         return res.status(403).json({ error: 'Only department leaders and above can change visibility.' });
     }
     try {

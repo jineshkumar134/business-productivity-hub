@@ -22,9 +22,9 @@ window.fetch = function(url, options = {}) {
 };
 
 // ── Role Hierarchy helpers ──────────────────────────────────────────────────
-const ROLE_LEVELS = { owner: 5, admin: 4, division_head: 3, dept_leader: 2, employee: 1 };
+const ROLE_LEVELS = { admin: 4, division_head: 3, dept_leader: 2, employee: 1 };
 const ROLE_DISPLAY = {
-    owner: '👑 Owner', admin: '⚙ Admin',
+    admin: '⚙ Admin',
     division_head: '🏢 Division Head', dept_leader: '📋 Dept Leader', employee: '👤 Employee'
 };
 function hasMinRole(userRole, minRole) {
@@ -192,7 +192,7 @@ function setupRoleAccess() {
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
     const role = user.role || 'employee';
 
-    // [data-admin-only] → owner + admin
+    // [data-admin-only] → admin
     document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
         el.style.display = hasMinRole(role, 'admin') ? '' : 'none';
     });
@@ -211,7 +211,7 @@ function setupRoleAccess() {
     const dashNav = document.getElementById('nav-dashboard');
     if (dashNav) dashNav.style.display = hasMinRole(role, 'division_head') ? '' : 'none';
 
-    // Admin panel only for owner/admin
+    // Admin panel only for admin
     const adminNav = document.getElementById('nav-admin');
     if (adminNav) adminNav.style.display = hasMinRole(role, 'admin') ? '' : 'none';
 
@@ -1531,9 +1531,9 @@ function populateHierarchyDropdowns() {
     if (roleSelect) {
         roleSelect.innerHTML = '';
         const allowedRoles = Object.keys(ROLE_LEVELS).filter(r => ROLE_LEVELS[userRole] > ROLE_LEVELS[r]);
-        // Also allow owner to create owners if needed
-        if (userRole === 'owner') {
-            allowedRoles.push('owner');
+        // Also allow admin to create admins if needed (requires secret)
+        if (userRole === 'admin') {
+            allowedRoles.push('admin');
         }
         allowedRoles.forEach(r => {
             const opt = document.createElement('option');

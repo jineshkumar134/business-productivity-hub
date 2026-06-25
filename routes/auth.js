@@ -7,7 +7,6 @@ const { ROLE_LEVELS } = require('../middleware/roleCheck');
 
 // Helper to map system role → display label
 const ROLE_DISPLAY = {
-    owner:        'Owner',
     admin:        'Admin',
     division_head:'Division Head',
     dept_leader:  'Department Leader',
@@ -24,8 +23,7 @@ const dbReady = (res) => {
 };
 
 // ── Sign Up ─────────────────────────────────────────────────────────────────
-// Owner can create anyone. Each role can only create roles BELOW them.
-// First-time owner creation still requires ADMIN_SECRET.
+// Admin can create anyone (subordinates). Admin creation requires ADMIN_SECRET.
 router.post('/signup', async (req, res) => {
     if (!dbReady(res)) return;
 
@@ -34,27 +32,32 @@ router.post('/signup', async (req, res) => {
     const creatorRole  = req.headers['x-user-role'] || '';
     const creatorName  = req.headers['x-user-name']  || '';
 
-    // === Case 1: Creating an owner-level account (requires secret) ===
-    if (targetRole === 'owner') {
+    // === Case 1: Creating an Admin account (requires secret) ===
+    let isCreatingAdminWithSecret = false;
+    if (targetRole === 'admin') {
         const providedSecret = req.headers['x-admin-secret'] || adminSecret || '';
         const actualSecret   = process.env.ADMIN_SECRET || 'BizHub@AdminOnly2024';
         if (providedSecret.trim() !== actualSecret.trim()) {
-            return res.status(403).json({ error: 'Creating an Owner account requires the Admin Secret.' });
+            return res.status(403).json({ error: 'Creating an Admin account requires the Admin Secret.' });
         }
+        isCreatingAdminWithSecret = true;
     }
-    // === Case 2: Logged-in user creating a subordinate ===
-    else if (creatorRole) {
-        const creatorLevel = ROLE_LEVELS[creatorRole] || 0;
-        const targetLevel  = ROLE_LEVELS[targetRole]  || 0;
-        if (creatorLevel <= targetLevel) {
-            return res.status(403).json({
-                error: `A ${ROLE_DISPLAY[creatorRole] || creatorRole} cannot create a ${ROLE_DISPLAY[targetRole] || targetRole} account.`
-            });
+
+    if (!isCreatingAdminWithSecret) {
+        // === Case 2: Logged-in user creating a subordinate ===
+        if (creatorRole) {
+            const creatorLevel = ROLE_LEVELS[creatorRole] || 0;
+            const targetLevel  = ROLE_LEVELS[targetRole]  || 0;
+            if (creatorLevel <= targetLevel) {
+                return res.status(403).json({
+                    error: `A ${ROLE_DISPLAY[creatorRole] || creatorRole} cannot create a ${ROLE_DISPLAY[targetRole] || targetRole} account.`
+                });
+            }
         }
-    }
-    // === Case 3: No creator role and not owner → block ===
-    else {
-        return res.status(403).json({ error: 'Access denied. You must be logged in to create accounts.' });
+        // === Case 3: No creator role → block ===
+        else {
+            return res.status(403).json({ error: 'Access denied. You must be logged in to create accounts.' });
+        }
     }
 
     try {
@@ -122,7 +125,7 @@ router.post('/signin', async (req, res) => {
     }
 });
 
-// ── Data Migration: run once to upgrade old admin→owner, staff→employee ─────
+// ── Data Migration: run once to upgrade old owner→admin, staff→employee ─────
 router.post('/migrate-roles', async (req, res) => {
     const providedSecret = req.headers['x-admin-secret'] || req.body.adminSecret || '';
     const actualSecret   = process.env.ADMIN_SECRET || 'BizHub@AdminOnly2024';
@@ -130,11 +133,11 @@ router.post('/migrate-roles', async (req, res) => {
         return res.status(403).json({ error: 'Migration requires Admin Secret.' });
     }
     try {
-        const adminRes = await User.updateMany({ role: 'admin' }, { $set: { role: 'owner' } });
+        const ownerRes = await User.updateMany({ role: 'owner' }, { $set: { role: 'admin' } });
         const staffRes = await User.updateMany({ role: 'staff' }, { $set: { role: 'employee' } });
         res.json({
             message: 'Migration complete',
-            adminToOwner: adminRes.modifiedCount,
+            ownerToAdmin: ownerRes.modifiedCount,
             staffToEmployee: staffRes.modifiedCount
         });
     } catch (err) {

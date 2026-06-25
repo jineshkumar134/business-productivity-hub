@@ -5,7 +5,6 @@
  */
 
 const ROLE_LEVELS = {
-    owner: 5,
     admin: 4,
     division_head: 3,
     dept_leader: 2,

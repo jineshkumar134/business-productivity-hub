@@ -7,7 +7,7 @@ const { ROLE_LEVELS } = require('../middleware/roleCheck');
 
 // ── Helper: role-based task filter ──────────────────────────────────────────
 async function filterTasksForUser(tasks, role, userName, userDivision, userDepartment) {
-    if (role === 'owner' || role === 'admin') {
+    if (role === 'admin') {
         return tasks; // see everything
     }
     if (role === 'division_head') {
@@ -86,13 +86,13 @@ router.put('/:id', async (req, res) => {
         const role = req.headers['x-user-role'] || 'employee';
         let updateData = req.body;
 
-        // Owner and admin can update anything
-        if (role !== 'owner' && role !== 'admin') {
+        // Admin can update anything
+        if (role !== 'admin') {
             const existingTask = await Task.findById(req.params.id);
             if (!existingTask) return res.status(404).json({ error: 'Task not found' });
 
             if (existingTask.is_locked) {
-                return res.status(403).json({ error: 'Task is locked. Only owner/admin can edit it.' });
+                return res.status(403).json({ error: 'Task is locked. Only Admin can edit it.' });
             }
 
             // Non-admin can only update progress fields
@@ -134,11 +134,11 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// DELETE task — owner and admin only
+// DELETE task — admin and above
 router.delete('/:id', async (req, res) => {
     const role = req.headers['x-user-role'] || 'employee';
-    if (role !== 'owner' && role !== 'admin') {
-        return res.status(403).json({ error: 'Access denied. Owner/Admin only.' });
+    if (role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admin only.' });
     }
     try {
         const task = await Task.findById(req.params.id);

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Personal = require('../models/Personal');
-const { requireMinRole } = require('../middleware/roleCheck');
+const { requireMinRole, ROLE_LEVELS } = require('../middleware/roleCheck');
 
 // GET personal — role-filtered
 router.get('/', async (req, res) => {
@@ -36,7 +36,7 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
         
         // Map targetRoleDisplay to system role
         const roleMap = {
-            'Owner': 'owner', 'Admin': 'admin',
+            'Admin': 'admin',
             'Division Head': 'division_head',
             'Department Leader': 'dept_leader',
             'Employee': 'employee', 'Staff': 'employee'
@@ -90,7 +90,7 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
         if (!existingPerson) return res.status(404).json({ error: 'Personal profile not found' });
         
         const roleMap = {
-            'Owner': 'owner', 'Admin': 'admin',
+            'Admin': 'admin',
             'Division Head': 'division_head',
             'Department Leader': 'dept_leader',
             'Employee': 'employee', 'Staff': 'employee'
@@ -131,7 +131,7 @@ router.delete('/:id', requireMinRole('dept_leader'), async (req, res) => {
         if (!person) return res.status(404).json({ error: 'Member not found' });
         
         const roleMap = {
-            'Owner': 'owner', 'Admin': 'admin',
+            'Admin': 'admin',
             'Division Head': 'division_head',
             'Department Leader': 'dept_leader',
             'Employee': 'employee', 'Staff': 'employee'
