@@ -31,7 +31,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
     // ── Start Server ONLY after DB is connected ───────────────────────────────
     app.listen(PORT, () => {
-        console.log(`🚀 Business Hub Running on http://localhost:${PORT}`);
+        console.log(`🚀 Growth Hub Running on http://localhost:${PORT}`);
     });
   })
   .catch(err => {

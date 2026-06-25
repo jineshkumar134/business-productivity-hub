@@ -1,5 +1,5 @@
 /**
- * Business Hub – Frontend Logic v2.0
+ * Growth Hub – Frontend Logic v2.0
  * CRED-inspired UI | Poppins | Blue + Orange
  */
 
