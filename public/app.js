@@ -1457,9 +1457,13 @@ function renderDeptAdminList() {
                 </div>
                 <button class="btn btn-danger" onclick="deleteDepartment('${d._id}', '${d.name}')" style="padding:0.25rem 0.6rem;font-size:0.7rem;line-height:1;">Delete</button>
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:0.75rem;font-size:0.78rem;color:var(--secondary);background:white;padding:0.5rem;border-radius:6px;border:1px solid var(--gray-100);">
-                <div>🏢 Division: <strong style="color:var(--dark);">${d.division || 'None'}</strong></div>
-                <div>👤 Leader: <strong style="color:var(--dark);">${d.deptLeader || 'None'}</strong></div>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;font-size:0.78rem;color:var(--secondary);background:white;padding:0.5rem;border-radius:6px;border:1px solid var(--gray-100);">
+                <span style="white-space:nowrap;">🏢 Division:</span>
+                <select onchange="updateDeptDivision('${d._id}', this.value)" style="font-size:0.75rem;padding:0.2rem 0.5rem;border:1px solid var(--gray-200);border-radius:6px;background:var(--gray-50);flex:1;min-width:120px;">
+                    <option value="" ${!d.division ? 'selected' : ''}>None</option>
+                    ${(state.divisions || []).map(v => `<option value="${v.name}" ${d.division === v.name ? 'selected' : ''}>${v.name}</option>`).join('')}
+                </select>
+                <span style="white-space:nowrap;margin-left:0.5rem;">👤 Leader: <strong style="color:var(--dark);">${d.deptLeader || 'None'}</strong></span>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;margin-top:0.25rem;">
                 <input type="checkbox" id="vis-${d._id}" ${d.employeeVisibility ? 'checked' : ''} onchange="toggleDeptVisibility('${d._id}', this.checked)" style="width:auto;cursor:pointer;">
@@ -1533,6 +1537,56 @@ window.deleteDivision = async (id, name) => {
             showNotification(data.error || 'Failed to delete division', 'error');
         }
     } catch(e) { showNotification('Error deleting division', 'error'); }
+};
+
+// Update a department's division and cascade to all members/tasks
+window.updateDeptDivision = async (deptId, newDivision) => {
+    try {
+        const res = await fetch(`/api/departments/${deptId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ division: newDivision })
+        });
+        if (res.ok) {
+            showNotification('Division updated ✅ — members and tasks synced!', 'success');
+            await fetchData();
+            renderAll();
+        } else {
+            const data = await res.json();
+            showNotification(data.error || 'Failed to update division', 'error');
+        }
+    } catch(e) { showNotification('Error updating department division', 'error'); }
+};
+
+// Sync ALL divisions to Personal + Tasks from Department settings
+window.syncAllDivisions = async () => {
+    const btn = document.getElementById('sync-divisions-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
+    try {
+        // For each department that has a division set, call PUT to trigger cascade
+        const depts = state.deptObjects || [];
+        let synced = 0;
+        for (const dept of depts) {
+            if (dept.division) {
+                const res = await fetch(`/api/departments/${dept._id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ division: dept.division })
+                });
+                if (res.ok) synced++;
+            }
+        }
+        showNotification(`✅ Synced ${synced} departments — all member & task divisions updated!`, 'success');
+        await fetchData();
+        renderAll();
+    } catch(e) {
+        showNotification('Sync failed: ' + e.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg> Sync All Divisions to Members &amp; Tasks`;
+        }
+    }
 };
 
 function populateHierarchyDropdowns() {

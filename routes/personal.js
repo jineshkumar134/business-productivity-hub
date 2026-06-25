@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const Personal = require('../models/Personal');
+const Department = require('../models/Department');
 const { requireMinRole, ROLE_LEVELS } = require('../middleware/roleCheck');
+
+// Helper: resolve division for a department name
+async function getDivisionForDept(deptName) {
+    if (!deptName) return '';
+    const dept = await Department.findOne({ name: deptName });
+    return dept ? (dept.division || '') : '';
+}
 
 // GET personal — role-filtered
 router.get('/', async (req, res) => {
@@ -13,7 +21,15 @@ router.get('/', async (req, res) => {
         let list = await Personal.find({});
 
         if (role === 'division_head') {
-            list = list.filter(p => p.division === userDiv);
+            // Get all departments that belong to this division
+            const divisionDepts = await Department.find({ division: userDiv });
+            const divisionDeptNames = divisionDepts.map(d => d.name);
+
+            // Match by personal.division OR by department being in this division
+            list = list.filter(p =>
+                p.division === userDiv ||
+                divisionDeptNames.includes(p.department)
+            );
         } else if (role === 'dept_leader') {
             list = list.filter(p => p.department === userDept);
         } else if (role === 'employee') {
@@ -52,7 +68,13 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
             });
         }
 
-        const newPerson = new Personal(req.body);
+        // Auto-infer division from department if not provided
+        let inferredDivision = req.body.division || '';
+        if (!inferredDivision && req.body.department) {
+            inferredDivision = await getDivisionForDept(req.body.department);
+        }
+
+        const newPerson = new Personal({ ...req.body, division: inferredDivision });
         await newPerson.save();
 
         // Auto-create login if email + password provided
@@ -66,7 +88,7 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
                     phone:      req.body.phone || '0000000000',
                     password:   req.body.password,
                     role:       targetRole,
-                    division:   req.body.division   || '',
+                    division:   inferredDivision,
                     department: req.body.department || '',
                     createdBy:  req.headers['x-user-name'] || ''
                 });
@@ -110,7 +132,13 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
             return res.status(403).json({ error: `Access Denied. You cannot assign the role: ${req.body.role}` });
         }
 
-        const updatedPerson = await Personal.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        // Auto-infer division from department if not provided
+        let updateBody = { ...req.body };
+        if (!updateBody.division && updateBody.department) {
+            updateBody.division = await getDivisionForDept(updateBody.department);
+        }
+
+        const updatedPerson = await Personal.findByIdAndUpdate(req.params.id, updateBody, { new: true });
         if (updatedPerson) {
             // Sync to User login collection if email is present
             if (updatedPerson.email) {
@@ -120,14 +148,14 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
                     division: updatedPerson.division || '',
                     department: updatedPerson.department || ''
                 };
-                if (req.body.role) {
+                if (updateBody.role) {
                     const roleMap = {
                         'Admin': 'admin',
                         'Division Head': 'division_head',
                         'Department Leader': 'dept_leader',
                         'Employee': 'employee', 'Staff': 'employee'
                     };
-                    userUpdate.role = roleMap[req.body.role] || 'employee';
+                    userUpdate.role = roleMap[updateBody.role] || 'employee';
                 }
                 await User.findOneAndUpdate({ email: updatedPerson.email.toLowerCase() }, { $set: userUpdate });
             }

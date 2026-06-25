@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Department = require('../models/Department');
+const Personal = require('../models/Personal');
+const Task = require('../models/Task');
+const User = require('../models/User');
 const { requireMinRole } = require('../middleware/roleCheck');
 
 // Palette of colors for auto-assignment
@@ -67,6 +70,47 @@ router.delete('/:id', requireMinRole('admin'), async (req, res) => {
     try {
         await Department.findByIdAndDelete(req.params.id);
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT update department (name, division, deptLeader) — admin only
+router.put('/:id', requireMinRole('admin'), async (req, res) => {
+    try {
+        const existing = await Department.findById(req.params.id);
+        if (!existing) return res.status(404).json({ error: 'Department not found' });
+
+        const oldName = existing.name;
+        const newDivision = req.body.division !== undefined ? req.body.division : existing.division;
+        const newName = req.body.name ? req.body.name.trim() : existing.name;
+
+        const updated = await Department.findByIdAndUpdate(
+            req.params.id,
+            { $set: req.body },
+            { new: true }
+        );
+
+        // Cascade division change to Personal records in this department
+        if (newDivision !== existing.division || newName !== oldName) {
+            // Update Personal records
+            await Personal.updateMany(
+                { department: oldName },
+                { $set: { division: newDivision, department: newName } }
+            );
+            // Update Task records
+            await Task.updateMany(
+                { department: oldName },
+                { $set: { division: newDivision, department: newName } }
+            );
+            // Update User login records
+            await User.updateMany(
+                { department: oldName },
+                { $set: { division: newDivision, department: newName } }
+            );
+        }
+
+        res.json(updated);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

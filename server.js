@@ -29,27 +29,48 @@ mongoose.connect(process.env.MONGODB_URI, {
         console.warn('⚠️  Role migration skipped:', err.message);
     }
 
-    // ── Auto-migrate Personal division field from Users ───────────────────────
+    // ── Auto-migrate division fields: sync from Department → Personal, Task, User ─
     try {
-        const User = require('./models/User');
+        const User     = require('./models/User');
         const Personal = require('./models/Personal');
-        const personList = await Personal.find({});
-        let migratedCount = 0;
-        for (const p of personList) {
-            if (p.email) {
-                const u = await User.findOne({ email: p.email.toLowerCase() });
-                if (u && u.division && p.division !== u.division) {
-                    p.division = u.division;
-                    await Personal.findByIdAndUpdate(p._id, { division: u.division });
-                    migratedCount++;
-                }
-            }
+        const Task     = require('./models/Task');
+        const Department = require('./models/Department');
+
+        // Build a map: departmentName → division
+        const depts = await Department.find({ division: { $exists: true, $ne: '' } });
+        const divMap = {};
+        depts.forEach(d => { if (d.name && d.division) divMap[d.name] = d.division; });
+
+        let personFixed = 0, taskFixed = 0, userFixed = 0;
+
+        // Fix Personal records with missing division but matching department
+        for (const [deptName, divName] of Object.entries(divMap)) {
+            const pRes = await Personal.updateMany(
+                { department: deptName, $or: [{ division: '' }, { division: null }, { division: { $exists: false } }] },
+                { $set: { division: divName } }
+            );
+            personFixed += pRes.modifiedCount;
+
+            const tRes = await Task.updateMany(
+                { department: deptName, $or: [{ division: '' }, { division: null }, { division: { $exists: false } }] },
+                { $set: { division: divName } }
+            );
+            taskFixed += tRes.modifiedCount;
+
+            const uRes = await User.updateMany(
+                { department: deptName, $or: [{ division: '' }, { division: null }, { division: { $exists: false } }] },
+                { $set: { division: divName } }
+            );
+            userFixed += uRes.modifiedCount;
         }
-        if (migratedCount > 0) {
-            console.log(`🔄 Personal division migration: synchronized ${migratedCount} profiles`);
+
+        if (personFixed + taskFixed + userFixed > 0) {
+            console.log(`🔄 Division sync: ${personFixed} personal, ${taskFixed} tasks, ${userFixed} users updated`);
+        } else {
+            console.log('✅ Division fields already in sync.');
         }
     } catch (err) {
-        console.warn('⚠️  Personal division migration skipped:', err.message);
+        console.warn('⚠️  Division sync migration skipped:', err.message);
     }
 
     // ── Start Server ONLY after DB is connected ───────────────────────────────

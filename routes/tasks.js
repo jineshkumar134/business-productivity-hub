@@ -11,7 +11,14 @@ async function filterTasksForUser(tasks, role, userName, userDivision, userDepar
         return tasks; // see everything
     }
     if (role === 'division_head') {
-        return tasks.filter(t => t.division === userDivision);
+        // Get all departments in this division
+        const divisionDepts = await Department.find({ division: userDivision });
+        const divisionDeptNames = divisionDepts.map(d => d.name);
+        // Show tasks that match by division OR by department being in this division
+        return tasks.filter(t =>
+            t.division === userDivision ||
+            divisionDeptNames.includes(t.department)
+        );
     }
     if (role === 'dept_leader') {
         return tasks.filter(t => t.department === userDepartment);
