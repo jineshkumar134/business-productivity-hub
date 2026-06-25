@@ -1344,10 +1344,16 @@ async function handlePersonalSubmit(e){
     const id=$('person-id').value;
     // Always prefer state.personPhotoData — it's reliably set on upload and edit-modal open
     const photoData = state.personPhotoData || $('person-photo-data').value || '';
+    const loggedInUser = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const selectedDeptName = $('person-dept').value;
+    const deptObj = (state.deptObjects || []).find(d => d.name === selectedDeptName);
+    const division = deptObj ? (deptObj.division || '') : (loggedInUser.division || '');
+
     const personData={
         name:$('person-name').value,
         role:$('person-role').value,
-        department:$('person-dept').value,
+        department:selectedDeptName,
+        division:division,
         email:$('person-email').value,
         password:$('person-password').value,
         responsibility:$('person-responsibility').value,

@@ -112,6 +112,25 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
 
         const updatedPerson = await Personal.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (updatedPerson) {
+            // Sync to User login collection if email is present
+            if (updatedPerson.email) {
+                const User = require('../models/User');
+                const userUpdate = {
+                    name: updatedPerson.name,
+                    division: updatedPerson.division || '',
+                    department: updatedPerson.department || ''
+                };
+                if (req.body.role) {
+                    const roleMap = {
+                        'Admin': 'admin',
+                        'Division Head': 'division_head',
+                        'Department Leader': 'dept_leader',
+                        'Employee': 'employee', 'Staff': 'employee'
+                    };
+                    userUpdate.role = roleMap[req.body.role] || 'employee';
+                }
+                await User.findOneAndUpdate({ email: updatedPerson.email.toLowerCase() }, { $set: userUpdate });
+            }
             res.json(updatedPerson);
         } else {
             res.status(404).json({ message: 'Personal not found' });
