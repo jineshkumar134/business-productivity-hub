@@ -29,6 +29,29 @@ mongoose.connect(process.env.MONGODB_URI, {
         console.warn('⚠️  Role migration skipped:', err.message);
     }
 
+    // ── Auto-migrate Personal division field from Users ───────────────────────
+    try {
+        const User = require('./models/User');
+        const Personal = require('./models/Personal');
+        const personList = await Personal.find({});
+        let migratedCount = 0;
+        for (const p of personList) {
+            if (p.email) {
+                const u = await User.findOne({ email: p.email.toLowerCase() });
+                if (u && u.division && p.division !== u.division) {
+                    p.division = u.division;
+                    await Personal.findByIdAndUpdate(p._id, { division: u.division });
+                    migratedCount++;
+                }
+            }
+        }
+        if (migratedCount > 0) {
+            console.log(`🔄 Personal division migration: synchronized ${migratedCount} profiles`);
+        }
+    } catch (err) {
+        console.warn('⚠️  Personal division migration skipped:', err.message);
+    }
+
     // ── Start Server ONLY after DB is connected ───────────────────────────────
     app.listen(PORT, () => {
         console.log(`🚀 Growth Hub Running on http://localhost:${PORT}`);
