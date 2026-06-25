@@ -152,7 +152,9 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 .sidebar-footer { padding-top:1rem; border-top:1px solid rgba(255,255,255,0.07); margin-top:auto; }
 
 /* Mobile logout button — hidden on desktop, shown only on mobile via media query */
-.nav-logout-mobile { display: none !important; }
+@media (min-width: 601px) {
+    .nav-logout-mobile { display: none !important; }
+}
 
 /* ===== MAIN CONTENT ===== */
 .main-content {
@@ -848,6 +850,28 @@ select { width:100%; }
     .nav-item.active {
         color: var(--primary) !important;
         background: var(--primary-light) !important;
+    }
+
+    /* Show logout in the mobile tab bar */
+    .nav-logout-mobile {
+        display: flex !important;
+        flex: 0 0 auto !important;
+        flex-direction: column !important;
+        gap: 0.15rem !important;
+        padding: 0.35rem 0.75rem !important;
+        background: none !important;
+        box-shadow: none !important;
+        color: #f87171 !important;
+        align-items: center;
+        justify-content: center;
+        min-width: 64px;
+        max-width: 80px;
+        scroll-snap-align: start;
+        border-radius: 12px;
+        border-top: none !important;
+        margin-top: 0 !important;
+        padding-top: 0.35rem !important;
+        cursor: pointer;
     }
 
     /* Main content */
