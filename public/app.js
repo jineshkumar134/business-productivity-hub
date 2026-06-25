@@ -590,8 +590,15 @@ function populateDeptDropdowns() {
     selects.forEach(sel => {
         if (!sel) return;
         const isRequestedBy = sel.id === 'task-requested-by';
+        const isAdminDept = sel.id === 'admin-new-dept';
         const currentVal = sel.value;
-        sel.innerHTML = isRequestedBy ? '<option value="">Self</option>' : '';
+        if (isRequestedBy) {
+            sel.innerHTML = '<option value="">Self</option>';
+        } else if (isAdminDept) {
+            sel.innerHTML = '<option value="">None / Select Department</option>';
+        } else {
+            sel.innerHTML = '';
+        }
         depts.forEach(name => {
             const opt = document.createElement('option');
             opt.value = name;
@@ -599,7 +606,7 @@ function populateDeptDropdowns() {
             sel.appendChild(opt);
         });
         // restore previous value if still valid
-        if (currentVal && depts.includes(currentVal)) sel.value = currentVal;
+        if (currentVal && (depts.includes(currentVal) || currentVal === "")) sel.value = currentVal;
     });
 }
 
@@ -1799,7 +1806,40 @@ window.deleteDocument = deleteDocument;
 // ── ADMIN: CREATE USER & DIVISION MANAGEMENT ─────────────────────────────────
 function setupAdminPanel() {
     const form = $('admin-create-user-form');
+    
+    // Add dynamic UI adjustments for registration form
+    const roleSelect = $('admin-new-role');
+    const divSelect = $('admin-new-division');
+    const deptSelect = $('admin-new-dept');
+    
+    const adjustFields = () => {
+        if (!roleSelect || !divSelect || !deptSelect) return;
+        const role = roleSelect.value;
+        if (role === 'admin') {
+            divSelect.value = '';
+            divSelect.disabled = true;
+            deptSelect.value = '';
+            deptSelect.disabled = true;
+        } else if (role === 'division_head') {
+            divSelect.disabled = false;
+            deptSelect.value = '';
+            deptSelect.disabled = true;
+        } else {
+            divSelect.disabled = false;
+            deptSelect.disabled = false;
+        }
+    };
+
+    if (roleSelect) {
+        roleSelect.addEventListener('change', adjustFields);
+        // Observe mutation or initialization
+        setTimeout(adjustFields, 500);
+    }
+
     if (form) {
+        form.addEventListener('reset', () => {
+            setTimeout(adjustFields, 0);
+        });
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = $('admin-create-btn');
@@ -1809,8 +1849,17 @@ function setupAdminPanel() {
             const phone      = $('admin-new-phone').value.trim();
             const password   = $('admin-new-password').value;
             const role       = $('admin-new-role').value;
-            const division   = $('admin-new-division').value;
-            const department = $('admin-new-dept').value;
+            
+            // Clean division/department based on selected role
+            let division = divSelect ? divSelect.value : '';
+            let department = deptSelect ? deptSelect.value : '';
+            if (role === 'admin') {
+                division = '';
+                department = '';
+            } else if (role === 'division_head') {
+                department = '';
+            }
+
             const secret     = $('admin-secret-input').value;
 
             btn.disabled = true;
