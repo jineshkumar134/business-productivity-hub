@@ -15,6 +15,7 @@ window.fetch = function(url, options = {}) {
         const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
         if (user.role)       options.headers['x-user-role']       = user.role;
         if (user.name)       options.headers['x-user-name']       = user.name;
+        if (user.email)      options.headers['x-user-email']      = user.email;
         if (user.division)   options.headers['x-user-division']   = user.division;
         if (user.department) options.headers['x-user-department'] = user.department;
     }
@@ -122,7 +123,7 @@ async function init() {
     
     // Set initial view AFTER data is loaded
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
-    const isHighLevel = hasMinRole(user.role, 'admin');
+    const isHighLevel = hasMinRole(user.role, 'dept_leader');
     switchView(isHighLevel ? 'dashboard' : 'my-portal');
 
     // Start background polling for real-time updates (every 4 seconds)
@@ -207,17 +208,17 @@ function setupRoleAccess() {
     const hrNav = document.getElementById('nav-hr');
     if (hrNav) hrNav.style.display = hasMinRole(role, 'dept_leader') ? '' : 'none';
 
-    // Dashboard only for division_head and above
+    // Dashboard only for dept_leader and above
     const dashNav = document.getElementById('nav-dashboard');
-    if (dashNav) dashNav.style.display = hasMinRole(role, 'division_head') ? '' : 'none';
+    if (dashNav) dashNav.style.display = hasMinRole(role, 'dept_leader') ? '' : 'none';
 
     // Admin panel only for admin
     const adminNav = document.getElementById('nav-admin');
     if (adminNav) adminNav.style.display = hasMinRole(role, 'admin') ? '' : 'none';
 
-    // Summary only for division_head+
+    // Summary only for dept_leader+
     const summaryNav = document.getElementById('nav-summary');
-    if (summaryNav) summaryNav.style.display = hasMinRole(role, 'division_head') ? '' : 'none';
+    if (summaryNav) summaryNav.style.display = hasMinRole(role, 'dept_leader') ? '' : 'none';
 
     // Invoicing + Activity log hidden always (per previous request)
     const invoicingNav = document.getElementById('nav-invoicing');
@@ -635,12 +636,8 @@ function renderMyPortal() {
         badge.style.color = 'var(--primary)';
     }
     
-    // Filter tasks for this user (case-insensitive and trimmed) OR if they requested the task
-    let myTasks = state.tasks.filter(t => {
-        const isResponsible = t.responsible && t.responsible.some(r => r.trim().toLowerCase() === (myName || '').trim().toLowerCase());
-        const isRequester = t.requested_by && t.requested_by.trim().toLowerCase() === (myName || '').trim().toLowerCase();
-        return isResponsible || isRequester;
-    });
+    // Show all tasks returned by backend (backend already handles secure role-based scoping and visibility toggles)
+    let myTasks = [...state.tasks];
     
     if (state.searchQuery) {
         myTasks = myTasks.filter(t => 

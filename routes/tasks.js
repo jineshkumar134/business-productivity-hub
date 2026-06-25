@@ -6,33 +6,82 @@ const Department = require('../models/Department');
 const { ROLE_LEVELS } = require('../middleware/roleCheck');
 
 // ── Helper: role-based task filter ──────────────────────────────────────────
-async function filterTasksForUser(tasks, role, userName, userDivision, userDepartment) {
+async function filterTasksForUser(tasks, role, userName, userDivision, userDepartment, userEmail) {
     if (role === 'admin') {
         return tasks; // see everything
     }
     if (role === 'division_head') {
-        // Get all departments in this division
-        const divisionDepts = await Department.find({ division: userDivision });
-        const divisionDeptNames = divisionDepts.map(d => d.name);
-        // Show tasks that match by division OR by department being in this division
-        return tasks.filter(t =>
-            t.division === userDivision ||
-            divisionDeptNames.includes(t.department)
-        );
+        let div = userDivision;
+        if (!div && userEmail) {
+            const User = require('../models/User');
+            const me = await User.findOne({ email: userEmail.toLowerCase() });
+            if (me) div = me.division || '';
+        }
+        if (!div) {
+            const Personal = require('../models/Personal');
+            const mePerson = await Personal.findOne({
+                name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
+                role: { $regex: /division head/i }
+            });
+            if (mePerson) div = mePerson.division || '';
+        }
+
+        const cleanDiv = (div || '').trim().toLowerCase();
+        if (!cleanDiv) return [];
+
+        const divisionDepts = await Department.find({
+            division: { $regex: new RegExp(`^${cleanDiv}$`, 'i') }
+        });
+        const divisionDeptNames = divisionDepts.map(d => d.name.trim().toLowerCase());
+
+        return tasks.filter(t => {
+            const tDiv = (t.division || '').trim().toLowerCase();
+            const tDept = (t.department || '').trim().toLowerCase();
+            return tDiv === cleanDiv || (tDept && divisionDeptNames.includes(tDept));
+        });
     }
     if (role === 'dept_leader') {
-        return tasks.filter(t => t.department === userDepartment);
+        let dept = userDepartment;
+        if (!dept && userEmail) {
+            const User = require('../models/User');
+            const me = await User.findOne({ email: userEmail.toLowerCase() });
+            if (me) dept = me.department || '';
+        }
+        if (!dept) {
+            const Personal = require('../models/Personal');
+            const mePerson = await Personal.findOne({
+                name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
+                role: { $regex: /department leader/i }
+            });
+            if (mePerson) dept = mePerson.department || '';
+        }
+
+        const cleanDept = (dept || '').trim().toLowerCase();
+        if (!cleanDept) return [];
+
+        return tasks.filter(t => t.department && t.department.trim().toLowerCase() === cleanDept);
     }
     if (role === 'employee') {
-        // Check if the department has employee visibility enabled
-        const dept = await Department.findOne({ name: userDepartment });
-        const visibilityOn = dept?.employeeVisibility || false;
+        let dept = userDepartment;
+        if (!dept && userEmail) {
+            const User = require('../models/User');
+            const me = await User.findOne({ email: userEmail.toLowerCase() });
+            if (me) dept = me.department || '';
+        }
+
+        const cleanDept = (dept || '').trim().toLowerCase();
+        
+        let visibilityOn = false;
+        if (cleanDept) {
+            const deptObj = await Department.findOne({
+                name: { $regex: new RegExp(`^${cleanDept}$`, 'i') }
+            });
+            visibilityOn = deptObj?.employeeVisibility || false;
+        }
 
         if (visibilityOn) {
-            // Employee sees all tasks in their department
-            return tasks.filter(t => t.department === userDepartment);
+            return tasks.filter(t => t.department && t.department.trim().toLowerCase() === cleanDept);
         } else {
-            // Employee only sees tasks assigned to them
             return tasks.filter(t =>
                 (t.responsible && t.responsible.some(r => r.trim().toLowerCase() === userName.trim().toLowerCase())) ||
                 (t.requested_by && t.requested_by.trim().toLowerCase() === userName.trim().toLowerCase())
@@ -47,11 +96,12 @@ router.get('/', async (req, res) => {
     try {
         const role         = req.headers['x-user-role']       || 'employee';
         const userName     = req.headers['x-user-name']       || '';
+        const userEmail    = req.headers['x-user-email']      || '';
         const userDivision = req.headers['x-user-division']   || '';
         const userDept     = req.headers['x-user-department'] || '';
 
         const allTasks = await Task.find({}).sort({ createdAt: -1 });
-        const filtered = await filterTasksForUser(allTasks, role, userName, userDivision, userDept);
+        const filtered = await filterTasksForUser(allTasks, role, userName, userDivision, userDept, userEmail);
         res.json(filtered);
     } catch (err) {
         res.status(500).json({ error: err.message });

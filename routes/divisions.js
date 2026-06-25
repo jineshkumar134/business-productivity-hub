@@ -13,7 +13,27 @@ router.get('/', async (req, res) => {
         // Division head only sees their own division
         if (role === 'division_head') {
             const userDivision = req.headers['x-user-division'] || '';
-            divisions = divisions.filter(d => d.name === userDivision);
+            const userEmail = req.headers['x-user-email'] || '';
+            let div = userDivision;
+            if (!div && userEmail) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: userEmail.toLowerCase() });
+                if (me) div = me.division || '';
+            }
+            if (!div) {
+                const Personal = require('../models/Personal');
+                const mePerson = await Personal.findOne({
+                    name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
+                    role: { $regex: /division head/i }
+                });
+                if (mePerson) div = mePerson.division || '';
+            }
+            const cleanDiv = (div || '').trim().toLowerCase();
+            if (!cleanDiv) {
+                divisions = [];
+            } else {
+                divisions = divisions.filter(d => d.name && d.name.trim().toLowerCase() === cleanDiv);
+            }
         }
 
         res.json(divisions);

@@ -16,24 +16,65 @@ router.get('/', async (req, res) => {
     try {
         const role     = req.headers['x-user-role']       || 'employee';
         const userDiv  = req.headers['x-user-division']   || '';
-        const userDept = req.headers['x-user-department'] || '';
+        const userEmail = req.headers['x-user-email']    || '';
+        let   userDept = req.headers['x-user-department'] || '';
 
         let list = await Personal.find({});
 
-        if (role === 'division_head') {
-            // Get all departments that belong to this division
-            const divisionDepts = await Department.find({ division: userDiv });
-            const divisionDeptNames = divisionDepts.map(d => d.name);
+        if (role === 'admin') {
+            // Admin sees everything — no filter
+        } else if (role === 'division_head') {
+            let div = userDiv;
+            if (!div && userEmail) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: userEmail.toLowerCase() });
+                if (me) div = me.division || '';
+            }
+            if (!div) {
+                const userName = req.headers['x-user-name'] || '';
+                const mePerson = await Personal.findOne({
+                    name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
+                    role: { $regex: /division head/i }
+                });
+                if (mePerson) div = mePerson.division || '';
+            }
 
-            // Match by personal.division OR by department being in this division
-            list = list.filter(p =>
-                p.division === userDiv ||
-                divisionDeptNames.includes(p.department)
-            );
+            const cleanDiv = (div || '').trim().toLowerCase();
+            if (!cleanDiv) {
+                list = [];
+            } else {
+                const divisionDepts = await Department.find({
+                    division: { $regex: new RegExp(`^${cleanDiv}$`, 'i') }
+                });
+                const divisionDeptNames = divisionDepts.map(d => d.name.trim().toLowerCase());
+
+                list = list.filter(p => {
+                    const pDiv = (p.division || '').trim().toLowerCase();
+                    const pDept = (p.department || '').trim().toLowerCase();
+                    return pDiv === cleanDiv || (pDept && divisionDeptNames.includes(pDept));
+                });
+            }
         } else if (role === 'dept_leader') {
-            list = list.filter(p => p.department === userDept);
+            if (!userDept && userEmail) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: userEmail.toLowerCase() });
+                if (me) userDept = me.department || '';
+            }
+            if (!userDept) {
+                const userName = req.headers['x-user-name'] || '';
+                const mePerson = await Personal.findOne({
+                    name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
+                    role: { $regex: /department leader/i }
+                });
+                if (mePerson) userDept = mePerson.department || '';
+            }
+            const cleanDept = (userDept || '').trim().toLowerCase();
+            if (!cleanDept) {
+                list = [];
+            } else {
+                list = list.filter(p => p.department && p.department.trim().toLowerCase() === cleanDept);
+            }
         } else if (role === 'employee') {
-            // Employee can only see their own profile
             const userName = req.headers['x-user-name'] || '';
             list = list.filter(p => p.name.trim().toLowerCase() === userName.trim().toLowerCase());
         }
@@ -68,10 +109,11 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
             });
         }
 
-        // Auto-infer division from department if not provided
+        // Auto-infer division from department
         let inferredDivision = req.body.division || '';
-        if (!inferredDivision && req.body.department) {
-            inferredDivision = await getDivisionForDept(req.body.department);
+        if (req.body.department) {
+            const inferred = await getDivisionForDept(req.body.department);
+            if (inferred) inferredDivision = inferred;
         }
 
         const newPerson = new Personal({ ...req.body, division: inferredDivision });
@@ -132,10 +174,11 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
             return res.status(403).json({ error: `Access Denied. You cannot assign the role: ${req.body.role}` });
         }
 
-        // Auto-infer division from department if not provided
+        // Auto-infer division from department
         let updateBody = { ...req.body };
-        if (!updateBody.division && updateBody.department) {
-            updateBody.division = await getDivisionForDept(updateBody.department);
+        if (updateBody.department) {
+            const inferred = await getDivisionForDept(updateBody.department);
+            if (inferred) updateBody.division = inferred;
         }
 
         const updatedPerson = await Personal.findByIdAndUpdate(req.params.id, updateBody, { new: true });

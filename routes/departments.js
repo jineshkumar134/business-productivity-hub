@@ -23,16 +23,58 @@ const COLOR_PALETTE = [
 // GET all departments
 router.get('/', async (req, res) => {
     try {
-        const role     = req.headers['x-user-role']     || 'employee';
-        const userDiv  = req.headers['x-user-division'] || '';
-        const userDept = req.headers['x-user-department'] || '';
+        const role      = req.headers['x-user-role']       || 'employee';
+        const userDiv   = req.headers['x-user-division']   || '';
+        const userDept  = req.headers['x-user-department'] || '';
+        const userEmail = req.headers['x-user-email']      || '';
+        const userName  = req.headers['x-user-name']       || '';
 
         let departments = await Department.find().sort({ createdAt: 1 });
 
-        if (role === 'division_head') {
-            departments = departments.filter(d => d.division === userDiv);
+        if (role === 'admin') {
+            // Admin sees all departments
+        } else if (role === 'division_head') {
+            let div = userDiv;
+            if (!div && userEmail) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: userEmail.toLowerCase() });
+                if (me) div = me.division || '';
+            }
+            if (!div) {
+                const Personal = require('../models/Personal');
+                const mePerson = await Personal.findOne({
+                    name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
+                    role: { $regex: /division head/i }
+                });
+                if (mePerson) div = mePerson.division || '';
+            }
+            const cleanDiv = (div || '').trim().toLowerCase();
+            if (!cleanDiv) {
+                departments = [];
+            } else {
+                departments = departments.filter(d => d.division && d.division.trim().toLowerCase() === cleanDiv);
+            }
         } else if (role === 'dept_leader' || role === 'employee') {
-            departments = departments.filter(d => d.name === userDept);
+            let dept = userDept;
+            if (!dept && userEmail) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: userEmail.toLowerCase() });
+                if (me) dept = me.department || '';
+            }
+            if (!dept) {
+                const Personal = require('../models/Personal');
+                const mePerson = await Personal.findOne({
+                    name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
+                    role: { $regex: /department leader/i }
+                });
+                if (mePerson) dept = mePerson.department || '';
+            }
+            const cleanDept = (dept || '').trim().toLowerCase();
+            if (!cleanDept) {
+                departments = [];
+            } else {
+                departments = departments.filter(d => d.name && d.name.trim().toLowerCase() === cleanDept);
+            }
         }
 
         res.json(departments);
@@ -127,9 +169,27 @@ router.patch('/:id/visibility', async (req, res) => {
         if (!dept) return res.status(404).json({ error: 'Department not found' });
 
         // dept_leader can only modify their own department
-        const userDept = req.headers['x-user-department'] || '';
-        if (role === 'dept_leader' && dept.name !== userDept) {
-            return res.status(403).json({ error: 'You can only modify your own department.' });
+        let userDept = req.headers['x-user-department'] || '';
+        if (role === 'dept_leader') {
+            if (!userDept && req.headers['x-user-email']) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: req.headers['x-user-email'].toLowerCase() });
+                if (me) userDept = me.department || '';
+            }
+            if (!userDept) {
+                const userName = req.headers['x-user-name'] || '';
+                const Personal = require('../models/Personal');
+                const mePerson = await Personal.findOne({
+                    name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
+                    role: { $regex: /department leader/i }
+                });
+                if (mePerson) userDept = mePerson.department || '';
+            }
+            const cleanDept = (userDept || '').trim().toLowerCase();
+            const cleanDeptName = (dept.name || '').trim().toLowerCase();
+            if (!cleanDept || cleanDept !== cleanDeptName) {
+                return res.status(403).json({ error: 'You can only modify your own department.' });
+            }
         }
 
         dept.employeeVisibility = req.body.employeeVisibility;

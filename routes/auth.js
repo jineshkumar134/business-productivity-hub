@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Personal = require('../models/Personal');
+const Department = require('../models/Department');
 const { ROLE_LEVELS } = require('../middleware/roleCheck');
 
 // Helper to map system role → display label
@@ -67,10 +68,19 @@ router.post('/signup', async (req, res) => {
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ error: 'User with this email already exists' });
 
+        // Auto-infer division from department
+        let finalDivision = division || '';
+        if (department) {
+            const deptObj = await Department.findOne({ name: department });
+            if (deptObj && deptObj.division) {
+                finalDivision = deptObj.division;
+            }
+        }
+
         const newUser = new User({
             name, email, phone, password,
             role:       targetRole,
-            division:   division   || '',
+            division:   finalDivision,
             department: department || '',
             createdBy:  creatorName
         });
@@ -82,8 +92,8 @@ router.post('/signup', async (req, res) => {
             {
                 name,
                 role:           ROLE_DISPLAY[targetRole] || targetRole,
-                department:     department || '',
-                division:       division   || '',
+                department:     department  || '',
+                division:       finalDivision,
                 responsibility: ROLE_DISPLAY[targetRole] || targetRole,
                 email:          email.toLowerCase()
             },
@@ -92,7 +102,7 @@ router.post('/signup', async (req, res) => {
 
         res.status(201).json({
             message: 'Account created successfully!',
-            user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, division: newUser.division, department: newUser.department }
+            user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, division: finalDivision, department: newUser.department }
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -111,6 +121,16 @@ router.post('/signin', async (req, res) => {
         const isMatch = user.comparePassword(password);
         if (!isMatch) return res.status(401).json({ error: 'Invalid email or password' });
 
+        // Fetch fresh department/division from Personal profile
+        let latestDiv = user.division || '';
+        let latestDept = user.department || '';
+
+        const person = await Personal.findOne({ email: email.toLowerCase() });
+        if (person) {
+            latestDiv = person.division || latestDiv;
+            latestDept = person.department || latestDept;
+        }
+
         res.json({
             message: 'Login successful!',
             user: {
@@ -119,8 +139,8 @@ router.post('/signin', async (req, res) => {
                 email:      user.email,
                 phone:      user.phone,
                 role:       user.role,
-                division:   user.division   || '',
-                department: user.department || ''
+                division:   latestDiv,
+                department: latestDept
             }
         });
     } catch (err) {
