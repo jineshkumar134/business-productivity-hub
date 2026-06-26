@@ -2051,42 +2051,7 @@ function setupAdminPanel() {
     }
 }
 
-// Admin Panel Tab Switcher Utility
-window.switchAdminTab = (tabName) => {
-    // Hide all tab contents
-    document.querySelectorAll('.admin-tab-content').forEach(el => {
-        el.style.display = 'none';
-        el.classList.remove('active');
-    });
-    // Remove active styles from all buttons
-    document.querySelectorAll('.admin-tabs .tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        btn.style.color = 'var(--secondary)';
-        // Remove old indicator if any
-        const indicator = btn.querySelector('.tab-indicator');
-        if (indicator) indicator.remove();
-    });
 
-    // Show selected content
-    const activeContent = document.getElementById(`admin-tab-${tabName}-content`);
-    if (activeContent) {
-        activeContent.style.display = 'block';
-        activeContent.classList.add('active');
-    }
-
-    // Set active style on clicked button
-    const activeBtn = document.getElementById(`btn-tab-${tabName}`);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
-        activeBtn.style.color = 'var(--primary)';
-        
-        // Add indicator
-        const indicator = document.createElement('span');
-        indicator.className = 'tab-indicator';
-        indicator.style.cssText = 'position:absolute; bottom:-0.55rem; left:0; right:0; height:2px; background:var(--primary); border-radius:2px;';
-        activeBtn.appendChild(indicator);
-    }
-};
 
 // ── START ─────────────────────────────────────────────────────────────────────
 setupAdminPanel();
