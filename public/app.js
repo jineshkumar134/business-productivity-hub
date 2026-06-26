@@ -1321,7 +1321,6 @@ async function handleTaskSubmit(e){
             }
             showNotification(id?'Task updated ✅':'Task created ✅','success');
             el.taskModal.classList.remove('active');
-            // Fetch only logs since they are small and server-generated
             fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });
             renderAll();
         } else {
@@ -1339,7 +1338,6 @@ async function handleTaskSubmit(e){
 async function handlePersonalSubmit(e){
     e.preventDefault();
     const id=$('person-id').value;
-    // Always prefer state.personPhotoData — it's reliably set on upload and edit-modal open
     const photoData = state.personPhotoData || $('person-photo-data').value || '';
     const loggedInUser = JSON.parse(localStorage.getItem('bh_user') || '{}');
     const selectedDeptName = $('person-dept').value;
@@ -1359,11 +1357,17 @@ async function handlePersonalSubmit(e){
     const btn = e.submitter;
     const originalHtml = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled=true; btn.innerHTML='<div class="spinner-small"></div> Saving...'; }
-    try{
-        const res=await fetch(
+
+    async function doSave(data) {
+        const res = await fetch(
             id ? `/api/personal/${id}` : '/api/personal',
-            { method: id?'PUT':'POST', headers:{'Content-Type':'application/json','x-user-role': JSON.parse(localStorage.getItem('bh_user')||'{}').role || 'staff'}, body:JSON.stringify(personData) }
+            { method: id?'PUT':'POST', headers:{'Content-Type':'application/json','x-user-role': JSON.parse(localStorage.getItem('bh_user')||'{}').role || 'staff'}, body:JSON.stringify(data) }
         );
+        return res;
+    }
+
+    try{
+        const res = await doSave(personData);
         if(res.ok){
             const updatedPerson = await res.json();
             if(id) {
@@ -1375,8 +1379,33 @@ async function handlePersonalSubmit(e){
             el.personalModal.classList.remove('active');
             state.personPhotoData='';
             renderAll();
-
-            // The password popup logic has been removed as per user request.
+        } else if(res.status === 409) {
+            let warnData = {};
+            try { warnData = await res.json(); } catch(e){}
+            if(warnData.warn) {
+                if(btn){ btn.disabled=false; btn.innerHTML=originalHtml; }
+                const confirmed = confirm(
+                    `⚠️ ${warnData.message}\n\nNote: Same naam ke do employees hone se task tracking mein confusion ho sakta hai.\n\nPhir bhi add karna chahte hain?`
+                );
+                if(confirmed){
+                    if(btn){ btn.disabled=true; btn.innerHTML='<div class="spinner-small"></div> Saving...'; }
+                    const forceRes = await doSave({...personData, force:true});
+                    if(forceRes.ok){
+                        const p2 = await forceRes.json();
+                        state.personal.push(p2);
+                        showNotification('Member added ✅','success');
+                        el.personalModal.classList.remove('active');
+                        state.personPhotoData='';
+                        renderAll();
+                    } else {
+                        let e2='Server error';
+                        try { const j=await forceRes.json(); e2=j.error||forceRes.statusText; } catch(e){}
+                        showNotification('Save failed: '+e2,'error');
+                    }
+                }
+                return;
+            }
+            showNotification(warnData.message || 'Duplicate entry','error');
         } else {
             let errMsg = 'Server error';
             try { const j=await res.json(); errMsg=j.error||res.statusText; } catch(e){}

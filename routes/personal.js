@@ -109,15 +109,18 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
             });
         }
 
-        // ── Duplicate name check ─────────────────────────────────────────────
+        // ── Duplicate name check (warn, not hard-block) ──────────────────────
         const incomingName = (req.body.name || '').trim();
-        if (incomingName) {
+        const forceCreate  = req.body.force === true;
+        if (incomingName && !forceCreate) {
             const existingByName = await Personal.findOne({
                 name: { $regex: new RegExp(`^${incomingName}$`, 'i') }
             });
             if (existingByName) {
                 return res.status(409).json({
-                    error: `⚠️ "${incomingName}" naam ka employee already exist karta hai (Department: ${existingByName.department || 'N/A'}). Duplicate naam se task tracking mein confusion hoga. Kripya alag naam use karein ya existing record ko edit karein.`
+                    warn: true,
+                    existingDept: existingByName.department || 'N/A',
+                    message: `"${incomingName}" naam ka employee already exist karta hai (Department: ${existingByName.department || 'N/A'}). Kya aap phir bhi is naam se naya employee add karna chahte hain?`
                 });
             }
         }
