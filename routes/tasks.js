@@ -82,10 +82,17 @@ async function filterTasksForUser(tasks, role, userName, userDivision, userDepar
         if (visibilityOn) {
             return tasks.filter(t => t.department && t.department.trim().toLowerCase() === cleanDept);
         } else {
-            return tasks.filter(t =>
-                (t.responsible && t.responsible.some(r => r.trim().toLowerCase() === userName.trim().toLowerCase())) ||
-                (t.requested_by && t.requested_by.trim().toLowerCase() === userName.trim().toLowerCase())
-            );
+            return tasks.filter(t => {
+                const nameMatch = t.responsible && t.responsible.some(r => r.trim().toLowerCase() === userName.trim().toLowerCase());
+                const reqByMatch = t.requested_by && t.requested_by.trim().toLowerCase() === userName.trim().toLowerCase();
+                // If name matches, also ensure department matches to avoid cross-department same-name collision
+                if (nameMatch || reqByMatch) {
+                    if (!cleanDept) return true; // no dept info — show task
+                    const tDept = (t.department || '').trim().toLowerCase();
+                    return !tDept || tDept === cleanDept; // task dept matches user dept
+                }
+                return false;
+            });
         }
     }
     return tasks;

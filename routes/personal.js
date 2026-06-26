@@ -109,6 +109,19 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
             });
         }
 
+        // ── Duplicate name check ─────────────────────────────────────────────
+        const incomingName = (req.body.name || '').trim();
+        if (incomingName) {
+            const existingByName = await Personal.findOne({
+                name: { $regex: new RegExp(`^${incomingName}$`, 'i') }
+            });
+            if (existingByName) {
+                return res.status(409).json({
+                    error: `⚠️ "${incomingName}" naam ka employee already exist karta hai (Department: ${existingByName.department || 'N/A'}). Duplicate naam se task tracking mein confusion hoga. Kripya alag naam use karein ya existing record ko edit karein.`
+                });
+            }
+        }
+
         // Auto-infer division from department
         let inferredDivision = req.body.division || '';
         if (req.body.department) {
