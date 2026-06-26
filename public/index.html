@@ -399,168 +399,181 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 2rem; align-items: start; max-width: 1300px;">
-                    <!-- Left side: User Registration -->
-                    <div style="display: flex; flex-direction: column;">
-                        <div class="ai-insight-panel" style="height: 100%;">
-                    <div class="ai-section-title" style="margin-bottom:1.25rem;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        New User Registration
+                <!-- Admin Tab Switcher -->
+                <div class="admin-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 0.5rem; overflow-x: auto;">
+                    <button class="tab-btn active" onclick="switchAdminTab('depts')" id="btn-tab-depts" style="background:none; border:none; padding:0.5rem 1.25rem; font-size:0.88rem; font-weight:600; color:var(--primary); cursor:pointer; position:relative; transition:color 0.2s; outline:none;">
+                        📋 Departments
+                        <span class="tab-indicator" style="position:absolute; bottom:-0.55rem; left:0; right:0; height:2px; background:var(--primary); border-radius:2px;"></span>
+                    </button>
+                    <button class="tab-btn" onclick="switchAdminTab('users')" id="btn-tab-users" style="background:none; border:none; padding:0.5rem 1.25rem; font-size:0.88rem; font-weight:600; color:var(--secondary); cursor:pointer; position:relative; transition:color 0.2s; outline:none;">
+                        👤 Create User Accounts
+                    </button>
+                    <button class="tab-btn" onclick="switchAdminTab('divisions')" id="btn-tab-divisions" style="background:none; border:none; padding:0.5rem 1.25rem; font-size:0.88rem; font-weight:600; color:var(--secondary); cursor:pointer; position:relative; transition:color 0.2s; outline:none;">
+                        🏢 Division Manager
+                    </button>
+                </div>
+
+                <div style="max-width: 1300px;">
+                    <!-- Tab 1: Departments (Active by default) -->
+                    <div id="admin-tab-depts-content" class="admin-tab-content active" style="max-width: 750px;">
+                        <div class="ai-insight-panel">
+                            <div class="ai-section-title" style="margin-bottom:1rem;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                                Department Manager
+                            </div>
+                            <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1rem;">Manage organization departments, set divisions, leaders and employee task visibility.</p>
+
+                            <!-- Add Department Form -->
+                            <form id="add-dept-form" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.25rem;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="new-dept-name" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Department Name</label>
+                                    <input
+                                        type="text"
+                                        id="new-dept-name"
+                                        placeholder="e.g. Legal, Design, Operations…"
+                                        style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--gray-50);color:var(--text);outline:none;"
+                                        required
+                                        maxlength="60"
+                                    >
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="new-dept-division" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Division</label>
+                                    <select id="new-dept-division" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--gray-50); color:var(--text);">
+                                        <option value="">Select Division (Optional)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="new-dept-leader" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Department Leader</label>
+                                    <select id="new-dept-leader" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--gray-50); color:var(--text);">
+                                        <option value="">Select Dept Leader (Optional)</option>
+                                    </select>
+                                </div>
+                                <button type="submit" id="add-dept-btn" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);width:100%;padding:0.6rem 1rem;font-size:0.85rem;margin-top:0.5rem;">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Add Department
+                                </button>
+                            </form>
+
+                            <!-- Departments List -->
+                            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-200);">
+                                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--secondary);margin-bottom:0.75rem;">
+                                    Active Departments
+                                </div>
+                                <div id="dept-admin-list">
+                                    <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">Loading…</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="admin-msg" style="display:none;padding:0.75rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:500;margin-bottom:1rem;"></div>
+                    <!-- Tab 2: User Registration -->
+                    <div id="admin-tab-users-content" class="admin-tab-content" style="max-width: 550px; display: none;">
+                        <div class="ai-insight-panel">
+                            <div class="ai-section-title" style="margin-bottom:1.25rem;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                New User Registration
+                            </div>
 
-                    <form id="admin-create-user-form">
-                        <div class="form-group">
-                            <label for="admin-new-name">Full Name</label>
-                            <input type="text" id="admin-new-name" placeholder="e.g. Rahul Sharma" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="admin-new-email">Email Address</label>
-                            <input type="email" id="admin-new-email" placeholder="rahul@company.com" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="admin-new-phone">Phone Number</label>
-                            <input type="tel" id="admin-new-phone" placeholder="+91 9876543210" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="admin-new-password">Temporary Password</label>
-                            <input type="password" id="admin-new-password" placeholder="Set a temporary password" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="admin-new-role">Account Type</label>
-                            <select id="admin-new-role" required>
-                                <option value="employee">Employee</option>
-                                <option value="dept_leader">Department Leader</option>
-                                <option value="division_head">Division Head</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="admin-new-division">Division</label>
-                            <select id="admin-new-division">
-                                <option value="">None / Select Division</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="admin-new-dept">Department</label>
-                            <select id="admin-new-dept">
-                                <!-- Populated dynamically from database -->
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="admin-secret-input">Admin Secret Key
-                                <span style="font-size:0.72rem;color:var(--secondary);font-weight:400;"> — required to create accounts</span>
-                            </label>
-                            <input type="password" id="admin-secret-input" placeholder="Enter admin secret key" autocomplete="new-password" required>
-                        </div>
-                        <div class="modal-footer" style="padding:0;margin-top:1.25rem;">
-                            <button type="submit" class="btn btn-primary" id="admin-create-btn" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                                Create User Account
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                            <div id="admin-msg" style="display:none;padding:0.75rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:500;margin-bottom:1rem;"></div>
 
-                </div>
-
-                <!-- Middle side: DEPARTMENT MANAGER -->
-                <div style="display: flex; flex-direction: column;">
-                <div class="ai-insight-panel" style="height: 100%;">
-                    <div class="ai-section-title" style="margin-bottom:1rem;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-                        Department Manager
-                    </div>
-                    <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1rem;">Manage organization departments, set divisions, leaders and employee task visibility.</p>
-
-                    <!-- Add Department Form -->
-                    <form id="add-dept-form" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.25rem;">
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label for="new-dept-name" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Department Name</label>
-                            <input
-                                type="text"
-                                id="new-dept-name"
-                                placeholder="e.g. Legal, Design, Operations…"
-                                style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--gray-50);color:var(--text);outline:none;"
-                                required
-                                maxlength="60"
-                            >
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label for="new-dept-division" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Division</label>
-                            <select id="new-dept-division" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--gray-50); color:var(--text);">
-                                <option value="">Select Division (Optional)</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label for="new-dept-leader" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Department Leader</label>
-                            <select id="new-dept-leader" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--gray-50); color:var(--text);">
-                                <option value="">Select Dept Leader (Optional)</option>
-                            </select>
-                        </div>
-                        <button type="submit" id="add-dept-btn" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);width:100%;padding:0.6rem 1rem;font-size:0.85rem;margin-top:0.5rem;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Add Department
-                        </button>
-                    </form>
-
-                    <!-- Departments List -->
-                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-200);">
-                        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--secondary);margin-bottom:0.75rem;">
-                            Active Departments
-                        </div>
-                        <div id="dept-admin-list">
-                            <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">Loading…</p>
+                            <form id="admin-create-user-form">
+                                <div class="form-group">
+                                    <label for="admin-new-name">Full Name</label>
+                                    <input type="text" id="admin-new-name" placeholder="e.g. Rahul Sharma" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-new-email">Email Address</label>
+                                    <input type="email" id="admin-new-email" placeholder="rahul@company.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-new-phone">Phone Number</label>
+                                    <input type="tel" id="admin-new-phone" placeholder="+91 9876543210" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-new-password">Temporary Password</label>
+                                    <input type="password" id="admin-new-password" placeholder="Set a temporary password" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-new-role">Account Type</label>
+                                    <select id="admin-new-role" required>
+                                        <option value="employee">Employee</option>
+                                        <option value="dept_leader">Department Leader</option>
+                                        <option value="division_head">Division Head</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-new-division">Division</label>
+                                    <select id="admin-new-division">
+                                        <option value="">None / Select Division</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-new-dept">Department</label>
+                                    <select id="admin-new-dept">
+                                        <!-- Populated dynamically from database -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-secret-input">Admin Secret Key
+                                        <span style="font-size:0.72rem;color:var(--secondary);font-weight:400;"> — required to create accounts</span>
+                                    </label>
+                                    <input type="password" id="admin-secret-input" placeholder="Enter admin secret key" autocomplete="new-password" required>
+                                </div>
+                                <div class="modal-footer" style="padding:0;margin-top:1.25rem;">
+                                    <button type="submit" class="btn btn-primary" id="admin-create-btn" style="background:linear-gradient(135deg,#7c3aed,#a78bfa); width: 100%;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                                        Create User Account
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                </div>
-                </div>
 
-                <!-- Right side: DIVISION MANAGER -->
-                <div style="display: flex; flex-direction: column;">
-                <div class="ai-insight-panel" style="height: 100%;">
-                    <div class="ai-section-title" style="margin-bottom:1rem;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        Division Manager
+                    <!-- Tab 3: Divisions -->
+                    <div id="admin-tab-divisions-content" class="admin-tab-content" style="max-width: 550px; display: none;">
+                        <div class="ai-insight-panel">
+                            <div class="ai-section-title" style="margin-bottom:1rem;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                Division Manager
+                            </div>
+                            <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1rem;">Create and delete organization divisions to segment your operations.</p>
+
+                            <!-- Add Division Form -->
+                            <form id="add-division-form" style="display:flex;gap:0.6rem;margin-bottom:1.25rem;">
+                                <input
+                                    type="text"
+                                    id="new-division-name"
+                                    placeholder="e.g. Products, Operations, Sales…"
+                                    style="flex:1;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--gray-50);color:var(--text);outline:none;"
+                                    required
+                                    maxlength="60"
+                                >
+                                <button type="submit" id="add-division-btn" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);white-space:nowrap;padding:0.6rem 1rem;font-size:0.85rem;">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Add
+                                </button>
+                            </form>
+
+                            <!-- Divisions List -->
+                            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-200);">
+                                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--secondary);margin-bottom:0.75rem;">
+                                    Active Divisions
+                                </div>
+                                <div id="division-admin-list">
+                                    <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">Loading…</p>
+                                </div>
+                                <!-- Sync Divisions Utility -->
+                                <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);">
+                                    <button id="sync-divisions-btn" class="btn btn-glass" style="width:100%;font-size:0.8rem;gap:0.4rem;" onclick="syncAllDivisions()">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                                        Sync All Divisions to Members &amp; Tasks
+                                    </button>
+                                    <p style="font-size:0.7rem;color:var(--secondary);margin-top:0.4rem;text-align:center;">Use this if team members or tasks are missing from a division head's view.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1rem;">Create and delete organization divisions to segment your operations.</p>
-
-                    <!-- Add Division Form -->
-                    <form id="add-division-form" style="display:flex;gap:0.6rem;margin-bottom:1.25rem;">
-                        <input
-                            type="text"
-                            id="new-division-name"
-                            placeholder="e.g. Products, Operations, Sales…"
-                            style="flex:1;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--gray-50);color:var(--text);outline:none;"
-                            required
-                            maxlength="60"
-                        >
-                        <button type="submit" id="add-division-btn" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);white-space:nowrap;padding:0.6rem 1rem;font-size:0.85rem;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Add
-                        </button>
-                    </form>
-
-                    <!-- Divisions List -->
-                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-200);">
-                        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--secondary);margin-bottom:0.75rem;">
-                            Active Divisions
-                        </div>
-                        <div id="division-admin-list">
-                            <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">Loading…</p>
-                        </div>
-                        <!-- Sync Divisions Utility -->
-                        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);">
-                            <button id="sync-divisions-btn" class="btn btn-glass" style="width:100%;font-size:0.8rem;gap:0.4rem;" onclick="syncAllDivisions()">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-                                Sync All Divisions to Members &amp; Tasks
-                            </button>
-                            <p style="font-size:0.7rem;color:var(--secondary);margin-top:0.4rem;text-align:center;">Use this if team members or tasks are missing from a division head's view.</p>
-                        </div>
-                    </div>
-                </div>
-                </div>
                 </div>
 
         </div><!-- /content-area -->
