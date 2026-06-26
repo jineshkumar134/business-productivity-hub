@@ -218,6 +218,17 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
                 }
                 await User.findOneAndUpdate({ email: updatedPerson.email.toLowerCase() }, { $set: userUpdate });
             }
+
+            // ── Sync: if role changed away from dept_leader, clear from depts ─
+            const oldName = existingPerson.name || '';
+            const isNowLeader = (updatedPerson.role || '').toLowerCase().includes('department leader');
+            if (!isNowLeader && oldName) {
+                await Department.updateMany(
+                    { deptLeader: { $regex: new RegExp(`^${oldName.trim()}$`, 'i') } },
+                    { $set: { deptLeader: '' } }
+                );
+            }
+
             res.json(updatedPerson);
         } else {
             res.status(404).json({ message: 'Personal not found' });
@@ -250,11 +261,17 @@ router.delete('/:id', requireMinRole('dept_leader'), async (req, res) => {
         }
 
         await Personal.findByIdAndDelete(req.params.id);
-        
+
         // Also delete their User login account if it exists
         const User = require('../models/User');
         await User.findOneAndDelete({ email: person.email?.toLowerCase() });
-        
+
+        // ── Sync: clear this person as dept leader from any department ────────
+        await Department.updateMany(
+            { deptLeader: { $regex: new RegExp(`^${(person.name || '').trim()}$`, 'i') } },
+            { $set: { deptLeader: '' } }
+        );
+
         res.json({ message: 'Personal deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
