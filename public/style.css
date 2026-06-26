@@ -747,6 +747,30 @@ select { width:100%; }
     content:''; flex:1; height:1px; background:var(--gray-200);
 }
 
+/* ===== ADMIN DASHBOARD GRID & RESPONSIVE FORMS ===== */
+.admin-dept-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    align-items: start;
+}
+.admin-bottom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr));
+    gap: 2rem;
+    align-items: start;
+}
+.admin-form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.admin-form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+}
+
 /* ===== RESPONSIVE ===== */
 
 /* ── Tablet (≤ 900px) ── */
@@ -759,6 +783,22 @@ select { width:100%; }
 
 /* ── Small Tablet / Large Phone (≤ 768px) ── */
 @media (max-width: 768px) {
+    .admin-dept-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+    }
+    .admin-bottom-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+    }
+    .admin-form-row-2 {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+    .admin-form-row-3 {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
     .summary-stats { grid-template-columns: 1fr 1fr; }
     .form-row { grid-template-columns: 1fr !important; }
     .form-row-triple { grid-template-columns: 1fr !important; }

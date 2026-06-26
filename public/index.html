@@ -409,7 +409,7 @@
                         </div>
                         <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1.5rem;">Create departments, set divisions, leaders, and manage employee visibility.</p>
                         
-                        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: start;">
+                        <div class="admin-dept-grid">
                             <!-- Add Department Form -->
                             <form id="add-dept-form" style="display:flex; flex-direction:column; gap:0.75rem; background: var(--gray-50); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--gray-200);">
                                 <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--secondary);margin-bottom:0.25rem;">Add Department</div>
@@ -455,7 +455,7 @@
                     </div>
 
                     <!-- Bottom Section: User Registration & Division Manager (Two Columns) -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 2rem; align-items: start;">
+                    <div class="admin-bottom-grid">
                         
                         <!-- Left: User Registration -->
                         <div class="ai-insight-panel">
@@ -467,7 +467,7 @@
                             <div id="admin-msg" style="display:none;padding:0.75rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:500;margin-bottom:1rem;"></div>
 
                             <form id="admin-create-user-form">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="admin-form-row-2">
                                     <div class="form-group">
                                         <label for="admin-new-name">Full Name</label>
                                         <input type="text" id="admin-new-name" placeholder="Rahul Sharma" required>
@@ -477,7 +477,7 @@
                                         <input type="email" id="admin-new-email" placeholder="rahul@company.com" required>
                                     </div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                                <div class="admin-form-row-2" style="margin-top: 0.5rem;">
                                     <div class="form-group">
                                         <label for="admin-new-phone">Phone Number</label>
                                         <input type="tel" id="admin-new-phone" placeholder="+91 9876543210" required>
@@ -487,7 +487,7 @@
                                         <input type="password" id="admin-new-password" placeholder="Temporary password" required>
                                     </div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
+                                <div class="admin-form-row-3" style="margin-top: 0.5rem;">
                                     <div class="form-group">
                                         <label for="admin-new-role">Account Type</label>
                                         <select id="admin-new-role" required>
