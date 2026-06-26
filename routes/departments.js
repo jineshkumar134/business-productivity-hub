@@ -77,6 +77,41 @@ router.get('/', async (req, res) => {
             }
         }
 
+        // ── Validate deptLeader fields — auto-clear stale/ghost leaders ───────
+        const toUpdate = [];
+        departments = departments.map(d => {
+            const obj = d.toObject();
+            obj._deptLeaderRaw = obj.deptLeader || '';
+            return obj;
+        });
+
+        // Collect all unique leader names to check in one query
+        const leaderNames = [...new Set(departments.map(d => d._deptLeaderRaw).filter(Boolean))];
+        let validLeaders = new Set();
+        if (leaderNames.length > 0) {
+            const validPersons = await Personal.find({
+                name: { $in: leaderNames.map(n => new RegExp(`^${n.trim()}$`, 'i')) },
+                role: { $regex: /department leader/i }
+            });
+            validPersons.forEach(p => validLeaders.add((p.name || '').trim().toLowerCase()));
+        }
+
+        // For each dept, check if leader is valid — if not, clear it
+        const clearPromises = [];
+        departments = departments.map(d => {
+            const leaderName = (d._deptLeaderRaw || '').trim();
+            if (leaderName && !validLeaders.has(leaderName.toLowerCase())) {
+                // Ghost leader — clear from DB asynchronously
+                clearPromises.push(
+                    Department.findByIdAndUpdate(d._id, { $set: { deptLeader: '' } })
+                );
+                d.deptLeader = '';
+            }
+            delete d._deptLeaderRaw;
+            return d;
+        });
+        if (clearPromises.length > 0) await Promise.all(clearPromises);
+
         res.json(departments);
     } catch (err) {
         res.status(500).json({ error: err.message });
