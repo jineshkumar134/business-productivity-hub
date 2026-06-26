@@ -1952,19 +1952,47 @@ function setupAdminPanel() {
             btn.innerHTML = `<span style="opacity:0.7">Creating…</span>`;
             msgEl.style.display = 'none';
 
-            try {
+            const doSignup = async (forceFlag) => {
                 const res = await fetch('/api/auth/signup', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-admin-secret': secret
-                    },
-                    body: JSON.stringify({ name, email, phone, password, role, division, department })
+                    headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+                    body: JSON.stringify({ name, email, phone, password, role, division, department, force: forceFlag })
                 });
+                return res;
+            };
+
+            try {
+                let res = await doSignup(false);
                 const data = await res.json();
+
+                // Duplicate name warning — ask admin to confirm
+                if (res.status === 409 && data.warn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create User Account`;
+                    const confirmed = confirm(`⚠️ ${data.message}\n\nNote: Same naam ke do accounts hone se task tracking mein confusion ho sakta hai.\n\nPhir bhi create karna chahte hain?`);
+                    if (confirmed) {
+                        btn.disabled = true;
+                        btn.innerHTML = `<span style="opacity:0.7">Creating…</span>`;
+                        res = await doSignup(true);
+                        const d2 = await res.json();
+                        btn.disabled = false;
+                        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create User Account`;
+                        if (res.ok) {
+                            msgEl.style.cssText = 'display:block;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid #6ee7b7;';
+                            msgEl.textContent = `✅ Account created for ${d2.user.name} (${d2.user.email}). Share credentials manually.`;
+                            form.reset();
+                            showNotification(`User "${d2.user.name}" created successfully!`, 'success');
+                            fetchData().then(() => renderAll());
+                        } else {
+                            msgEl.style.cssText = 'display:block;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #fecaca;';
+                            msgEl.textContent = '❌ ' + (d2.error || 'Failed to create user.');
+                        }
+                    }
+                    return;
+                }
+
                 btn.disabled = false;
                 btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create User Account`;
-
                 if (!res.ok) {
                     msgEl.style.cssText = 'display:block;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #fecaca;';
                     msgEl.textContent = '❌ ' + (data.error || 'Failed to create user.');
@@ -1973,7 +2001,6 @@ function setupAdminPanel() {
                     msgEl.textContent = `✅ Account created for ${data.user.name} (${data.user.email}). Share credentials manually.`;
                     form.reset();
                     showNotification(`User "${data.user.name}" created successfully!`, 'success');
-                    // Refresh local data immediately so the new user is instantly assignable
                     fetchData().then(() => renderAll());
                 }
             } catch (err) {

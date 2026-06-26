@@ -68,6 +68,22 @@ router.post('/signup', async (req, res) => {
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ error: 'User with this email already exists' });
 
+        // ── Duplicate name check (warn, not hard-block) ──────────────────────
+        const incomingName = (name || '').trim();
+        const forceCreate  = req.body.force === true;
+        if (incomingName && !forceCreate) {
+            const existingByName = await User.findOne({
+                name: { $regex: new RegExp(`^${incomingName}$`, 'i') }
+            });
+            if (existingByName) {
+                return res.status(409).json({
+                    warn: true,
+                    existingDept: existingByName.department || 'N/A',
+                    message: `"${incomingName}" naam ka user already exist karta hai (Department: ${existingByName.department || 'N/A'}). Kya aap phir bhi is naam se naya account banana chahte hain?`
+                });
+            }
+        }
+
         // Auto-infer division from department
         let finalDivision = division || '';
         if (department) {
