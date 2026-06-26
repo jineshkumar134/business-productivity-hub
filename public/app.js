@@ -1378,6 +1378,7 @@ async function handlePersonalSubmit(e){
             showNotification(id?'Member updated ✅':'Member added ✅','success');
             el.personalModal.classList.remove('active');
             state.personPhotoData='';
+            await loadAndRenderDepts();
             renderAll();
         } else if(res.status === 409) {
             let warnData = {};
@@ -1396,6 +1397,7 @@ async function handlePersonalSubmit(e){
                         showNotification('Member added ✅','success');
                         el.personalModal.classList.remove('active');
                         state.personPhotoData='';
+                        await loadAndRenderDepts();
                         renderAll();
                     } else {
                         let e2='Server error';
@@ -1453,7 +1455,7 @@ function showNotification(msg,type='success'){const container=$('notification-co
 window.openTaskModal=openTaskModal;
 window.editPersonal=id=>openPersonalModal(id);
 window.deleteTask=async id=>{if(!confirm('Delete this task?'))return;try{const r=await fetch(`/api/tasks/${id}`,{method:'DELETE'});if(r.ok){showNotification('Task deleted','success');state.tasks = state.tasks.filter(t => t._id !== id && t.id !== id);fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });renderAll();}}catch(e){showNotification('Error deleting task','error');}};
-window.deletePersonal=async id=>{if(!confirm('Remove this team member?'))return;try{const r = await fetch(`/api/personal/${id}`,{method:'DELETE'});if(r.ok){showNotification('Member removed','success');state.personal = state.personal.filter(p => p._id !== id && p.id !== id);renderAll();}}catch(e){showNotification('Error','error');}};
+window.deletePersonal=async id=>{if(!confirm('Remove this team member?'))return;try{const r = await fetch(`/api/personal/${id}`,{method:'DELETE'});if(r.ok){showNotification('Member removed','success');state.personal = state.personal.filter(p => p._id !== id && p.id !== id);await loadAndRenderDepts();renderAll();}}catch(e){showNotification('Error','error');}};
 
 // ── DEPARTMENT & DIVISION MANAGEMENT ─────────────────────────────────────────
 async function loadAndRenderDepts() {

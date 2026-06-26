@@ -135,6 +135,14 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
         const newPerson = new Personal({ ...req.body, division: inferredDivision });
         await newPerson.save();
 
+        // Sync: if this person is a Department Leader, set them as the leader of their department
+        if (targetRole === 'dept_leader' && newPerson.department) {
+            await Department.updateOne(
+                { name: { $regex: new RegExp(`^${newPerson.department.trim()}$`, 'i') } },
+                { $set: { deptLeader: newPerson.name } }
+            );
+        }
+
         // Auto-create login if email + password provided
         if (req.body.email && req.body.password) {
             const User = require('../models/User');
@@ -219,14 +227,47 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
                 await User.findOneAndUpdate({ email: updatedPerson.email.toLowerCase() }, { $set: userUpdate });
             }
 
-            // ── Sync: if role changed away from dept_leader, clear from depts ─
-            const oldName = existingPerson.name || '';
-            const isNowLeader = (updatedPerson.role || '').toLowerCase().includes('department leader');
-            if (!isNowLeader && oldName) {
-                await Department.updateMany(
-                    { deptLeader: { $regex: new RegExp(`^${oldName.trim()}$`, 'i') } },
-                    { $set: { deptLeader: '' } }
-                );
+            // ── Sync: department leader updates ──────────────────────────────
+            const oldName = (existingPerson.name || '').trim();
+            const oldDept = (existingPerson.department || '').trim();
+            const oldRole = (existingPerson.role || '').trim();
+            
+            const newName = (updatedPerson.name || '').trim();
+            const newDept = (updatedPerson.department || '').trim();
+            const newRole = (updatedPerson.role || '').trim();
+            
+            const wasLeader = oldRole.toLowerCase().includes('department leader');
+            const isLeader = newRole.toLowerCase().includes('department leader');
+            
+            if (wasLeader && !isLeader) {
+                // Role changed away from Department Leader — clear from any departments they led
+                if (oldName) {
+                    await Department.updateMany(
+                        { deptLeader: { $regex: new RegExp(`^${oldName}$`, 'i') } },
+                        { $set: { deptLeader: '' } }
+                    );
+                }
+            } else if (isLeader) {
+                // If they are/become a leader, update the departments
+                
+                // 1. If name or department changed, clear old assignment from oldDept
+                if (oldDept && (oldDept.toLowerCase() !== newDept.toLowerCase() || oldName.toLowerCase() !== newName.toLowerCase())) {
+                    await Department.updateOne(
+                        { 
+                            name: { $regex: new RegExp(`^${oldDept}$`, 'i') },
+                            deptLeader: { $regex: new RegExp(`^${oldName}$`, 'i') }
+                        },
+                        { $set: { deptLeader: '' } }
+                    );
+                }
+                
+                // 2. Set them as leader of the new department
+                if (newDept) {
+                    await Department.updateOne(
+                        { name: { $regex: new RegExp(`^${newDept}$`, 'i') } },
+                        { $set: { deptLeader: newName } }
+                    );
+                }
             }
 
             res.json(updatedPerson);

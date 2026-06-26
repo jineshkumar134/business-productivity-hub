@@ -116,6 +116,14 @@ router.post('/signup', async (req, res) => {
             { upsert: true, new: true }
         );
 
+        // Sync: if this is a Department Leader, set them as the leader of their department
+        if (targetRole === 'dept_leader' && department) {
+            await Department.updateOne(
+                { name: { $regex: new RegExp(`^${department.trim()}$`, 'i') } },
+                { $set: { deptLeader: name } }
+            );
+        }
+
         res.status(201).json({
             message: 'Account created successfully!',
             user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, division: finalDivision, department: newUser.department }
