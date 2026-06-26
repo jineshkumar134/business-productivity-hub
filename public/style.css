@@ -770,6 +770,13 @@ select { width:100%; }
     grid-template-columns: 1fr 1fr 1fr;
     gap: 0.75rem;
 }
+.admin-panel-wrapper {
+    max-width: 1300px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
 
 /* ===== RESPONSIVE ===== */
 
@@ -1007,11 +1014,14 @@ select { width:100%; }
     .ai-view-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
     .ai-view-header > div:last-child { width: 100%; display: flex; gap: 0.5rem; justify-content: flex-start; }
 
-    /* Admin Panel — full width */
+    /* Admin Panel — full width on mobile */
     #admin-view .ai-insight-panel { max-width: 100% !important; }
     #admin-view .hr-header { margin-bottom: 1rem; }
-    /* Admin info note — full width */
-    #admin-view > div:last-child { max-width: 100% !important; }
+    /* Admin wrapper — full width, reduced gap */
+    .admin-panel-wrapper { max-width: 100% !important; gap: 1.25rem !important; }
+    /* Dept list — shorter on mobile so it doesn't fill whole screen */
+    #dept-admin-list { max-height: 220px !important; }
+    #division-admin-list { max-height: 130px !important; }
 
     /* Document center — stack search and filter */
     #documents-view .ai-insight-panel > div { flex-direction: column !important; gap: 0.75rem !important; }
