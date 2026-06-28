@@ -750,7 +750,7 @@ select { width:100%; }
 /* ===== ADMIN DASHBOARD GRID & RESPONSIVE FORMS ===== */
 .admin-dept-grid {
     display: grid;
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: minmax(280px, 1fr) 2fr;
     gap: 2rem;
     align-items: start;
 }
