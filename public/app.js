@@ -454,36 +454,38 @@ function checkTaskConstraints() {
         el.delayReasonGroup.style.display = 'none';
     }
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
-    const isAdmin = hasMinRole(user.role, 'admin');
+    const role = user.role || 'employee';
+    const isAdmin = role === 'admin';
+    const isManager = role === 'admin' || role === 'division_head' || role === 'dept_leader';
     const isLocked = $('task-is-locked')?.checked;
     const isNewTask = !$('task-id').value;
 
     el.taskForm.querySelectorAll('input:not([type="radio"]), select, textarea').forEach(inp => {
-        // IDs that non-admins can edit
+        // IDs that employees (non-managers) can edit
         const staffEditable = ['task-progress', 'task-completed-date', 'task-delay-reason', 'task-new-comment', 'task-current-stage'];
         
         let shouldDisable = isCompleted || (isLocked && !isAdmin);
-        if (!isAdmin && !isNewTask && !staffEditable.includes(inp.id)) {
-            shouldDisable = true; // Non-admins (division heads, dept leaders, employees) can't edit core fields of EXISTING tasks
+        if (!isManager && !isNewTask && !staffEditable.includes(inp.id)) {
+            shouldDisable = true; // Non-managers can't edit core fields of EXISTING tasks
         }
 
-        if (!['task-completed-date','task-due-date','task-delay-reason','task-id'].includes(inp.id) || (!isAdmin && !isNewTask)) {
+        if (!['task-completed-date','task-due-date','task-delay-reason','task-id'].includes(inp.id) || (!isManager && !isNewTask)) {
             // Keep completed date editable if completed, but if it's a field they shouldn't edit, disable it
-            if (isCompleted && inp.id === 'task-completed-date' && (isAdmin || isNewTask)) shouldDisable = false;
+            if (isCompleted && inp.id === 'task-completed-date' && (isManager || isNewTask)) shouldDisable = false;
             inp.disabled = shouldDisable;
         }
     });
 
     el.taskForm.querySelectorAll('input[type="radio"]').forEach(inp => {
         let shouldDisable = isCompleted || (isLocked && !isAdmin);
-        if (!isAdmin && !isNewTask && inp.name !== 'task-status') {
-            shouldDisable = true; // Non-admins can't edit priority of existing tasks
+        if (!isManager && !isNewTask && inp.name !== 'task-status') {
+            shouldDisable = true; // Non-managers can't edit priority of existing tasks
         }
         inp.disabled = shouldDisable;
     });
 
     const pDrop = $('personal-dropdown');
-    if(pDrop) pDrop.disabled = isCompleted || (isLocked && !isAdmin) || (!isAdmin && !isNewTask);
+    if(pDrop) pDrop.disabled = isCompleted || (isLocked && !isAdmin) || (!isManager && !isNewTask);
     
     // Always enable the new comment field and post button
     const commentInp = $('task-new-comment');
@@ -2681,17 +2683,57 @@ function renderDashboardPipelineFeed(tasks) {
         const deptStageDoc = state.deptStages.find(s => String(s.departmentId) === String(d._id));
         const stagesList = deptStageDoc ? deptStageDoc.stages : [];
 
-        if (stagesList.length === 0) {
+        const activeStageTitles = stagesList.map(s => s.title.trim().toLowerCase());
+        const staleOrUnassignedTasks = deptTasks.filter(t => t.status !== 'Completed' && (!t.currentStage || !activeStageTitles.includes(t.currentStage.trim().toLowerCase())));
+
+        if (stagesList.length === 0 && staleOrUnassignedTasks.length === 0) {
             html += `
                 <div style="padding: 1rem; border: 1px dashed var(--gray-200); border-radius: 12px; background: var(--gray-50); display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; align-items:center; gap:0.5rem;">
                         <div style="width:12px; height:12px; border-radius:50%; background:${cfg.color};"></div>
                         <span style="font-weight:800; font-size:0.92rem; color:var(--dark);">${d.name} Department</span>
                     </div>
-                    <span style="font-size:0.72rem; color:var(--secondary); font-style:italic;">No workflow stages configured yet.</span>
+                    <span style="font-size:0.72rem; color:var(--secondary); font-style:italic;">No active tasks or workflow stages configured.</span>
                 </div>
             `;
             return;
+        }
+
+        let pipelineHtml = stagesList.map((s, idx) => {
+            const stageTasks = deptTasks.filter(t => t.currentStage === s.title);
+            const pendingTasks = stageTasks.filter(t => t.status !== 'Completed');
+            const isStuck = pendingTasks.length > 0;
+
+            return `
+                <div style="flex:1; min-width:160px; display:flex; align-items:center; gap:0.5rem;">
+                    <div style="flex-grow:1; background:white; border: 1px solid ${isStuck ? '#ef4444' : 'var(--gray-200)'}; padding:0.6rem 0.85rem; border-radius:10px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:0.25rem; position:relative; cursor:pointer;" onclick="toggleStageTasksPopup('${d._id}_${idx}')">
+                        <div style="font-weight:750; font-size:0.78rem; color:${s.color}; display:flex; justify-content:space-between; align-items:center;">
+                            <span>${idx + 1}. ${s.title}</span>
+                            <span style="font-size:0.72rem; font-weight:800; padding:2px 6px; border-radius:50%; background:${isStuck ? '#ef4444' : 'var(--gray-200)'}; color:${isStuck ? 'white' : 'var(--secondary)'};">${stageTasks.length}</span>
+                        </div>
+                        <div style="font-size:0.68rem; color:var(--secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${s.description || ''}">${s.description || 'No description'}</div>
+                        ${isStuck ? `<span style="font-size:0.6rem; font-weight:700; color:#ef4444; margin-top:0.15rem; display:flex; align-items:center; gap:2px;">⚠️ Stuck (${pendingTasks.length} pending)</span>` : ''}
+                    </div>
+                    ${idx < stagesList.length - 1 ? '<span style="color:var(--gray-300); font-weight:700; font-size:1.1rem; flex-shrink:0;">➔</span>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        if (staleOrUnassignedTasks.length > 0) {
+            if (stagesList.length > 0) {
+                pipelineHtml += '<span style="color:var(--gray-300); font-weight:700; font-size:1.1rem; flex-shrink:0; align-self:center;">➔</span>';
+            }
+            pipelineHtml += `
+                <div style="flex:1; min-width:160px; display:flex; align-items:center; gap:0.5rem;">
+                    <div style="flex-grow:1; background:rgba(249,115,22,0.05); border: 1px dashed #f97316; padding:0.6rem 0.85rem; border-radius:10px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:0.25rem; position:relative; cursor:pointer;" onclick="toggleStageTasksPopup('${d._id}_unassigned')">
+                        <div style="font-weight:750; font-size:0.78rem; color:#f97316; display:flex; justify-content:space-between; align-items:center;">
+                            <span>📍 Unassigned Stage</span>
+                            <span style="font-size:0.72rem; font-weight:800; padding:2px 6px; border-radius:50%; background:#f97316; color:white;">${staleOrUnassignedTasks.length}</span>
+                        </div>
+                        <div style="font-size:0.68rem; color:var(--secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Tasks not in any active stage</div>
+                    </div>
+                </div>
+            `;
         }
 
         html += `
@@ -2706,26 +2748,8 @@ function renderDashboardPipelineFeed(tasks) {
                 </div>
 
                 <!-- Custom Stages Horizontal Pipeline -->
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; overflow-x:auto; padding: 0.5rem 0;">
-                    ${stagesList.map((s, idx) => {
-                        const stageTasks = deptTasks.filter(t => t.currentStage === s.title);
-                        const pendingTasks = stageTasks.filter(t => t.status !== 'Completed');
-                        const isStuck = pendingTasks.length > 0;
-
-                        return `
-                            <div style="flex:1; min-width:160px; display:flex; align-items:center; gap:0.5rem;">
-                                <div style="flex-grow:1; background:white; border: 1px solid ${isStuck ? '#ef4444' : 'var(--gray-200)'}; padding:0.6rem 0.85rem; border-radius:10px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:0.25rem; position:relative; cursor:pointer;" onclick="toggleStageTasksPopup('${d._id}_${idx}')">
-                                    <div style="font-weight:750; font-size:0.78rem; color:${s.color}; display:flex; justify-content:space-between; align-items:center;">
-                                        <span>${idx + 1}. ${s.title}</span>
-                                        <span style="font-size:0.72rem; font-weight:800; padding:2px 6px; border-radius:50%; background:${isStuck ? '#ef4444' : 'var(--gray-200)'}; color:${isStuck ? 'white' : 'var(--secondary)'};">${stageTasks.length}</span>
-                                    </div>
-                                    <div style="font-size:0.68rem; color:var(--secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${s.description || ''}">${s.description || 'No description'}</div>
-                                    ${isStuck ? `<span style="font-size:0.6rem; font-weight:700; color:#ef4444; margin-top:0.15rem; display:flex; align-items:center; gap:2px;">⚠️ Stuck (${pendingTasks.length} pending)</span>` : ''}
-                                </div>
-                                ${idx < stagesList.length - 1 ? '<span style="color:var(--gray-300); font-weight:700; font-size:1.1rem; flex-shrink:0;">➔</span>' : ''}
-                            </div>
-                        `;
-                    }).join('')}
+                <div style="display:flex; align-items:center; justify-content:flex-start; gap:0.5rem; overflow-x:auto; padding: 0.5rem 0;">
+                    ${pipelineHtml}
                 </div>
 
                 <!-- Hidden popup panels listing the tasks stuck at each stage -->
@@ -2753,6 +2777,27 @@ function renderDashboardPipelineFeed(tasks) {
                         </div>
                     `;
                 }).join('')}
+
+                ${staleOrUnassignedTasks.length > 0 ? `
+                    <div id="popup-${d._id}_unassigned" style="display:none; margin-top:0.5rem; background:white; border:1px solid var(--gray-200); border-radius:10px; padding:0.85rem 1.15rem; box-shadow:var(--shadow-md);">
+                        <div style="font-weight:800; font-size:0.8rem; color:var(--dark); margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center;">
+                            <span>📋 Unassigned or Stale Stage Tasks:</span>
+                            <button onclick="toggleStageTasksPopup('${d._id}_unassigned')" style="background:none; border:none; color:var(--secondary); font-size:1.2rem; cursor:pointer; font-weight:bold;">&times;</button>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                            ${staleOrUnassignedTasks.map(t => `
+                                <div style="padding:0.6rem 0.85rem; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                                    <div>
+                                        <div style="font-weight:700; font-size:0.85rem; color:var(--text); cursor:pointer;" onclick="openTaskModal('${t._id}')">${t.task_name}</div>
+                                        <div style="font-size:0.72rem; color:var(--secondary); margin-top:0.15rem;">Responsible: ${(t.responsible||[]).join(', ')||'Unassigned'} • Due: ${t.due_date}</div>
+                                        ${t.delay_reason ? `<div style="font-size:0.72rem; color:#ef4444; font-weight:600; margin-top:0.15rem;">⚠️ Delay Reason: ${t.delay_reason}</div>` : ''}
+                                    </div>
+                                    <span class="status-badge status-${t.status.toLowerCase().replace(' ','')}" style="font-size:0.68rem;">${t.status}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
             </div>
         `;
     });

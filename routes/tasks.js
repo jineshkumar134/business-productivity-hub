@@ -150,19 +150,111 @@ router.post('/', async (req, res) => {
 // PUT update task — role-based field restrictions
 router.put('/:id', async (req, res) => {
     try {
-        const role = req.headers['x-user-role'] || 'employee';
-        let updateData = req.body;
+        const role         = req.headers['x-user-role']       || 'employee';
+        const userName     = req.headers['x-user-name']       || '';
+        const userEmail    = req.headers['x-user-email']      || '';
+        const userDivision = req.headers['x-user-division']   || '';
+        const userDept     = req.headers['x-user-department'] || '';
+        
+        const existingTask = await Task.findById(req.params.id);
+        if (!existingTask) return res.status(404).json({ error: 'Task not found' });
 
-        // Admin can update anything
-        if (role !== 'admin') {
-            const existingTask = await Task.findById(req.params.id);
-            if (!existingTask) return res.status(404).json({ error: 'Task not found' });
+        if (existingTask.is_locked && role !== 'admin') {
+            return res.status(403).json({ error: 'Task is locked. Only Admin can edit it.' });
+        }
 
-            if (existingTask.is_locked) {
-                return res.status(403).json({ error: 'Task is locked. Only Admin can edit it.' });
+        let updateData = {};
+
+        if (role === 'admin') {
+            updateData = req.body;
+        } else if (role === 'division_head') {
+            // Check division match
+            let div = userDivision;
+            if (!div && userEmail) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: userEmail.toLowerCase() });
+                if (me) div = me.division || '';
+            }
+            const cleanDiv = (div || '').trim().toLowerCase();
+            if (!cleanDiv) return res.status(403).json({ error: 'Access denied. User division is not set.' });
+            
+            // Find departments in this division
+            const divisionDepts = await Department.find({
+                division: { $regex: new RegExp(`^${cleanDiv}$`, 'i') }
+            });
+            const divisionDeptNames = divisionDepts.map(d => d.name.trim().toLowerCase());
+            const taskDept = (existingTask.department || '').trim().toLowerCase();
+            const taskDiv = (existingTask.division || '').trim().toLowerCase();
+
+            const hasAccess = taskDiv === cleanDiv || divisionDeptNames.includes(taskDept);
+            if (!hasAccess) {
+                return res.status(403).json({ error: 'Access denied. You can only edit tasks belonging to your division.' });
             }
 
-            // Non-admin can only update progress fields
+            // Ensure division head does not assign tasks to department outside their division
+            if (req.body.department) {
+                const targetDept = await Department.findOne({ name: req.body.department });
+                if (!targetDept || (targetDept.division || '').trim().toLowerCase() !== cleanDiv) {
+                    return res.status(403).json({ error: 'Access denied. Cannot assign task to department outside your division.' });
+                }
+            }
+
+            // Division Heads can edit all core task details, but NOT is_locked or companyId
+            updateData = { ...req.body };
+            delete updateData.is_locked;
+            delete updateData.companyId;
+        } else if (role === 'dept_leader') {
+            // Check department match
+            let dept = userDept;
+            if (!dept && userEmail) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: userEmail.toLowerCase() });
+                if (me) dept = me.department || '';
+            }
+            const cleanDept = (dept || '').trim().toLowerCase();
+            const taskDept = (existingTask.department || '').trim().toLowerCase();
+
+            if (!cleanDept || taskDept !== cleanDept) {
+                return res.status(403).json({ error: 'Access denied. You can only edit tasks belonging to your department.' });
+            }
+
+            // Ensure dept leader does not change department
+            if (req.body.department && req.body.department.trim().toLowerCase() !== cleanDept) {
+                return res.status(403).json({ error: 'Access denied. Department Leaders cannot assign tasks to other departments.' });
+            }
+
+            // Department Leaders can edit all core task details, but NOT is_locked or companyId
+            updateData = { ...req.body };
+            delete updateData.is_locked;
+            delete updateData.companyId;
+        } else {
+            // Employee role
+            let dept = userDept;
+            if (!dept && userEmail) {
+                const User = require('../models/User');
+                const me = await User.findOne({ email: userEmail.toLowerCase() });
+                if (me) dept = me.department || '';
+            }
+            const cleanDept = (dept || '').trim().toLowerCase();
+            const taskDept = (existingTask.department || '').trim().toLowerCase();
+
+            let visibilityOn = false;
+            if (cleanDept) {
+                const deptObj = await Department.findOne({
+                    name: { $regex: new RegExp(`^${cleanDept}$`, 'i') }
+                });
+                visibilityOn = deptObj?.employeeVisibility || false;
+            }
+
+            const isAssigned = existingTask.responsible && existingTask.responsible.some(r => r.trim().toLowerCase() === userName.trim().toLowerCase());
+            const isRequester = existingTask.requested_by && existingTask.requested_by.trim().toLowerCase() === userName.trim().toLowerCase();
+            const hasAccess = (visibilityOn && taskDept === cleanDept) || isAssigned || isRequester;
+
+            if (!hasAccess) {
+                return res.status(403).json({ error: 'Access denied. You can only update tasks assigned to or requested by you.' });
+            }
+
+            // Employees can only update progress/status fields
             updateData = {
                 status:         req.body.status         !== undefined ? req.body.status         : existingTask.status,
                 progress:       req.body.progress       !== undefined ? req.body.progress       : existingTask.progress,
