@@ -2478,158 +2478,162 @@ function renderDashboardPipelineFeed(tasks) {
     if (!container) return;
 
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
-    const isAdmin = user.role === 'admin';
-    if (!isAdmin) {
+    const role = user.role || 'employee';
+    const isAdmin = role === 'admin';
+    const isDeptLeader = role === 'dept_leader';
+
+    // Only admin and dept_leader see this feed
+    if (!isAdmin && !isDeptLeader) {
         container.style.display = 'none';
         return;
     }
     container.style.display = 'block';
 
-    if (state.deptObjects.length === 0) {
-        container.innerHTML = `<div class="ai-insight-panel" style="text-align:center;padding:1.5rem;color:var(--secondary);border:1px dashed var(--gray-200);width:100%;">No departments configured. Go to the Admin Panel to register departments!</div>`;
+    // Dept leader only sees their own dept
+    let visibleDepts = state.deptObjects;
+    if (isDeptLeader) {
+        const myDept = (user.department || '').trim().toLowerCase();
+        visibleDepts = state.deptObjects.filter(d => d.name.trim().toLowerCase() === myDept);
+    }
+
+    if (visibleDepts.length === 0) {
+        container.innerHTML = `<div class="ai-insight-panel" style="text-align:center;padding:1.5rem;color:var(--secondary);border:1px dashed var(--gray-200);width:100%;">No departments found. Go to Admin Panel to configure departments.</div>`;
         return;
     }
 
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    const statusColor = { 'Completed':'#10b981', 'In Progress':'#6366f1', 'Pending':'#f59e0b', 'Delayed':'#ef4444', 'On Hold':'#8b5cf6' };
+
     let html = `
-        <div class="ai-insight-panel" style="width: 100%; background: var(--surface); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 1.25rem;">
-            <div class="ai-section-title" style="margin-bottom:1rem; color:var(--dark); display:flex; align-items:center; gap:0.5rem;">
+        <div class="ai-insight-panel" style="width:100%;background:var(--surface);border:1px solid var(--gray-200);border-radius:var(--radius-md);padding:1.25rem 1.5rem;">
+            <div class="ai-section-title" style="margin-bottom:0.4rem;color:var(--dark);display:flex;align-items:center;gap:0.5rem;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                Company Departments Workflow Tracker (Admin Feed)
+                ${isAdmin ? 'Company-Wide Task Stage Tracker' : 'Department Task Stage Tracker'}
             </div>
-            <p style="font-size:0.78rem; color:var(--secondary); margin-bottom:1.5rem;">Real-time tracking of department workflows. See exactly which stages have pending tasks and potential bottlenecks. Click a stage block to view its tasks.</p>
-            <div style="display:flex; flex-direction:column; gap:1.25rem;">
+            <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1.5rem;">
+                See exactly who has which task and at what stage it is currently sitting. 🔴 Red = task is overdue or stuck.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:2rem;">
     `;
 
-    state.deptObjects.forEach(d => {
-        const deptTasks = tasks.filter(t => t.department === d.name);
+    visibleDepts.forEach(d => {
         const cfg = getDeptConfig(d.name);
+        const deptTasks = tasks.filter(t => (t.department || '').trim().toLowerCase() === d.name.trim().toLowerCase() && t.status !== 'Completed');
         const deptStageDoc = state.deptStages.find(s => String(s.departmentId) === String(d._id));
         const stagesList = deptStageDoc ? deptStageDoc.stages : [];
 
-        const activeStageTitles = stagesList.map(s => s.title.trim().toLowerCase());
-        const staleOrUnassignedTasks = deptTasks.filter(t => t.status !== 'Completed' && (!t.currentStage || !activeStageTitles.includes(t.currentStage.trim().toLowerCase())));
+        // Build stage buckets
+        const stageBuckets = {};
+        stagesList.forEach(s => { stageBuckets[s.title] = []; });
+        stageBuckets['__unassigned__'] = [];
 
-        if (stagesList.length === 0 && staleOrUnassignedTasks.length === 0) {
-            html += `
-                <div style="padding: 1rem; border: 1px dashed var(--gray-200); border-radius: 12px; background: var(--gray-50); display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <div style="width:12px; height:12px; border-radius:50%; background:${cfg.color};"></div>
-                        <span style="font-weight:800; font-size:0.92rem; color:var(--dark);">${d.name} Department</span>
-                    </div>
-                    <span style="font-size:0.72rem; color:var(--secondary); font-style:italic;">No active tasks or workflow stages configured.</span>
-                </div>
-            `;
-            return;
-        }
-
-        let pipelineHtml = stagesList.map((s, idx) => {
-            const stageTasks = deptTasks.filter(t => t.currentStage === s.title);
-            const pendingTasks = stageTasks.filter(t => t.status !== 'Completed');
-            const isStuck = pendingTasks.length > 0;
-
-            return `
-                <div style="flex:1; min-width:160px; display:flex; align-items:center; gap:0.5rem;">
-                    <div style="flex-grow:1; background:white; border: 1px solid ${isStuck ? '#ef4444' : 'var(--gray-200)'}; padding:0.6rem 0.85rem; border-radius:10px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:0.25rem; position:relative; cursor:pointer;" onclick="toggleStageTasksPopup('${d._id}_${idx}')">
-                        <div style="font-weight:750; font-size:0.78rem; color:${s.color}; display:flex; justify-content:space-between; align-items:center;">
-                            <span>${idx + 1}. ${s.title}</span>
-                            <span style="font-size:0.72rem; font-weight:800; padding:2px 6px; border-radius:50%; background:${isStuck ? '#ef4444' : 'var(--gray-200)'}; color:${isStuck ? 'white' : 'var(--secondary)'};">${stageTasks.length}</span>
-                        </div>
-                        <div style="font-size:0.68rem; color:var(--secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${s.description || ''}">${s.description || 'No description'}</div>
-                        ${isStuck ? `<span style="font-size:0.6rem; font-weight:700; color:#ef4444; margin-top:0.15rem; display:flex; align-items:center; gap:2px;">⚠️ Stuck (${pendingTasks.length} pending)</span>` : ''}
-                    </div>
-                    ${idx < stagesList.length - 1 ? '<span style="color:var(--gray-300); font-weight:700; font-size:1.1rem; flex-shrink:0;">➔</span>' : ''}
-                </div>
-            `;
-        }).join('');
-
-        if (staleOrUnassignedTasks.length > 0) {
-            if (stagesList.length > 0) {
-                pipelineHtml += '<span style="color:var(--gray-300); font-weight:700; font-size:1.1rem; flex-shrink:0; align-self:center;">➔</span>';
+        deptTasks.forEach(t => {
+            const cs = (t.currentStage || '').trim();
+            if (cs && stageBuckets.hasOwnProperty(cs)) {
+                stageBuckets[cs].push(t);
+            } else {
+                stageBuckets['__unassigned__'].push(t);
             }
-            pipelineHtml += `
-                <div style="flex:1; min-width:160px; display:flex; align-items:center; gap:0.5rem;">
-                    <div style="flex-grow:1; background:rgba(249,115,22,0.05); border: 1px dashed #f97316; padding:0.6rem 0.85rem; border-radius:10px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:0.25rem; position:relative; cursor:pointer;" onclick="toggleStageTasksPopup('${d._id}_unassigned')">
-                        <div style="font-weight:750; font-size:0.78rem; color:#f97316; display:flex; justify-content:space-between; align-items:center;">
-                            <span>📍 Unassigned Stage</span>
-                            <span style="font-size:0.72rem; font-weight:800; padding:2px 6px; border-radius:50%; background:#f97316; color:white;">${staleOrUnassignedTasks.length}</span>
-                        </div>
-                        <div style="font-size:0.68rem; color:var(--secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Tasks not in any active stage</div>
-                    </div>
-                </div>
-            `;
-        }
+        });
+
+        const totalActive = deptTasks.length;
+        const stuckCount = deptTasks.filter(t => {
+            const due = t.due_date ? new Date(t.due_date) : null;
+            return due && due < today;
+        }).length;
 
         html += `
-            <div style="padding: 1rem; border: 1px solid var(--gray-200); border-radius: 12px; background: var(--gray-50); display:flex; flex-direction:column; gap:0.75rem;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <div style="width:12px; height:12px; border-radius:50%; background:${cfg.color};"></div>
-                        <span style="font-weight:800; font-size:0.92rem; color:var(--dark);">${d.name} Department</span>
-                        <span style="font-size:0.72rem; color:var(--secondary); background:rgba(99,102,241,0.08); padding:2px 8px; border-radius:12px; font-weight:600;">Leader: ${d.deptLeader || 'None'}</span>
+            <div>
+                <!-- Dept Header -->
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.85rem;padding-bottom:0.75rem;border-bottom:2px solid ${cfg.color}20;">
+                    <div style="display:flex;align-items:center;gap:0.65rem;">
+                        <div style="width:14px;height:14px;border-radius:50%;background:${cfg.color};flex-shrink:0;"></div>
+                        <span style="font-weight:800;font-size:1rem;color:var(--dark);">${d.name}</span>
+                        <span style="font-size:0.72rem;background:${cfg.bg};color:${cfg.color};padding:2px 10px;border-radius:20px;font-weight:700;">Leader: ${d.deptLeader || 'None'}</span>
                     </div>
-                    <span style="font-size:0.75rem; font-weight:700; color:var(--secondary);">${deptTasks.length} Total Tasks</span>
+                    <div style="display:flex;gap:0.6rem;align-items:center;">
+                        <span style="font-size:0.75rem;font-weight:700;background:rgba(99,102,241,0.1);color:var(--primary);padding:3px 10px;border-radius:12px;">${totalActive} Active Tasks</span>
+                        ${stuckCount > 0 ? `<span style="font-size:0.75rem;font-weight:700;background:rgba(239,68,68,0.1);color:#ef4444;padding:3px 10px;border-radius:12px;">⚠️ ${stuckCount} Overdue</span>` : `<span style="font-size:0.75rem;font-weight:700;background:rgba(16,185,129,0.1);color:#10b981;padding:3px 10px;border-radius:12px;">✅ On Track</span>`}
+                    </div>
                 </div>
 
-                <!-- Custom Stages Horizontal Pipeline -->
-                <div style="display:flex; align-items:center; justify-content:flex-start; gap:0.5rem; overflow-x:auto; padding: 0.5rem 0;">
-                    ${pipelineHtml}
-                </div>
-
-                <!-- Hidden popup panels listing the tasks stuck at each stage -->
-                ${stagesList.map((s, idx) => {
-                    const stageTasks = deptTasks.filter(t => t.currentStage === s.title);
-                    if (stageTasks.length === 0) return '';
-                    return `
-                        <div id="popup-${d._id}_${idx}" style="display:none; margin-top:0.5rem; background:white; border:1px solid var(--gray-200); border-radius:10px; padding:0.85rem 1.15rem; box-shadow:var(--shadow-md);">
-                            <div style="font-weight:800; font-size:0.8rem; color:var(--dark); margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center;">
-                                <span>📋 Tasks in "${s.title}" stage:</span>
-                                <button onclick="toggleStageTasksPopup('${d._id}_${idx}')" style="background:none; border:none; color:var(--secondary); font-size:1.2rem; cursor:pointer; font-weight:bold;">&times;</button>
+                ${stagesList.length === 0 && totalActive === 0 ? `
+                    <div style="text-align:center;padding:1.5rem;color:var(--secondary);font-size:0.82rem;font-style:italic;background:var(--gray-50);border-radius:10px;border:1px dashed var(--gray-200);">
+                        No active tasks and no workflow stages configured for this department.
+                    </div>
+                ` : `
+                <!-- Kanban Board: one column per stage -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.85rem;align-items:start;">
+                    ${stagesList.map((s, idx) => {
+                        const colTasks = stageBuckets[s.title] || [];
+                        const hasStuck = colTasks.some(t => { const due = t.due_date ? new Date(t.due_date) : null; return due && due < today; });
+                        return `
+                        <div style="background:${hasStuck ? 'rgba(239,68,68,0.04)' : 'var(--gray-50)'};border:1px solid ${hasStuck ? '#ef444430' : 'var(--gray-200)'};border-radius:12px;overflow:hidden;">
+                            <!-- Stage Header -->
+                            <div style="padding:0.55rem 0.85rem;background:${s.color}15;border-bottom:2px solid ${s.color}40;display:flex;justify-content:space-between;align-items:center;">
+                                <span style="font-weight:800;font-size:0.75rem;color:${s.color};text-transform:uppercase;letter-spacing:0.04em;">${idx+1}. ${s.title}</span>
+                                <span style="font-size:0.7rem;font-weight:800;width:20px;height:20px;border-radius:50%;background:${colTasks.length > 0 ? s.color : 'var(--gray-200)'};color:${colTasks.length > 0 ? 'white' : 'var(--secondary)'};display:flex;align-items:center;justify-content:center;">${colTasks.length}</span>
                             </div>
-                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                                ${stageTasks.map(t => `
-                                    <div style="padding:0.6rem 0.85rem; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-                                        <div>
-                                            <div style="font-weight:700; font-size:0.85rem; color:var(--text); cursor:pointer;" onclick="openTaskModal('${t._id}')">${t.task_name}</div>
-                                            <div style="font-size:0.72rem; color:var(--secondary); margin-top:0.15rem;">Responsible: ${(t.responsible||[]).join(', ')||'Unassigned'} • Due: ${t.due_date}</div>
-                                            ${t.delay_reason ? `<div style="font-size:0.72rem; color:#ef4444; font-weight:600; margin-top:0.15rem;">⚠️ Delay Reason: ${t.delay_reason}</div>` : ''}
+                            <!-- Task Cards -->
+                            <div style="padding:0.6rem;display:flex;flex-direction:column;gap:0.5rem;min-height:60px;">
+                                ${colTasks.length === 0 ? `<div style="text-align:center;padding:0.75rem;color:var(--gray-300);font-size:0.72rem;font-style:italic;">No tasks here</div>` :
+                                colTasks.map(t => {
+                                    const due = t.due_date ? new Date(t.due_date) : null;
+                                    const isOverdue = due && due < today && t.status !== 'Completed';
+                                    const assignees = (t.responsible || []).join(', ') || 'Unassigned';
+                                    const sColor = statusColor[t.status] || '#6b7280';
+                                    const dueFmt = due ? due.toLocaleDateString('en-IN', {day:'2-digit',month:'short'}) : '—';
+                                    return `
+                                    <div onclick="openTaskModal('${t._id}')" style="background:white;border:1px solid ${isOverdue ? '#fca5a5' : 'var(--gray-150)'};border-left:3px solid ${isOverdue ? '#ef4444' : sColor};border-radius:8px;padding:0.55rem 0.65rem;cursor:pointer;transition:box-shadow 0.15s;" onmouseenter="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.12)'" onmouseleave="this.style.boxShadow='none'">
+                                        <div style="font-weight:700;font-size:0.8rem;color:var(--dark);margin-bottom:0.3rem;line-height:1.3;">${t.task_name}</div>
+                                        <div style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;margin-bottom:0.3rem;">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            <span style="font-size:0.7rem;color:var(--secondary);font-weight:600;">${assignees}</span>
                                         </div>
-                                        <span class="status-badge status-${t.status.toLowerCase().replace(' ','')}" style="font-size:0.68rem;">${t.status}</span>
-                                    </div>
-                                `).join('')}
+                                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.25rem;">
+                                            <span style="font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:8px;background:${sColor}15;color:${sColor};border:1px solid ${sColor}30;">${t.status}</span>
+                                            <span style="font-size:0.65rem;color:${isOverdue ? '#ef4444' : 'var(--secondary)'};font-weight:${isOverdue ? '700' : '400'};">📅 ${dueFmt}${isOverdue ? ' ⚠️' : ''}</span>
+                                        </div>
+                                        ${t.delay_reason ? `<div style="margin-top:0.3rem;font-size:0.65rem;color:#ef4444;font-weight:600;background:rgba(239,68,68,0.06);padding:2px 6px;border-radius:5px;">Delay: ${t.delay_reason}</div>` : ''}
+                                    </div>`;
+                                }).join('')}
                             </div>
-                        </div>
-                    `;
-                }).join('')}
+                        </div>`;
+                    }).join('')}
 
-                ${staleOrUnassignedTasks.length > 0 ? `
-                    <div id="popup-${d._id}_unassigned" style="display:none; margin-top:0.5rem; background:white; border:1px solid var(--gray-200); border-radius:10px; padding:0.85rem 1.15rem; box-shadow:var(--shadow-md);">
-                        <div style="font-weight:800; font-size:0.8rem; color:var(--dark); margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center;">
-                            <span>📋 Unassigned or Stale Stage Tasks:</span>
-                            <button onclick="toggleStageTasksPopup('${d._id}_unassigned')" style="background:none; border:none; color:var(--secondary); font-size:1.2rem; cursor:pointer; font-weight:bold;">&times;</button>
+                    ${stageBuckets['__unassigned__'].length > 0 ? `
+                    <div style="background:rgba(249,115,22,0.04);border:1px dashed #f9731660;border-radius:12px;overflow:hidden;">
+                        <div style="padding:0.55rem 0.85rem;background:rgba(249,115,22,0.1);border-bottom:2px solid #f9731640;display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-weight:800;font-size:0.75rem;color:#f97316;text-transform:uppercase;letter-spacing:0.04em;">📍 No Stage Assigned</span>
+                            <span style="font-size:0.7rem;font-weight:800;width:20px;height:20px;border-radius:50%;background:#f97316;color:white;display:flex;align-items:center;justify-content:center;">${stageBuckets['__unassigned__'].length}</span>
                         </div>
-                        <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                            ${staleOrUnassignedTasks.map(t => `
-                                <div style="padding:0.6rem 0.85rem; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-                                    <div>
-                                        <div style="font-weight:700; font-size:0.85rem; color:var(--text); cursor:pointer;" onclick="openTaskModal('${t._id}')">${t.task_name}</div>
-                                        <div style="font-size:0.72rem; color:var(--secondary); margin-top:0.15rem;">Responsible: ${(t.responsible||[]).join(', ')||'Unassigned'} • Due: ${t.due_date}</div>
-                                        ${t.delay_reason ? `<div style="font-size:0.72rem; color:#ef4444; font-weight:600; margin-top:0.15rem;">⚠️ Delay Reason: ${t.delay_reason}</div>` : ''}
+                        <div style="padding:0.6rem;display:flex;flex-direction:column;gap:0.5rem;">
+                            ${stageBuckets['__unassigned__'].map(t => {
+                                const due = t.due_date ? new Date(t.due_date) : null;
+                                const isOverdue = due && due < today;
+                                const assignees = (t.responsible || []).join(', ') || 'Unassigned';
+                                const sColor = statusColor[t.status] || '#6b7280';
+                                const dueFmt = due ? due.toLocaleDateString('en-IN', {day:'2-digit',month:'short'}) : '—';
+                                return `
+                                <div onclick="openTaskModal('${t._id}')" style="background:white;border:1px solid ${isOverdue ? '#fca5a5' : '#f9731630'};border-left:3px solid ${isOverdue ? '#ef4444' : '#f97316'};border-radius:8px;padding:0.55rem 0.65rem;cursor:pointer;" onmouseenter="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.12)'" onmouseleave="this.style.boxShadow='none'">
+                                    <div style="font-weight:700;font-size:0.8rem;color:var(--dark);margin-bottom:0.3rem;">${t.task_name}</div>
+                                    <div style="font-size:0.7rem;color:var(--secondary);margin-bottom:0.3rem;">👤 ${assignees}</div>
+                                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.25rem;">
+                                        <span style="font-size:0.65rem;font-weight:700;padding:1px 7px;border-radius:8px;background:${sColor}15;color:${sColor};">${t.status}</span>
+                                        <span style="font-size:0.65rem;color:${isOverdue ? '#ef4444' : 'var(--secondary)'};font-weight:${isOverdue ? '700' : '400'};">📅 ${dueFmt}${isOverdue ? ' ⚠️' : ''}</span>
                                     </div>
-                                    <span class="status-badge status-${t.status.toLowerCase().replace(' ','')}" style="font-size:0.68rem;">${t.status}</span>
-                                </div>
-                            `).join('')}
+                                    ${t.delay_reason ? `<div style="margin-top:0.3rem;font-size:0.65rem;color:#ef4444;font-weight:600;background:rgba(239,68,68,0.06);padding:2px 6px;border-radius:5px;">Delay: ${t.delay_reason}</div>` : ''}
+                                </div>`;
+                            }).join('')}
                         </div>
-                    </div>
-                ` : ''}
+                    </div>` : ''}
+                </div>`}
             </div>
         `;
     });
 
-    html += `
-            </div>
-        </div>
-    `;
-
+    html += `</div></div>`;
     container.innerHTML = html;
 }
 window.renderDashboardPipelineFeed = renderDashboardPipelineFeed;
