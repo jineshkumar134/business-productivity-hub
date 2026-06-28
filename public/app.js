@@ -557,6 +557,7 @@ async function fetchData() {
         populateDeptDropdowns();
         populateHierarchyDropdowns();
         renderDivisionAdminList();
+        renderDeptAdminList();
     } catch(err) { showNotification('Error fetching data', 'error'); }
 }
 
@@ -2211,6 +2212,13 @@ async function selectCompany(id) {
     
     await fetchData();
     renderAll();
+    
+    // Refresh admin lists if active view is admin
+    if (state.currentView === 'admin') {
+        renderDeptAdminList();
+        renderDivisionAdminList();
+        populateHierarchyDropdowns();
+    }
     
     populateStageDeptDropdown();
 }

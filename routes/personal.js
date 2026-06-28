@@ -18,8 +18,10 @@ router.get('/', async (req, res) => {
         const userDiv  = req.headers['x-user-division']   || '';
         const userEmail = req.headers['x-user-email']    || '';
         let   userDept = req.headers['x-user-department'] || '';
+        const companyId = req.headers['x-company-id']    || req.query.companyId || null;
 
-        let list = await Personal.find({});
+        const query = companyId ? { companyId } : {};
+        let list = await Personal.find(query);
 
         if (role === 'admin') {
             // Admin sees everything — no filter
@@ -90,6 +92,7 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
     try {
         const creatorRole = req.headers['x-user-role'] || 'employee';
         const targetRoleDisplay = req.body.role || 'Employee';
+        const companyId = req.headers['x-company-id'] || req.body.companyId || null;
         
         // Map targetRoleDisplay to system role
         const roleMap = {
@@ -114,7 +117,8 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
         const forceCreate  = req.body.force === true;
         if (incomingName && !forceCreate) {
             const existingByName = await Personal.findOne({
-                name: { $regex: new RegExp(`^${incomingName}$`, 'i') }
+                name: { $regex: new RegExp(`^${incomingName}$`, 'i') },
+                companyId
             });
             if (existingByName) {
                 return res.status(409).json({
@@ -132,7 +136,7 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
             if (inferred) inferredDivision = inferred;
         }
 
-        const newPerson = new Personal({ ...req.body, division: inferredDivision });
+        const newPerson = new Personal({ ...req.body, division: inferredDivision, companyId });
         await newPerson.save();
 
         // Sync: if this person is a Department Leader, set them as the leader of their department
