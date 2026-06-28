@@ -2536,37 +2536,37 @@ function renderDashboardPipelineFeed(tasks) {
             const stageObj = stagesList.find(s => s.title === stage);
             const badgeColor = stageObj ? stageObj.color : '#f97316';
             return `
-                <div style=\"display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:0.35rem 0.5rem;background:var(--gray-50);border-radius:6px;border:1px solid var(--gray-150);\">
-                    <span style=\"display:flex;align-items:center;gap:0.4rem;font-weight:600;color:var(--dark);\">
-                        <span style=\"width:7px;height:7px;border-radius:50%;background:\${badgeColor};\"></span>
-                        \${stage}
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;padding:0.35rem 0.5rem;background:var(--gray-50);border-radius:6px;border:1px solid var(--gray-150);">
+                    <span style="display:flex;align-items:center;gap:0.4rem;font-weight:600;color:var(--dark);">
+                        <span style="width:7px;height:7px;border-radius:50%;background:${badgeColor};"></span>
+                        ${stage}
                     </span>
-                    <span style=\"font-weight:700;color:\${badgeColor};background:\${badgeColor}15;padding:1px 6px;border-radius:10px;\">\${count} tasks</span>
+                    <span style="font-weight:700;color:${badgeColor};background:${badgeColor}15;padding:1px 6px;border-radius:10px;">${count} tasks</span>
                 </div>
             `;
         }).join('');
 
         html += `
-            <div style=\"padding:1rem;border:1px solid var(--gray-200);border-top:3px solid \${cfg.color};border-radius:10px;background:white;display:flex;flex-direction:column;gap:0.75rem;box-shadow:var(--shadow-sm);\">
-                <div style=\"display:flex;justify-content:space-between;align-items:center;\">
-                    <span style=\"font-weight:800;font-size:0.9rem;color:var(--dark);\">\${d.name}</span>
-                    <span style=\"font-size:0.7rem;font-weight:700;background:\${cfg.bg};color:\${cfg.color};padding:2px 8px;border-radius:10px;\">Leader: \${d.deptLeader || 'None'}</span>
+            <div style="padding:1rem;border:1px solid var(--gray-200);border-top:3px solid ${cfg.color};border-radius:10px;background:white;display:flex;flex-direction:column;gap:0.75rem;box-shadow:var(--shadow-sm);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-weight:800;font-size:0.9rem;color:var(--dark);">${d.name}</span>
+                    <span style="font-size:0.7rem;font-weight:700;background:${cfg.bg};color:${cfg.color};padding:2px 8px;border-radius:10px;">Leader: ${d.deptLeader || 'None'}</span>
                 </div>
                 
-                <div style=\"display:flex;gap:0.5rem;margin:0.25rem 0;\">
-                    <div style=\"flex:1;background:var(--gray-50);padding:0.4rem;border-radius:6px;text-align:center;border:1px solid var(--gray-150);\">
-                        <div style=\"font-size:0.6rem;color:var(--secondary);text-transform:uppercase;font-weight:700;\">Active Tasks</div>
-                        <div style=\"font-size:0.95rem;font-weight:800;color:var(--dark);margin-top:0.1rem;\">\${deptTasks.length}</div>
+                <div style="display:flex;gap:0.5rem;margin:0.25rem 0;">
+                    <div style="flex:1;background:var(--gray-50);padding:0.4rem;border-radius:6px;text-align:center;border:1px solid var(--gray-150);">
+                        <div style="font-size:0.6rem;color:var(--secondary);text-transform:uppercase;font-weight:700;">Active Tasks</div>
+                        <div style="font-size:0.95rem;font-weight:800;color:var(--dark);margin-top:0.1rem;">${deptTasks.length}</div>
                     </div>
-                    <div style=\"flex:1;background:\${overdueCount > 0 ? 'rgba(239,68,68,0.05)' : 'var(--gray-50)'};padding:0.4rem;border-radius:6px;text-align:center;border:1px solid \${overdueCount > 0 ? '#ef444430' : 'var(--gray-150)'};\">
-                        <div style=\"font-size:0.6rem;color:\${overdueCount > 0 ? '#ef4444' : 'var(--secondary)'};text-transform:uppercase;font-weight:700;\">Overdue</div>
-                        <div style=\"font-size:0.95rem;font-weight:800;color:\${overdueCount > 0 ? '#ef4444' : 'var(--dark)'};margin-top:0.1rem;\">\${overdueCount}</div>
+                    <div style="flex:1;background:${overdueCount > 0 ? 'rgba(239,68,68,0.05)' : 'var(--gray-50)'};padding:0.4rem;border-radius:6px;text-align:center;border:1px solid ${overdueCount > 0 ? '#ef444430' : 'var(--gray-150)'};">
+                        <div style="font-size:0.6rem;color:${overdueCount > 0 ? '#ef4444' : 'var(--secondary)'};text-transform:uppercase;font-weight:700;">Overdue</div>
+                        <div style="font-size:0.95rem;font-weight:800;color:${overdueCount > 0 ? '#ef4444' : 'var(--dark)'};margin-top:0.1rem;">${overdueCount}</div>
                     </div>
                 </div>
 
-                <div style=\"display:flex;flex-direction:column;gap:0.4rem;margin-top:0.25rem;\">
-                    <div style=\"font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--secondary);letter-spacing:0.04em;\">Current Pipeline Positions:</div>
-                    \${stageLines || `<div style=\"font-size:0.72rem;color:var(--secondary);font-style:italic;text-align:center;padding:0.4rem;\">No active tasks in progress.</div>`}
+                <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.25rem;">
+                    <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--secondary);letter-spacing:0.04em;">Current Pipeline Positions:</div>
+                    ${stageLines || `<div style="font-size:0.72rem;color:var(--secondary);font-style:italic;text-align:center;padding:0.4rem;">No active tasks in progress.</div>`}
                 </div>
             </div>
         `;
