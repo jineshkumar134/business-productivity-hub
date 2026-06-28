@@ -140,13 +140,15 @@ async function syncDataInBackground() {
     try {
         if (!localStorage.getItem('bh_user')) return;
 
-        const [tRes, pRes, lRes, dRes, deptsRes, divisionsRes] = await Promise.all([
+        const activeCompanyId = localStorage.getItem('bh_active_company_id') || '';
+        const [tRes, pRes, lRes, dRes, deptsRes, divisionsRes, stagesRes] = await Promise.all([
             fetch('/api/tasks').then(r => r.json()),
             fetch('/api/personal').then(r => r.json()),
             fetch('/api/logs').then(r => r.json()),
             fetch('/api/documents').then(r => r.json()).catch(() => []),
             fetch('/api/departments').then(r => r.json()).catch(() => []),
-            fetch('/api/divisions').then(r => r.json()).catch(() => [])
+            fetch('/api/divisions').then(r => r.json()).catch(() => []),
+            activeCompanyId ? fetch(`/api/dept-stages?companyId=${activeCompanyId}`).then(r => r.json()).catch(() => null) : Promise.resolve(null)
         ]);
 
         const tasksChanged = JSON.stringify(state.tasks) !== JSON.stringify(tRes);
@@ -154,17 +156,19 @@ async function syncDataInBackground() {
         const logsChanged = JSON.stringify(state.logs) !== JSON.stringify(lRes);
         const docsChanged = JSON.stringify(state.documents) !== JSON.stringify(dRes);
         const divisionsChanged = JSON.stringify(state.divisions) !== JSON.stringify(divisionsRes);
+        const stagesChanged = stagesRes !== null && JSON.stringify(state.deptStages) !== JSON.stringify(stagesRes);
         
         const deptNames = deptsRes.map(d => d.name);
         const deptsChanged = JSON.stringify(state.departments) !== JSON.stringify(deptNames);
 
-        let shouldRender = tasksChanged || personalChanged || logsChanged || docsChanged || deptsChanged || divisionsChanged;
+        let shouldRender = tasksChanged || personalChanged || logsChanged || docsChanged || deptsChanged || divisionsChanged || stagesChanged;
 
         if (tasksChanged) state.tasks = tRes;
         if (personalChanged) state.personal = pRes;
         if (logsChanged) state.logs = lRes;
         if (docsChanged) state.documents = dRes;
         if (divisionsChanged) state.divisions = divisionsRes || [];
+        if (stagesChanged) state.deptStages = stagesRes;
         
         if (deptsChanged) {
             state.deptObjects = deptsRes;
@@ -175,6 +179,11 @@ async function syncDataInBackground() {
         if (deptsChanged || divisionsChanged || personalChanged) {
             populateHierarchyDropdowns();
             renderDivisionAdminList();
+        }
+
+        // Always re-render admin dept list if stages or personal changed
+        if ((stagesChanged || personalChanged) && state.currentView === 'admin') {
+            renderDeptAdminList();
         }
 
         if (shouldRender) {
@@ -451,7 +460,7 @@ function checkTaskConstraints() {
 
     el.taskForm.querySelectorAll('input:not([type="radio"]), select, textarea').forEach(inp => {
         // IDs that non-admins can edit
-        const staffEditable = ['task-progress', 'task-completed-date', 'task-delay-reason', 'task-new-comment'];
+        const staffEditable = ['task-progress', 'task-completed-date', 'task-delay-reason', 'task-new-comment', 'task-current-stage'];
         
         let shouldDisable = isCompleted || (isLocked && !isAdmin);
         if (!isAdmin && !isNewTask && !staffEditable.includes(inp.id)) {
@@ -671,6 +680,7 @@ function renderMyPortal() {
     if ($('portal-inprog-count')) $('portal-inprog-count').textContent = inProg.length;
     if ($('portal-comp-count')) $('portal-comp-count').textContent = comp.length;
 
+    const isAdmin = user.role === 'admin';
     const emptyMsg = myTasks.length === 0 && isAdmin
         ? 'No tasks assigned to you yet. You can assign tasks to yourself from the Dashboard.'
         : 'No tasks here yet.';
@@ -2295,6 +2305,13 @@ async function selectCompany(id) {
     state.activeCompanyId = id;
     localStorage.setItem('bh_active_company_id', id);
     
+    // Clear stale company-scoped state immediately so stale data never renders
+    state.deptStages = [];
+    state.deptObjects = [];
+    state.departments = [];
+    state.tasks = [];
+    state.personal = [];
+
     const dropdown = $('company-switcher-dropdown');
     if (dropdown) dropdown.style.display = 'none';
     
