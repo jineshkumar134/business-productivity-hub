@@ -5,8 +5,7 @@
  */
 
 const ROLE_LEVELS = {
-    admin: 4,
-    division_head: 3,
+    admin: 3,
     dept_leader: 2,
     employee: 1
 };

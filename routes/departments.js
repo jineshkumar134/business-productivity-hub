@@ -24,7 +24,6 @@ const COLOR_PALETTE = [
 router.get('/', async (req, res) => {
     try {
         const role      = req.headers['x-user-role']       || 'employee';
-        const userDiv   = req.headers['x-user-division']   || '';
         const userDept  = req.headers['x-user-department'] || '';
         const userEmail = req.headers['x-user-email']      || '';
         const userName  = req.headers['x-user-name']       || '';
@@ -36,27 +35,6 @@ router.get('/', async (req, res) => {
 
         if (role === 'admin') {
             // Admin sees all departments in this company
-        } else if (role === 'division_head') {
-            let div = userDiv;
-            if (!div && userEmail) {
-                const User = require('../models/User');
-                const me = await User.findOne({ email: userEmail.toLowerCase() });
-                if (me) div = me.division || '';
-            }
-            if (!div) {
-                const Personal = require('../models/Personal');
-                const mePerson = await Personal.findOne({
-                    name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
-                    role: { $regex: /division head/i }
-                });
-                if (mePerson) div = mePerson.division || '';
-            }
-            const cleanDiv = (div || '').trim().toLowerCase();
-            if (!cleanDiv) {
-                departments = [];
-            } else {
-                departments = departments.filter(d => d.division && d.division.trim().toLowerCase() === cleanDiv);
-            }
         } else if (role === 'dept_leader' || role === 'employee') {
             let dept = userDept;
             if (!dept && userEmail) {
@@ -124,7 +102,7 @@ router.get('/', async (req, res) => {
 // POST create department — admin and above
 router.post('/', requireMinRole('admin'), async (req, res) => {
     try {
-        const { name, color, bg, division, deptLeader, companyId } = req.body;
+        const { name, color, bg, deptLeader, companyId } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ error: 'Department name is required' });
         if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
@@ -136,7 +114,6 @@ router.post('/', requireMinRole('admin'), async (req, res) => {
             companyId,
             color: color || palette.color,
             bg: bg || palette.bg,
-            division: division || '',
             deptLeader: deptLeader || ''
         });
         await dept.save();
@@ -157,14 +134,13 @@ router.delete('/:id', requireMinRole('admin'), async (req, res) => {
     }
 });
 
-// PUT update department (name, division, deptLeader) — admin only
+// PUT update department (name, deptLeader) — admin only
 router.put('/:id', requireMinRole('admin'), async (req, res) => {
     try {
         const existing = await Department.findById(req.params.id);
         if (!existing) return res.status(404).json({ error: 'Department not found' });
 
         const oldName = existing.name;
-        const newDivision = req.body.division !== undefined ? req.body.division : existing.division;
         const newName = req.body.name ? req.body.name.trim() : existing.name;
 
         const updated = await Department.findByIdAndUpdate(
@@ -173,22 +149,22 @@ router.put('/:id', requireMinRole('admin'), async (req, res) => {
             { new: true }
         );
 
-        // Cascade division change to Personal records in this department
-        if (newDivision !== existing.division || newName !== oldName) {
+        // Cascade name change to Personal records in this department
+        if (newName !== oldName) {
             // Update Personal records
             await Personal.updateMany(
                 { department: oldName },
-                { $set: { division: newDivision, department: newName } }
+                { $set: { department: newName } }
             );
             // Update Task records
             await Task.updateMany(
                 { department: oldName },
-                { $set: { division: newDivision, department: newName } }
+                { $set: { department: newName } }
             );
             // Update User login records
             await User.updateMany(
                 { department: oldName },
-                { $set: { division: newDivision, department: newName } }
+                { $set: { department: newName } }
             );
         }
 
@@ -201,7 +177,7 @@ router.put('/:id', requireMinRole('admin'), async (req, res) => {
 // PATCH toggle employee visibility — dept_leader and above
 router.patch('/:id/visibility', async (req, res) => {
     const role = req.headers['x-user-role'] || 'employee';
-    if (!['admin', 'division_head', 'dept_leader'].includes(role)) {
+    if (!['admin', 'dept_leader'].includes(role)) {
         return res.status(403).json({ error: 'Only department leaders and above can change visibility.' });
     }
     try {

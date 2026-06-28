@@ -4,7 +4,6 @@ const PersonalSchema = new mongoose.Schema({
     name:           { type: String, required: true },
     role:           { type: String, required: true },
     department:     { type: String, default: '' },
-    division:       { type: String, default: '' },
     companyId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null },
     email:          { type: String, default: '' },
     responsibility: { type: String, default: '' },

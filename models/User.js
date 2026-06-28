@@ -3,8 +3,7 @@ const crypto = require('crypto');
 
 // Role hierarchy levels (higher number = higher authority)
 const ROLE_LEVELS = {
-    admin: 4,
-    division_head: 3,
+    admin: 3,
     dept_leader: 2,
     employee: 1
 };
@@ -14,8 +13,7 @@ const UserSchema = new mongoose.Schema({
     email:      { type: String, required: true, unique: true },
     phone:      { type: String, required: true },
     password:   { type: String, required: true },
-    role:       { type: String, enum: ['admin', 'division_head', 'dept_leader', 'employee'], default: 'employee' },
-    division:   { type: String, default: '' },   // Division name
+    role:       { type: String, enum: ['admin', 'dept_leader', 'employee'], default: 'employee' },
     department: { type: String, default: '' },   // Department name
     companyId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null },
     createdBy:  { type: String, default: '' }    // Name of user who created this account

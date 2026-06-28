@@ -59,7 +59,6 @@ const authRoutes       = require('./routes/auth');
 const aiRoutes         = require('./routes/ai');
 const documentRoutes   = require('./routes/documents');
 const departmentRoutes = require('./routes/departments');
-const divisionRoutes   = require('./routes/divisions');
 const companyRoutes    = require('./routes/companies');
 const deptStageRoutes  = require('./routes/deptStages');
 
@@ -70,7 +69,6 @@ app.use('/api/auth',        authRoutes);
 app.use('/api/ai',          aiRoutes);
 app.use('/api/documents',   documentRoutes);
 app.use('/api/departments', departmentRoutes);
-app.use('/api/divisions',   divisionRoutes);
 app.use('/api/companies',   companyRoutes);
 app.use('/api/dept-stages', deptStageRoutes);
 

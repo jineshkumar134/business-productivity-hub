@@ -6,39 +6,9 @@ const Department = require('../models/Department');
 const { ROLE_LEVELS } = require('../middleware/roleCheck');
 
 // ── Helper: role-based task filter ──────────────────────────────────────────
-async function filterTasksForUser(tasks, role, userName, userDivision, userDepartment, userEmail) {
+async function filterTasksForUser(tasks, role, userName, userDepartment, userEmail) {
     if (role === 'admin') {
         return tasks; // see everything
-    }
-    if (role === 'division_head') {
-        let div = userDivision;
-        if (!div && userEmail) {
-            const User = require('../models/User');
-            const me = await User.findOne({ email: userEmail.toLowerCase() });
-            if (me) div = me.division || '';
-        }
-        if (!div) {
-            const Personal = require('../models/Personal');
-            const mePerson = await Personal.findOne({
-                name: { $regex: new RegExp(`^${userName.trim()}$`, 'i') },
-                role: { $regex: /division head/i }
-            });
-            if (mePerson) div = mePerson.division || '';
-        }
-
-        const cleanDiv = (div || '').trim().toLowerCase();
-        if (!cleanDiv) return [];
-
-        const divisionDepts = await Department.find({
-            division: { $regex: new RegExp(`^${cleanDiv}$`, 'i') }
-        });
-        const divisionDeptNames = divisionDepts.map(d => d.name.trim().toLowerCase());
-
-        return tasks.filter(t => {
-            const tDiv = (t.division || '').trim().toLowerCase();
-            const tDept = (t.department || '').trim().toLowerCase();
-            return tDiv === cleanDiv || (tDept && divisionDeptNames.includes(tDept));
-        });
     }
     if (role === 'dept_leader') {
         let dept = userDepartment;
@@ -104,13 +74,12 @@ router.get('/', async (req, res) => {
         const role         = req.headers['x-user-role']       || 'employee';
         const userName     = req.headers['x-user-name']       || '';
         const userEmail    = req.headers['x-user-email']      || '';
-        const userDivision = req.headers['x-user-division']   || '';
         const userDept     = req.headers['x-user-department'] || '';
         const companyId    = req.headers['x-company-id']      || req.query.companyId || null;
 
         const baseQuery = companyId ? { companyId } : {};
         const allTasks = await Task.find(baseQuery).sort({ createdAt: -1 });
-        const filtered = await filterTasksForUser(allTasks, role, userName, userDivision, userDept, userEmail);
+        const filtered = await filterTasksForUser(allTasks, role, userName, userDept, userEmail);
         res.json(filtered);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -122,12 +91,6 @@ router.post('/', async (req, res) => {
     try {
         const companyId = req.headers['x-company-id'] || req.body.companyId || null;
         const newTask = new Task({ ...req.body, companyId });
-        if (newTask.department) {
-            const dept = await Department.findOne({ name: newTask.department });
-            if (dept) {
-                newTask.division = dept.division || '';
-            }
-        }
         await newTask.save();
 
         await Log.create({
@@ -153,7 +116,6 @@ router.put('/:id', async (req, res) => {
         const role         = req.headers['x-user-role']       || 'employee';
         const userName     = req.headers['x-user-name']       || '';
         const userEmail    = req.headers['x-user-email']      || '';
-        const userDivision = req.headers['x-user-division']   || '';
         const userDept     = req.headers['x-user-department'] || '';
         
         const existingTask = await Task.findById(req.params.id);
@@ -167,42 +129,6 @@ router.put('/:id', async (req, res) => {
 
         if (role === 'admin') {
             updateData = req.body;
-        } else if (role === 'division_head') {
-            // Check division match
-            let div = userDivision;
-            if (!div && userEmail) {
-                const User = require('../models/User');
-                const me = await User.findOne({ email: userEmail.toLowerCase() });
-                if (me) div = me.division || '';
-            }
-            const cleanDiv = (div || '').trim().toLowerCase();
-            if (!cleanDiv) return res.status(403).json({ error: 'Access denied. User division is not set.' });
-            
-            // Find departments in this division
-            const divisionDepts = await Department.find({
-                division: { $regex: new RegExp(`^${cleanDiv}$`, 'i') }
-            });
-            const divisionDeptNames = divisionDepts.map(d => d.name.trim().toLowerCase());
-            const taskDept = (existingTask.department || '').trim().toLowerCase();
-            const taskDiv = (existingTask.division || '').trim().toLowerCase();
-
-            const hasAccess = taskDiv === cleanDiv || divisionDeptNames.includes(taskDept);
-            if (!hasAccess) {
-                return res.status(403).json({ error: 'Access denied. You can only edit tasks belonging to your division.' });
-            }
-
-            // Ensure division head does not assign tasks to department outside their division
-            if (req.body.department) {
-                const targetDept = await Department.findOne({ name: req.body.department });
-                if (!targetDept || (targetDept.division || '').trim().toLowerCase() !== cleanDiv) {
-                    return res.status(403).json({ error: 'Access denied. Cannot assign task to department outside your division.' });
-                }
-            }
-
-            // Division Heads can edit all core task details, but NOT is_locked or companyId
-            updateData = { ...req.body };
-            delete updateData.is_locked;
-            delete updateData.companyId;
         } else if (role === 'dept_leader') {
             // Check department match
             let dept = userDept;
@@ -262,13 +188,6 @@ router.put('/:id', async (req, res) => {
                 completed_date: req.body.completed_date !== undefined ? req.body.completed_date : existingTask.completed_date,
                 delay_reason:   req.body.delay_reason   !== undefined ? req.body.delay_reason   : existingTask.delay_reason
             };
-        }
-
-        if (updateData.department) {
-            const dept = await Department.findOne({ name: updateData.department });
-            if (dept) {
-                updateData.division = dept.division || '';
-            }
         }
 
         const updatedTask = await Task.findByIdAndUpdate(req.params.id, updateData, { new: true });

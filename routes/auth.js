@@ -97,7 +97,6 @@ router.post('/signup', async (req, res) => {
         const newUser = new User({
             name, email, phone, password,
             role:       targetRole,
-            division:   finalDivision,
             department: department || '',
             companyId:  companyId  || null,
             createdBy:  creatorName
@@ -111,7 +110,6 @@ router.post('/signup', async (req, res) => {
                 name,
                 role:           ROLE_DISPLAY[targetRole] || targetRole,
                 department:     department  || '',
-                division:       finalDivision,
                 companyId:      companyId  || null,
                 responsibility: ROLE_DISPLAY[targetRole] || targetRole,
                 email:          email.toLowerCase()
@@ -129,7 +127,7 @@ router.post('/signup', async (req, res) => {
 
         res.status(201).json({
             message: 'Account created successfully!',
-            user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, division: finalDivision, department: newUser.department }
+            user: { id: newUser._id, name: newUser.name, email: newUser.email, role: newUser.role, department: newUser.department }
         });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -148,13 +146,11 @@ router.post('/signin', async (req, res) => {
         const isMatch = user.comparePassword(password);
         if (!isMatch) return res.status(401).json({ error: 'Invalid email or password' });
 
-        // Fetch fresh department/division from Personal profile
-        let latestDiv = user.division || '';
+        // Fetch fresh department from Personal profile
         let latestDept = user.department || '';
 
         const person = await Personal.findOne({ email: email.toLowerCase() });
         if (person) {
-            latestDiv = person.division || latestDiv;
             latestDept = person.department || latestDept;
         }
 
@@ -166,7 +162,6 @@ router.post('/signin', async (req, res) => {
                 email:      user.email,
                 phone:      user.phone,
                 role:       user.role,
-                division:   latestDiv,
                 department: latestDept
             }
         });

@@ -493,7 +493,7 @@
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
                             Department Manager
                         </div>
-                        <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1.5rem;">Create departments, set divisions, leaders, and manage employee visibility.</p>
+                        <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1.5rem;">Create departments, assign leaders, and manage employee visibility.</p>
                         
                         <div class="admin-dept-grid">
                             <!-- Add Department Form -->
@@ -509,12 +509,6 @@
                                         required
                                         maxlength="60"
                                     >
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label for="new-dept-division" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Division</label>
-                                    <select id="new-dept-division" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text);">
-                                        <option value="">Select Division (Optional)</option>
-                                    </select>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label for="new-dept-leader" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Department Leader</label>
@@ -594,7 +588,7 @@
                         </div>
                     </div>
 
-                    <!-- Bottom Section: User Registration & Division Manager (Two Columns) -->
+                    <!-- Bottom Section: User Registration (Full Width) -->
                     <div class="admin-bottom-grid">
                         
                         <!-- Left: User Registration -->
@@ -627,20 +621,13 @@
                                         <input type="password" id="admin-new-password" placeholder="Temporary password" required>
                                     </div>
                                 </div>
-                                <div class="admin-form-row-3" style="margin-top: 0.5rem;">
+                                <div class="admin-form-row-2" style="margin-top: 0.5rem;">
                                     <div class="form-group">
                                         <label for="admin-new-role">Account Type</label>
                                         <select id="admin-new-role" required>
                                             <option value="employee">Employee</option>
                                             <option value="dept_leader">Department Leader</option>
-                                            <option value="division_head">Division Head</option>
                                             <option value="admin">Admin</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="admin-new-division">Division</label>
-                                        <select id="admin-new-division">
-                                            <option value="">None / Select Division</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -664,49 +651,8 @@
                                 </div>
                             </form>
                         </div>
-
-                        <!-- Right: Division Manager -->
-                        <div class="ai-insight-panel">
-                            <div class="ai-section-title" style="margin-bottom:1rem;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                Division Manager
-                            </div>
-                            <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1rem;">Create and delete organization divisions to segment your operations.</p>
-
-                            <!-- Add Division Form -->
-                            <form id="add-division-form" style="display:flex;gap:0.6rem;margin-bottom:1.25rem;">
-                                <input
-                                    type="text"
-                                    id="new-division-name"
-                                    placeholder="e.g. Products, Operations, Sales…"
-                                    style="flex:1;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--gray-50);color:var(--text);outline:none;"
-                                    required
-                                    maxlength="60"
-                                >
-                                <button type="submit" id="add-division-btn" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);white-space:nowrap;padding:0.6rem 1rem;font-size:0.85rem;">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    Add
-                                </button>
-                            </form>
-
-                            <!-- Divisions List -->
-                            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-200);">
-                                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--secondary);margin-bottom:0.75rem;">
-                                    Active Divisions
-                                </div>
-                                <div id="division-admin-list" style="max-height: 150px; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1rem;">
-                                    <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">Loading…</p>
-                                </div>
-                                <!-- Sync Divisions Utility -->
-                                <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-200);">
-                                    <button id="sync-divisions-btn" class="btn btn-glass" style="width:100%;font-size:0.8rem;gap:0.4rem;" onclick="syncAllDivisions()">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-                                        Sync All Divisions to Members &amp; Tasks
-                                    </button>
-                                    <p style="font-size:0.7rem;color:var(--secondary);margin-top:0.4rem;text-align:center;">Use this if team members or tasks are missing from a division head's view.</p>
-                                </div>
-                            </div>
-                        </div>
+                    </div>
+                </div>
                     </div>
                 </div>
 

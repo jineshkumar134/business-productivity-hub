@@ -16,7 +16,6 @@ window.fetch = function(url, options = {}) {
         if (user.role)       options.headers['x-user-role']       = user.role;
         if (user.name)       options.headers['x-user-name']       = user.name;
         if (user.email)      options.headers['x-user-email']      = user.email;
-        if (user.division)   options.headers['x-user-division']   = user.division;
         if (user.department) options.headers['x-user-department'] = user.department;
         
         const activeCompanyId = localStorage.getItem('bh_active_company_id');
@@ -26,10 +25,10 @@ window.fetch = function(url, options = {}) {
 };
 
 // ── Role Hierarchy helpers ──────────────────────────────────────────────────
-const ROLE_LEVELS = { admin: 4, division_head: 3, dept_leader: 2, employee: 1 };
+const ROLE_LEVELS = { admin: 3, dept_leader: 2, employee: 1 };
 const ROLE_DISPLAY = {
     admin: '⚙ Admin',
-    division_head: '🏢 Division Head', dept_leader: '📋 Dept Leader', employee: '👤 Employee'
+    dept_leader: '📋 Dept Leader', employee: '👤 Employee'
 };
 function hasMinRole(userRole, minRole) {
     return (ROLE_LEVELS[userRole] || 0) >= (ROLE_LEVELS[minRole] || 0);
@@ -65,7 +64,6 @@ const state = {
     tasks: [], personal: [], logs: [], documents: [],
     deptObjects: [],   // full department objects from DB
     deptStages: [],    // custom department stages list
-    divisions: [],     // division objects from DB
     selectedPersonal: [],
     departments: DEPT_CONFIG.map(d => d.name), // names only, synced from deptObjects
     orgVision: localStorage.getItem('bh_vision') || '',
@@ -141,13 +139,12 @@ async function syncDataInBackground() {
         if (!localStorage.getItem('bh_user')) return;
 
         const activeCompanyId = localStorage.getItem('bh_active_company_id') || '';
-        const [tRes, pRes, lRes, dRes, deptsRes, divisionsRes, stagesRes] = await Promise.all([
+        const [tRes, pRes, lRes, dRes, deptsRes, stagesRes] = await Promise.all([
             fetch('/api/tasks').then(r => r.json()),
             fetch('/api/personal').then(r => r.json()),
             fetch('/api/logs').then(r => r.json()),
             fetch('/api/documents').then(r => r.json()).catch(() => []),
             fetch('/api/departments').then(r => r.json()).catch(() => []),
-            fetch('/api/divisions').then(r => r.json()).catch(() => []),
             activeCompanyId ? fetch(`/api/dept-stages?companyId=${activeCompanyId}`).then(r => r.json()).catch(() => null) : Promise.resolve(null)
         ]);
 
@@ -155,19 +152,17 @@ async function syncDataInBackground() {
         const personalChanged = JSON.stringify(state.personal) !== JSON.stringify(pRes);
         const logsChanged = JSON.stringify(state.logs) !== JSON.stringify(lRes);
         const docsChanged = JSON.stringify(state.documents) !== JSON.stringify(dRes);
-        const divisionsChanged = JSON.stringify(state.divisions) !== JSON.stringify(divisionsRes);
         const stagesChanged = stagesRes !== null && JSON.stringify(state.deptStages) !== JSON.stringify(stagesRes);
         
         const deptNames = deptsRes.map(d => d.name);
         const deptsChanged = JSON.stringify(state.departments) !== JSON.stringify(deptNames);
 
-        let shouldRender = tasksChanged || personalChanged || logsChanged || docsChanged || deptsChanged || divisionsChanged || stagesChanged;
+        let shouldRender = tasksChanged || personalChanged || logsChanged || docsChanged || deptsChanged || stagesChanged;
 
         if (tasksChanged) state.tasks = tRes;
         if (personalChanged) state.personal = pRes;
         if (logsChanged) state.logs = lRes;
         if (docsChanged) state.documents = dRes;
-        if (divisionsChanged) state.divisions = divisionsRes || [];
         if (stagesChanged) state.deptStages = stagesRes;
         
         if (deptsChanged) {
@@ -176,9 +171,8 @@ async function syncDataInBackground() {
             populateDeptDropdowns();
         }
 
-        if (deptsChanged || divisionsChanged || personalChanged) {
+        if (deptsChanged || personalChanged) {
             populateHierarchyDropdowns();
-            renderDivisionAdminList();
         }
 
         // Always re-render admin dept list if stages or personal changed
@@ -456,7 +450,7 @@ function checkTaskConstraints() {
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
     const role = user.role || 'employee';
     const isAdmin = role === 'admin';
-    const isManager = role === 'admin' || role === 'division_head' || role === 'dept_leader';
+    const isManager = role === 'admin' || role === 'dept_leader';
     const isLocked = $('task-is-locked')?.checked;
     const isNewTask = !$('task-id').value;
 
@@ -544,7 +538,6 @@ function switchView(viewName) {
     renderAll();
     if (viewName === 'admin') {
         renderDeptAdminList();
-        renderDivisionAdminList();
         populateHierarchyDropdowns();
     }
 }
@@ -553,17 +546,15 @@ function switchView(viewName) {
 async function fetchData() {
     try {
         const activeCompanyId = localStorage.getItem('bh_active_company_id') || '';
-        const [tRes, pRes, lRes, dRes, deptsRes, divisionsRes, stagesRes] = await Promise.all([
+        const [tRes, pRes, lRes, dRes, deptsRes, stagesRes] = await Promise.all([
             fetch('/api/tasks').then(r => r.json()),
             fetch('/api/personal').then(r => r.json()),
             fetch('/api/logs').then(r => r.json()),
             fetch('/api/documents').then(r => r.json()).catch(() => []),
             fetch('/api/departments').then(r => r.json()).catch(() => []),
-            fetch('/api/divisions').then(r => r.json()).catch(() => []),
             activeCompanyId ? fetch(`/api/dept-stages?companyId=${activeCompanyId}`).then(r => r.json()).catch(() => []) : Promise.resolve([])
         ]);
         state.tasks = tRes; state.personal = pRes; state.logs = lRes; state.documents = dRes;
-        state.divisions = divisionsRes || [];
         state.deptStages = stagesRes || [];
 
         state.deptObjects = deptsRes || [];
@@ -571,7 +562,6 @@ async function fetchData() {
 
         populateDeptDropdowns();
         populateHierarchyDropdowns();
-        renderDivisionAdminList();
         renderDeptAdminList();
     } catch(err) { showNotification('Error fetching data', 'error'); }
 }
@@ -1411,14 +1401,11 @@ async function handlePersonalSubmit(e){
     const photoData = state.personPhotoData || $('person-photo-data').value || '';
     const loggedInUser = JSON.parse(localStorage.getItem('bh_user') || '{}');
     const selectedDeptName = $('person-dept').value;
-    const deptObj = (state.deptObjects || []).find(d => d.name === selectedDeptName);
-    const division = deptObj ? (deptObj.division || '') : (loggedInUser.division || '');
 
     const personData={
         name:$('person-name').value,
         role:$('person-role').value,
         department:selectedDeptName,
-        division:division,
         email:$('person-email').value,
         password:$('person-password').value,
         responsibility:$('person-responsibility').value,
@@ -1527,7 +1514,7 @@ window.editPersonal=id=>openPersonalModal(id);
 window.deleteTask=async id=>{if(!confirm('Delete this task?'))return;try{const r=await fetch(`/api/tasks/${id}`,{method:'DELETE'});if(r.ok){showNotification('Task deleted','success');state.tasks = state.tasks.filter(t => t._id !== id && t.id !== id);fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });renderAll();}}catch(e){showNotification('Error deleting task','error');}};
 window.deletePersonal=async id=>{if(!confirm('Remove this team member?'))return;try{const r = await fetch(`/api/personal/${id}`,{method:'DELETE'});if(r.ok){showNotification('Member removed','success');state.personal = state.personal.filter(p => p._id !== id && p.id !== id);await loadAndRenderDepts();renderAll();}}catch(e){showNotification('Error','error');}};
 
-// ── DEPARTMENT & DIVISION MANAGEMENT ─────────────────────────────────────────
+// ── DEPARTMENT MANAGEMENT ─────────────────────────────────────────────────────
 async function loadAndRenderDepts() {
     try {
         const res = await fetch('/api/departments').then(r => r.json());
@@ -1585,12 +1572,7 @@ function renderDeptAdminList() {
                     <button class="btn btn-danger" onclick="deleteDepartment('${d._id}', '${d.name}')" style="padding:0.25rem 0.6rem;font-size:0.7rem;line-height:1;">Delete</button>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;font-size:0.78rem;color:var(--secondary);background:white;padding:0.5rem;border-radius:6px;border:1px solid var(--gray-100);">
-                    <span style="white-space:nowrap;">🏢 Division:</span>
-                    <select onchange="updateDeptDivision('${d._id}', this.value)" style="font-size:0.75rem;padding:0.2rem 0.5rem;border:1px solid var(--gray-200);border-radius:6px;background:var(--gray-50);flex:1;min-width:120px;">
-                        <option value="" ${!d.division ? 'selected' : ''}>None</option>
-                        ${(state.divisions || []).map(v => `<option value="${v.name}" ${d.division === v.name ? 'selected' : ''}>${v.name}</option>`).join('')}
-                    </select>
-                    <span style="white-space:nowrap;margin-left:0.5rem;">👤 Leader: <strong style="color:var(--dark);">${d.deptLeader || 'None'}</strong></span>
+                    <span style="white-space:nowrap;">👤 Leader: <strong style="color:var(--dark);">${d.deptLeader || 'None'}</strong></span>
                 </div>
                 
                 ${employeesHtml}
@@ -1638,88 +1620,7 @@ window.deleteDepartment = async (id, name) => {
     } catch(e) { showNotification('Error deleting department', 'error'); }
 };
 
-function renderDivisionAdminList() {
-    const container = document.getElementById('division-admin-list');
-    if (!container) return;
-    if (!state.divisions || state.divisions.length === 0) {
-        container.innerHTML = '<p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">No divisions yet.</p>';
-        return;
-    }
-    container.innerHTML = state.divisions.map(d => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.65rem 0.85rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;margin-bottom:0.5rem;">
-            <div style="display:flex;align-items:center;gap:0.6rem;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${d.color || '#6366f1'}" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span style="font-weight:600;font-size:0.88rem;">${d.name}</span>
-            </div>
-            <button class="btn btn-danger" onclick="deleteDivision('${d._id}', '${d.name}')" style="padding:0.25rem 0.6rem;font-size:0.7rem;line-height:1;">Delete</button>
-        </div>
-    `).join('');
-}
-
-window.deleteDivision = async (id, name) => {
-    if (!confirm(`Delete division "${name}"? This is permanent.`)) return;
-    try {
-        const r = await fetch(`/api/divisions/${id}`, { method: 'DELETE' });
-        if (r.ok) {
-            showNotification(`Division "${name}" deleted`, 'success');
-            await fetchData();
-            renderAll();
-        } else {
-            const data = await r.json();
-            showNotification(data.error || 'Failed to delete division', 'error');
-        }
-    } catch(e) { showNotification('Error deleting division', 'error'); }
-};
-
-// Update a department's division and cascade to all members/tasks
-window.updateDeptDivision = async (deptId, newDivision) => {
-    try {
-        const res = await fetch(`/api/departments/${deptId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ division: newDivision })
-        });
-        if (res.ok) {
-            showNotification('Division updated ✅ — members and tasks synced!', 'success');
-            await fetchData();
-            renderAll();
-        } else {
-            const data = await res.json();
-            showNotification(data.error || 'Failed to update division', 'error');
-        }
-    } catch(e) { showNotification('Error updating department division', 'error'); }
-};
-
-// Sync ALL divisions to Personal + Tasks from Department settings
-window.syncAllDivisions = async () => {
-    const btn = document.getElementById('sync-divisions-btn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
-    try {
-        // For each department that has a division set, call PUT to trigger cascade
-        const depts = state.deptObjects || [];
-        let synced = 0;
-        for (const dept of depts) {
-            if (dept.division) {
-                const res = await fetch(`/api/departments/${dept._id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ division: dept.division })
-                });
-                if (res.ok) synced++;
-            }
-        }
-        showNotification(`✅ Synced ${synced} departments — all member & task divisions updated!`, 'success');
-        await fetchData();
-        renderAll();
-    } catch(e) {
-        showNotification('Sync failed: ' + e.message, 'error');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg> Sync All Divisions to Members &amp; Tasks`;
-        }
-    }
-};
+// (Division management removed — hierarchy is now Company → Department → dept_leader → employee)
 
 function populateHierarchyDropdowns() {
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
@@ -1741,26 +1642,6 @@ function populateHierarchyDropdowns() {
             roleSelect.appendChild(opt);
         });
     }
-
-    // Populate Division selects
-    const divSelects = [
-        document.getElementById('admin-new-division'),
-        document.getElementById('new-dept-division')
-    ];
-    divSelects.forEach(sel => {
-        if (!sel) return;
-        const currentVal = sel.value;
-        sel.innerHTML = '<option value="">None / Select Division</option>';
-        (state.divisions || []).forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d.name;
-            opt.textContent = d.name;
-            sel.appendChild(opt);
-        });
-        if ([...sel.options].some(o => o.value === currentVal)) {
-            sel.value = currentVal;
-        }
-    });
 
     // Populate Dept Leaders select in Dept Manager
     const leaderSelect = document.getElementById('new-dept-leader');
@@ -1789,7 +1670,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const nameInput = document.getElementById('new-dept-name');
             const name = nameInput?.value?.trim();
             if (!name) return;
-            const division = document.getElementById('new-dept-division')?.value || '';
             const deptLeader = document.getElementById('new-dept-leader')?.value || '';
 
             const companyId = localStorage.getItem('bh_active_company_id');
@@ -1803,7 +1683,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch('/api/departments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, division, deptLeader, companyId })
+                    body: JSON.stringify({ name, deptLeader, companyId })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Failed');
@@ -2001,29 +1881,21 @@ async function deleteDocument(id) {
 }
 window.deleteDocument = deleteDocument;
 
-// ── ADMIN: CREATE USER & DIVISION MANAGEMENT ─────────────────────────────────
+// ── ADMIN: CREATE USER ────────────────────────────────────────────────────────
 function setupAdminPanel() {
     const form = $('admin-create-user-form');
     
     // Add dynamic UI adjustments for registration form
     const roleSelect = $('admin-new-role');
-    const divSelect = $('admin-new-division');
     const deptSelect = $('admin-new-dept');
     
     const adjustFields = () => {
-        if (!roleSelect || !divSelect || !deptSelect) return;
+        if (!roleSelect || !deptSelect) return;
         const role = roleSelect.value;
         if (role === 'admin') {
-            divSelect.value = '';
-            divSelect.disabled = true;
-            deptSelect.value = '';
-            deptSelect.disabled = true;
-        } else if (role === 'division_head') {
-            divSelect.disabled = false;
             deptSelect.value = '';
             deptSelect.disabled = true;
         } else {
-            divSelect.disabled = false;
             deptSelect.disabled = false;
         }
     };
@@ -2048,13 +1920,9 @@ function setupAdminPanel() {
             const password   = $('admin-new-password').value;
             const role       = $('admin-new-role').value;
             
-            // Clean division/department based on selected role
-            let division = divSelect ? divSelect.value : '';
+            // Set department based on selected role
             let department = deptSelect ? deptSelect.value : '';
             if (role === 'admin') {
-                division = '';
-                department = '';
-            } else if (role === 'division_head') {
                 department = '';
             }
 
@@ -2069,7 +1937,7 @@ function setupAdminPanel() {
                 const res = await fetch('/api/auth/signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
-                    body: JSON.stringify({ name, email, phone, password, role, division, department, companyId: activeCompanyId, force: forceFlag })
+                    body: JSON.stringify({ name, email, phone, password, role, department, companyId: activeCompanyId, force: forceFlag })
                 });
                 return res;
             };
@@ -2121,50 +1989,6 @@ function setupAdminPanel() {
                 btn.innerHTML = `Create User Account`;
                 msgEl.style.cssText = 'display:block;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid #fecaca;';
                 msgEl.textContent = '❌ Network error: ' + err.message;
-            }
-        });
-    }
-
-    // Division Form Listener
-    const divForm = $('add-division-form');
-    if (divForm) {
-        divForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const nameInput = $('new-division-name');
-            const name = nameInput.value.trim();
-            if (!name) return;
-
-            const btn = $('add-division-btn');
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.textContent = 'Adding…';
-
-            const companyId = localStorage.getItem('bh_active_company_id');
-            if (!companyId) {
-                showNotification('Please select or create a company first', 'error');
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/divisions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, companyId })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Failed to add division');
-                
-                nameInput.value = '';
-                showNotification(`Division "${name}" added successfully!`, 'success');
-                await fetchData();
-                renderAll();
-            } catch (err) {
-                showNotification(err.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
             }
         });
     }
@@ -2326,7 +2150,6 @@ async function selectCompany(id) {
     // Refresh admin lists if active view is admin
     if (state.currentView === 'admin') {
         renderDeptAdminList();
-        renderDivisionAdminList();
         populateHierarchyDropdowns();
     }
     
@@ -2381,7 +2204,7 @@ async function handleDeleteCompany(id) {
     const comp = state.companies.find(c => c._id === id);
     if (!comp) return;
     
-    const conf = confirm(`⚠️ Warning: Are you sure you want to delete "${comp.name}"?\n\nThis will also delete ALL departments, tasks, divisions, and members linked to this company!`);
+    const conf = confirm(`⚠️ Warning: Are you sure you want to delete "${comp.name}"?\n\nThis will also delete ALL departments, tasks, and members linked to this company!`);
     if (!conf) return;
     
     try {
@@ -2472,7 +2295,7 @@ async function handleMigrateData() {
     }
     
     const active = state.companies.find(c => c._id === state.activeCompanyId);
-    const conf = confirm(`Link all existing, unlinked departments, tasks, members, and divisions to "${active.name}"?`);
+    const conf = confirm(`Link all existing, unlinked departments, tasks, and members to "${active.name}"?`);
     if (!conf) return;
     
     try {
@@ -2501,7 +2324,7 @@ function populateStageDeptDropdown() {
     state.deptObjects.forEach(d => {
         const opt = document.createElement('option');
         opt.value = d._id;
-        opt.textContent = `${d.name} (${d.division || 'No Division'})`;
+        opt.textContent = d.name;
         select.appendChild(opt);
     });
 }

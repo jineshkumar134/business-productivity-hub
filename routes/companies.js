@@ -5,7 +5,6 @@ const Department = require('../models/Department');
 const User       = require('../models/User');
 const Task       = require('../models/Task');
 const Personal   = require('../models/Personal');
-const Division   = require('../models/Division');
 const { requireMinRole } = require('../middleware/roleCheck');
 
 const COLOR_PALETTE = [
@@ -85,7 +84,6 @@ router.delete('/:id', requireMinRole('admin'), async (req, res) => {
     try {
         const cid = req.params.id;
         await Department.deleteMany({ companyId: cid });
-        await Division.deleteMany({ companyId: cid });
         await Company.findByIdAndDelete(cid);
         res.json({ success: true });
     } catch (err) {
@@ -114,12 +112,11 @@ router.post('/migrate', requireMinRole('admin'), async (req, res) => {
         const cid = defaultCompany._id;
 
         // Link all orphan records (companyId is null) to this default company
-        const [depts, users, tasks, personal, divs] = await Promise.all([
+        const [depts, users, tasks, personal] = await Promise.all([
             Department.updateMany({ companyId: null }, { $set: { companyId: cid } }),
             User.updateMany({ companyId: null }, { $set: { companyId: cid } }),
             Task.updateMany({ companyId: null }, { $set: { companyId: cid } }),
             Personal.updateMany({ companyId: null }, { $set: { companyId: cid } }),
-            Division.updateMany({ companyId: null }, { $set: { companyId: cid } }),
         ]);
 
         res.json({
@@ -130,7 +127,6 @@ router.post('/migrate', requireMinRole('admin'), async (req, res) => {
                 users: users.modifiedCount,
                 tasks: tasks.modifiedCount,
                 personal: personal.modifiedCount,
-                divisions: divs.modifiedCount,
             }
         });
     } catch (err) {
