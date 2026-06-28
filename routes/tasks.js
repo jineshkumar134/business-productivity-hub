@@ -166,6 +166,7 @@ router.put('/:id', async (req, res) => {
             updateData = {
                 status:         req.body.status         !== undefined ? req.body.status         : existingTask.status,
                 progress:       req.body.progress       !== undefined ? req.body.progress       : existingTask.progress,
+                currentStage:   req.body.currentStage   !== undefined ? req.body.currentStage   : existingTask.currentStage,
                 completed_date: req.body.completed_date !== undefined ? req.body.completed_date : existingTask.completed_date,
                 delay_reason:   req.body.delay_reason   !== undefined ? req.body.delay_reason   : existingTask.delay_reason
             };

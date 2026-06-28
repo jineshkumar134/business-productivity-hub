@@ -5,6 +5,7 @@ const TaskSchema = new mongoose.Schema({
     department:     { type: String, required: true },
     division:       { type: String, default: '' },
     companyId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null },
+    currentStage:   { type: String, default: '' },    // Custom stage title
     priority:       { type: String, default: 'Medium' },
     status:         { type: String, default: 'Not Started' },
     progress:       { type: Number, default: 0 },

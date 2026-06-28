@@ -64,6 +64,7 @@ const state = {
     currentView: 'dashboard',
     tasks: [], personal: [], logs: [], documents: [],
     deptObjects: [],   // full department objects from DB
+    deptStages: [],    // custom department stages list
     divisions: [],     // division objects from DB
     selectedPersonal: [],
     departments: DEPT_CONFIG.map(d => d.name), // names only, synced from deptObjects
@@ -540,16 +541,19 @@ function switchView(viewName) {
 // ── DATA ──────────────────────────────────────────────────────────────────────
 async function fetchData() {
     try {
-        const [tRes, pRes, lRes, dRes, deptsRes, divisionsRes] = await Promise.all([
+        const activeCompanyId = localStorage.getItem('bh_active_company_id') || '';
+        const [tRes, pRes, lRes, dRes, deptsRes, divisionsRes, stagesRes] = await Promise.all([
             fetch('/api/tasks').then(r => r.json()),
             fetch('/api/personal').then(r => r.json()),
             fetch('/api/logs').then(r => r.json()),
             fetch('/api/documents').then(r => r.json()).catch(() => []),
             fetch('/api/departments').then(r => r.json()).catch(() => []),
-            fetch('/api/divisions').then(r => r.json()).catch(() => [])
+            fetch('/api/divisions').then(r => r.json()).catch(() => []),
+            activeCompanyId ? fetch(`/api/dept-stages?companyId=${activeCompanyId}`).then(r => r.json()).catch(() => []) : Promise.resolve([])
         ]);
         state.tasks = tRes; state.personal = pRes; state.logs = lRes; state.documents = dRes;
         state.divisions = divisionsRes || [];
+        state.deptStages = stagesRes || [];
 
         state.deptObjects = deptsRes || [];
         state.departments = (deptsRes || []).map(d => d.name);
@@ -610,6 +614,15 @@ function populateDeptDropdowns() {
         // restore previous value if still valid
         if (currentVal && (depts.includes(currentVal) || currentVal === "")) sel.value = currentVal;
     });
+
+    // When dept changes inside the task modal, refresh stage options
+    const deptSel = document.getElementById('task-department');
+    if (deptSel && !deptSel._stageListenerAdded) {
+        deptSel.addEventListener('change', () => {
+            populateTaskStageDropdown(deptSel.value, '');
+        });
+        deptSel._stageListenerAdded = true;
+    }
 }
 
 function renderAll() {
@@ -673,15 +686,18 @@ function renderMyPortal() {
             const dateStr = t.due_date ? new Date(t.due_date).toLocaleDateString('en', { month:'short', day:'numeric' }) : 'No date';
             const overdue = t.status !== 'Completed' && t.due_date && new Date(t.due_date) < new Date() ? 'color:var(--danger);' : '';
             const commentCount = (t.comments || []).length;
+            const cfg = getDeptConfig(t.department || '');
             return `
             <div class="task-item" onclick="openTaskModal('${t._id}', null)" style="background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:0.85rem;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;position:relative;">
                 <div style="font-weight:600;font-size:0.85rem;color:var(--dark);margin-bottom:0.3rem;">${t.task_name} ${t.is_locked ? '<span style="font-size:0.75rem;" title="Locked">🔒</span>' : ''}</div>
-                <div style="font-size:0.75rem;color:var(--secondary);margin-bottom:0.6rem;">${t.department}</div>
-                <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:0.75rem;color:var(--secondary);margin-bottom:0.4rem;">${t.department || 'No Dept'}</div>
+                ${t.currentStage ? `<div style="margin-bottom:0.45rem;"><span style="font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:12px;background:${cfg.color}15;color:${cfg.color};border:1px solid ${cfg.color}30;">📍 ${t.currentStage}</span></div>` : ''}
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.3rem;">
                     <span style="font-size:0.72rem;font-weight:600;${overdue}">📅 ${dateStr}</span>
                     <div style="display:flex;gap:0.4rem;align-items:center;">
                         ${commentCount > 0 ? `<span style="font-size:0.7rem;color:var(--secondary);">💬 ${commentCount}</span>` : ''}
                         <span style="background:var(--gray-100);padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:600;">${t.progress}%</span>
+                        <span class="priority-${(t.priority||'medium').toLowerCase()}" style="font-size:0.68rem;">${t.priority}</span>
                     </div>
                 </div>
             </div>`;
@@ -848,9 +864,10 @@ function renderDashboard() {
                         </span>
                         ${t.requested_by && t.requested_by !== dept ? `<span style="color:var(--primary);font-weight:700;">↔ ${t.requested_by}</span>` : ''}
                     </div>
-                    <div class="mini-task-meta">
+                    <div class="mini-task-meta" style="display:flex; gap:0.25rem; align-items:center; flex-wrap:wrap;">
                         <span class="status-badge status-${t.status.toLowerCase().replace(' ','')}">${t.status}</span>
                         <span class="priority-${t.priority.toLowerCase()}">${t.priority}</span>
+                        ${t.currentStage ? `<span style="background:${cfg.color}15;color:${cfg.color};border:1px solid ${cfg.color}30;padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:700;">📍 ${t.currentStage}</span>` : ''}
                     </div>
                 </div>`).join('')}
             </div>
@@ -870,6 +887,7 @@ function renderDashboard() {
         card.prepend(bar2);
         el.moduleGrid.appendChild(card);
     });
+    renderDashboardPipelineFeed(tasks);
 }
 
 // ── SUMMARY / ORG WORKING ─────────────────────────────────────────────────────
@@ -1201,15 +1219,54 @@ function openTaskModal(taskId=null,dept=null){
         $('modal-title').textContent='Edit Task';
         const c=task.status==='Completed'; el.completedDateGroup.style.display=c?'block':'none';
         renderTaskComments(task.comments || []);
+        // Populate stage dropdown for this task's department
+        populateTaskStageDropdown(task.department, task.currentStage || '');
     } else {
         $('task-id').value=''; if(dept)$('task-department').value=dept;
         $('task-requested-by').value=user.name||''; $('modal-title').textContent='Create New Task';
         el.completedDateGroup.style.display='none'; el.delayReasonGroup.style.display='none';
         $('task-comments-container').style.display='none';
         const lockCb = $('task-is-locked'); if(lockCb) lockCb.checked = false;
+        // Populate stage dropdown for the preset dept (if any)
+        populateTaskStageDropdown(dept || '', '');
     }
     el.taskModal.classList.add('active'); checkTaskConstraints();
 }
+
+function populateTaskStageDropdown(deptName, selectedStage) {
+    const stageGroup = $('task-stage-group');
+    const stageSelect = $('task-current-stage');
+    if (!stageGroup || !stageSelect) return;
+
+    if (!deptName) {
+        stageGroup.style.display = 'none';
+        stageSelect.innerHTML = '<option value="">— Not In A Stage —</option>';
+        return;
+    }
+
+    // Find the dept object by name
+    const deptObj = state.deptObjects.find(d => d.name.trim().toLowerCase() === deptName.trim().toLowerCase());
+    if (!deptObj) {
+        stageGroup.style.display = 'none';
+        return;
+    }
+
+    // Find stages for this dept
+    const stageDoc = state.deptStages.find(s => String(s.departmentId) === String(deptObj._id));
+    const stages = stageDoc ? stageDoc.stages : [];
+
+    if (stages.length === 0) {
+        stageGroup.style.display = 'none';
+        stageSelect.innerHTML = '<option value="">— Not In A Stage —</option>';
+        return;
+    }
+
+    stageGroup.style.display = 'block';
+    stageSelect.innerHTML = `<option value="">— Not In A Stage —</option>` +
+        stages.map(s => `<option value="${s.title}" ${s.title === selectedStage ? 'selected' : ''}>${s.order}. ${s.title}</option>`).join('');
+}
+window.populateTaskStageDropdown = populateTaskStageDropdown;
+
 
 function renderTaskComments(comments) {
     const container = $('task-comments-container');
@@ -1306,7 +1363,7 @@ async function handleTaskSubmit(e){
     e.preventDefault();
     const id=$('task-id').value;
     if(state.selectedPersonal.length===0){showNotification('Assign at least one person','error');return;}
-    const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal, is_locked: $('task-is-locked')?.checked || false};
+    const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal, is_locked: $('task-is-locked')?.checked || false, currentStage: ($('task-current-stage')?.value || '')};
     if(taskData.status==='Completed'&&taskData.completed_date&&new Date(taskData.completed_date)>new Date(taskData.due_date)&&!taskData.delay_reason){showNotification('Delay reason required','error');return;}
     const btn = $('save-task-btn');
     const originalHtml = btn ? btn.innerHTML : '';
@@ -1477,29 +1534,63 @@ function renderDeptAdminList() {
         container.innerHTML = '<p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">No departments yet.</p>';
         return;
     }
-    container.innerHTML = state.deptObjects.map(d => `
-        <div style="padding:0.75rem 1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;margin-bottom:0.75rem;display:flex;flex-direction:column;gap:0.5rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-                <div style="display:flex;align-items:center;gap:0.6rem;">
-                    <div style="width:12px;height:12px;border-radius:50%;background:${d.color || '#6366f1'};flex-shrink:0;"></div>
-                    <span style="font-weight:700;font-size:0.9rem;color:var(--dark);">${d.name}</span>
+    container.innerHTML = state.deptObjects.map(d => {
+        const deptEmployees = state.personal.filter(p => p.department && p.department.trim().toLowerCase() === d.name.trim().toLowerCase());
+        const employeesHtml = deptEmployees.length > 0
+            ? `<div style="margin-top: 0.5rem; background: white; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid var(--gray-150);">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing:0.04em;">👥 Team Members (${deptEmployees.length}):</div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+                    ${deptEmployees.map(e => `<span style="background:var(--gray-100); color:var(--text); padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:600; border:1px solid var(--gray-200);">${e.name} <span style="font-size:0.6rem; color:var(--secondary); font-weight:normal;">(${e.role})</span></span>`).join('')}
                 </div>
-                <button class="btn btn-danger" onclick="deleteDepartment('${d._id}', '${d.name}')" style="padding:0.25rem 0.6rem;font-size:0.7rem;line-height:1;">Delete</button>
+               </div>`
+            : `<div style="font-size:0.72rem; color:var(--secondary); font-style:italic; margin-top:0.4rem;">No registered team members in this department.</div>`;
+
+        const deptStageDoc = state.deptStages.find(s => String(s.departmentId) === String(d._id));
+        const stagesList = deptStageDoc ? deptStageDoc.stages : [];
+        const stagesHtml = stagesList.length > 0
+            ? `<div style="margin-top: 0.5rem; background: white; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid var(--gray-150);">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing:0.04em;">Workflow Pipeline:</div>
+                <div style="display: flex; align-items: center; gap: 0.4rem; overflow-x: auto; padding-bottom: 2px;">
+                    ${stagesList.map((s, idx) => `
+                        <div style="display:flex; align-items:center; gap:0.25rem;">
+                            <span style="font-size:0.75rem; font-weight:600; padding: 3px 10px; border-radius: 12px; background: ${s.color}15; color: ${s.color}; border: 1px solid ${s.color}30; white-space:nowrap;" title="${s.description || ''}">
+                                ${idx + 1}. ${s.title}
+                            </span>
+                            ${idx < stagesList.length - 1 ? '<span style="color:var(--gray-300); font-size: 0.75rem;">➔</span>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+               </div>`
+            : `<div style="font-size:0.72rem; color:var(--secondary); font-style:italic; margin-top:0.4rem;">No custom workflow stages added. Configure them below!</div>`;
+
+        return `
+            <div style="padding:0.75rem 1rem;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;margin-bottom:0.75rem;display:flex;flex-direction:column;gap:0.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:0.6rem;">
+                        <div style="width:12px;height:12px;border-radius:50%;background:${d.color || '#6366f1'};flex-shrink:0;"></div>
+                        <span style="font-weight:700;font-size:0.9rem;color:var(--dark);">${d.name}</span>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteDepartment('${d._id}', '${d.name}')" style="padding:0.25rem 0.6rem;font-size:0.7rem;line-height:1;">Delete</button>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;font-size:0.78rem;color:var(--secondary);background:white;padding:0.5rem;border-radius:6px;border:1px solid var(--gray-100);">
+                    <span style="white-space:nowrap;">🏢 Division:</span>
+                    <select onchange="updateDeptDivision('${d._id}', this.value)" style="font-size:0.75rem;padding:0.2rem 0.5rem;border:1px solid var(--gray-200);border-radius:6px;background:var(--gray-50);flex:1;min-width:120px;">
+                        <option value="" ${!d.division ? 'selected' : ''}>None</option>
+                        ${(state.divisions || []).map(v => `<option value="${v.name}" ${d.division === v.name ? 'selected' : ''}>${v.name}</option>`).join('')}
+                    </select>
+                    <span style="white-space:nowrap;margin-left:0.5rem;">👤 Leader: <strong style="color:var(--dark);">${d.deptLeader || 'None'}</strong></span>
+                </div>
+                
+                ${employeesHtml}
+                ${stagesHtml}
+
+                <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;margin-top:0.25rem;">
+                    <input type="checkbox" id="vis-${d._id}" ${d.employeeVisibility ? 'checked' : ''} onchange="toggleDeptVisibility('${d._id}', this.checked)" style="width:auto;cursor:pointer;">
+                    <label for="vis-${d._id}" style="font-weight:500;cursor:pointer;color:var(--text);">Allow employees to see other employee's tasks</label>
+                </div>
             </div>
-            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;font-size:0.78rem;color:var(--secondary);background:white;padding:0.5rem;border-radius:6px;border:1px solid var(--gray-100);">
-                <span style="white-space:nowrap;">🏢 Division:</span>
-                <select onchange="updateDeptDivision('${d._id}', this.value)" style="font-size:0.75rem;padding:0.2rem 0.5rem;border:1px solid var(--gray-200);border-radius:6px;background:var(--gray-50);flex:1;min-width:120px;">
-                    <option value="" ${!d.division ? 'selected' : ''}>None</option>
-                    ${(state.divisions || []).map(v => `<option value="${v.name}" ${d.division === v.name ? 'selected' : ''}>${v.name}</option>`).join('')}
-                </select>
-                <span style="white-space:nowrap;margin-left:0.5rem;">👤 Leader: <strong style="color:var(--dark);">${d.deptLeader || 'None'}</strong></span>
-            </div>
-            <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;margin-top:0.25rem;">
-                <input type="checkbox" id="vis-${d._id}" ${d.employeeVisibility ? 'checked' : ''} onchange="toggleDeptVisibility('${d._id}', this.checked)" style="width:auto;cursor:pointer;">
-                <label for="vis-${d._id}" style="font-weight:500;cursor:pointer;color:var(--text);">Allow employees to see other employee's tasks</label>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 window.toggleDeptVisibility = async (id, employeeVisibility) => {
@@ -2523,11 +2614,149 @@ async function saveDeptStages() {
         showNotification('Stages updated successfully!', 'success');
         state.currentDeptStages = data || [];
         renderStagesList();
+
+        // ── sync state.deptStages so pipeline feed & admin list update immediately ──
+        const existingIdx = state.deptStages.findIndex(s => String(s.departmentId) === String(deptId));
+        if (existingIdx >= 0) {
+            state.deptStages[existingIdx] = { ...state.deptStages[existingIdx], stages: state.currentDeptStages };
+        } else {
+            state.deptStages.push({ departmentId: deptId, companyId: state.activeCompanyId, stages: state.currentDeptStages });
+        }
+        // Refresh admin list and pipeline feed
+        renderDeptAdminList();
+        if (state.currentView === 'dashboard') renderDashboard();
     } catch (err) {
         showNotification(err.message, 'error');
     }
 }
 window.saveDeptStages = saveDeptStages;
+
+function renderDashboardPipelineFeed(tasks) {
+    const container = $('dashboard-pipeline-feed');
+    if (!container) return;
+
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'block';
+
+    if (state.deptObjects.length === 0) {
+        container.innerHTML = `<div class="ai-insight-panel" style="text-align:center;padding:1.5rem;color:var(--secondary);border:1px dashed var(--gray-200);width:100%;">No departments configured. Go to the Admin Panel to register departments!</div>`;
+        return;
+    }
+
+    let html = `
+        <div class="ai-insight-panel" style="width: 100%; background: var(--surface); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div class="ai-section-title" style="margin-bottom:1rem; color:var(--dark); display:flex; align-items:center; gap:0.5rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Company Departments Workflow Tracker (Admin Feed)
+            </div>
+            <p style="font-size:0.78rem; color:var(--secondary); margin-bottom:1.5rem;">Real-time tracking of department workflows. See exactly which stages have pending tasks and potential bottlenecks. Click a stage block to view its tasks.</p>
+            <div style="display:flex; flex-direction:column; gap:1.25rem;">
+    `;
+
+    state.deptObjects.forEach(d => {
+        const deptTasks = tasks.filter(t => t.department === d.name);
+        const cfg = getDeptConfig(d.name);
+        const deptStageDoc = state.deptStages.find(s => String(s.departmentId) === String(d._id));
+        const stagesList = deptStageDoc ? deptStageDoc.stages : [];
+
+        if (stagesList.length === 0) {
+            html += `
+                <div style="padding: 1rem; border: 1px dashed var(--gray-200); border-radius: 12px; background: var(--gray-50); display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <div style="width:12px; height:12px; border-radius:50%; background:${cfg.color};"></div>
+                        <span style="font-weight:800; font-size:0.92rem; color:var(--dark);">${d.name} Department</span>
+                    </div>
+                    <span style="font-size:0.72rem; color:var(--secondary); font-style:italic;">No workflow stages configured yet.</span>
+                </div>
+            `;
+            return;
+        }
+
+        html += `
+            <div style="padding: 1rem; border: 1px solid var(--gray-200); border-radius: 12px; background: var(--gray-50); display:flex; flex-direction:column; gap:0.75rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <div style="width:12px; height:12px; border-radius:50%; background:${cfg.color};"></div>
+                        <span style="font-weight:800; font-size:0.92rem; color:var(--dark);">${d.name} Department</span>
+                        <span style="font-size:0.72rem; color:var(--secondary); background:rgba(99,102,241,0.08); padding:2px 8px; border-radius:12px; font-weight:600;">Leader: ${d.deptLeader || 'None'}</span>
+                    </div>
+                    <span style="font-size:0.75rem; font-weight:700; color:var(--secondary);">${deptTasks.length} Total Tasks</span>
+                </div>
+
+                <!-- Custom Stages Horizontal Pipeline -->
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; overflow-x:auto; padding: 0.5rem 0;">
+                    ${stagesList.map((s, idx) => {
+                        const stageTasks = deptTasks.filter(t => t.currentStage === s.title);
+                        const pendingTasks = stageTasks.filter(t => t.status !== 'Completed');
+                        const isStuck = pendingTasks.length > 0;
+
+                        return `
+                            <div style="flex:1; min-width:160px; display:flex; align-items:center; gap:0.5rem;">
+                                <div style="flex-grow:1; background:white; border: 1px solid ${isStuck ? '#ef4444' : 'var(--gray-200)'}; padding:0.6rem 0.85rem; border-radius:10px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:0.25rem; position:relative; cursor:pointer;" onclick="toggleStageTasksPopup('${d._id}_${idx}')">
+                                    <div style="font-weight:750; font-size:0.78rem; color:${s.color}; display:flex; justify-content:space-between; align-items:center;">
+                                        <span>${idx + 1}. ${s.title}</span>
+                                        <span style="font-size:0.72rem; font-weight:800; padding:2px 6px; border-radius:50%; background:${isStuck ? '#ef4444' : 'var(--gray-200)'}; color:${isStuck ? 'white' : 'var(--secondary)'};">${stageTasks.length}</span>
+                                    </div>
+                                    <div style="font-size:0.68rem; color:var(--secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${s.description || ''}">${s.description || 'No description'}</div>
+                                    ${isStuck ? `<span style="font-size:0.6rem; font-weight:700; color:#ef4444; margin-top:0.15rem; display:flex; align-items:center; gap:2px;">⚠️ Stuck (${pendingTasks.length} pending)</span>` : ''}
+                                </div>
+                                ${idx < stagesList.length - 1 ? '<span style="color:var(--gray-300); font-weight:700; font-size:1.1rem; flex-shrink:0;">➔</span>' : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+
+                <!-- Hidden popup panels listing the tasks stuck at each stage -->
+                ${stagesList.map((s, idx) => {
+                    const stageTasks = deptTasks.filter(t => t.currentStage === s.title);
+                    if (stageTasks.length === 0) return '';
+                    return `
+                        <div id="popup-${d._id}_${idx}" style="display:none; margin-top:0.5rem; background:white; border:1px solid var(--gray-200); border-radius:10px; padding:0.85rem 1.15rem; box-shadow:var(--shadow-md);">
+                            <div style="font-weight:800; font-size:0.8rem; color:var(--dark); margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center;">
+                                <span>📋 Tasks in "${s.title}" stage:</span>
+                                <button onclick="toggleStageTasksPopup('${d._id}_${idx}')" style="background:none; border:none; color:var(--secondary); font-size:1.2rem; cursor:pointer; font-weight:bold;">&times;</button>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                                ${stageTasks.map(t => `
+                                    <div style="padding:0.6rem 0.85rem; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                                        <div>
+                                            <div style="font-weight:700; font-size:0.85rem; color:var(--text); cursor:pointer;" onclick="openTaskModal('${t._id}')">${t.task_name}</div>
+                                            <div style="font-size:0.72rem; color:var(--secondary); margin-top:0.15rem;">Responsible: ${(t.responsible||[]).join(', ')||'Unassigned'} • Due: ${t.due_date}</div>
+                                            ${t.delay_reason ? `<div style="font-size:0.72rem; color:#ef4444; font-weight:600; margin-top:0.15rem;">⚠️ Delay Reason: ${t.delay_reason}</div>` : ''}
+                                        </div>
+                                        <span class="status-badge status-${t.status.toLowerCase().replace(' ','')}" style="font-size:0.68rem;">${t.status}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    });
+
+    html += `
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+window.renderDashboardPipelineFeed = renderDashboardPipelineFeed;
+
+function toggleStageTasksPopup(id) {
+    const el = document.getElementById(`popup-${id}`);
+    if (el) {
+        const isShowing = el.style.display === 'block';
+        el.style.display = isShowing ? 'none' : 'block';
+    }
+}
+window.toggleStageTasksPopup = toggleStageTasksPopup;
 
 // ── START ─────────────────────────────────────────────────────────────────────
 setupAdminPanel();

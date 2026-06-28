@@ -5,6 +5,18 @@ const { requireMinRole } = require('../middleware/roleCheck');
 
 const DEFAULT_COLORS = ['#6366f1','#0ea5e9','#10b981','#f97316','#8b5cf6','#ec4899','#f59e0b'];
 
+// GET all stages for a company
+router.get('/', async (req, res) => {
+    try {
+        const { companyId } = req.query;
+        if (!companyId) return res.status(400).json({ error: 'companyId is required' });
+        const docs = await DeptStage.find({ companyId });
+        res.json(docs || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET stages for a department
 router.get('/:deptId', async (req, res) => {
     try {
