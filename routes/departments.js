@@ -28,11 +28,14 @@ router.get('/', async (req, res) => {
         const userDept  = req.headers['x-user-department'] || '';
         const userEmail = req.headers['x-user-email']      || '';
         const userName  = req.headers['x-user-name']       || '';
+        const companyId = req.headers['x-company-id']      || req.query.companyId || null;
 
-        let departments = await Department.find().sort({ createdAt: 1 });
+        // Base query — filter by company if provided
+        const baseQuery = companyId ? { companyId } : {};
+        let departments = await Department.find(baseQuery).sort({ createdAt: 1 });
 
         if (role === 'admin') {
-            // Admin sees all departments
+            // Admin sees all departments in this company
         } else if (role === 'division_head') {
             let div = userDiv;
             if (!div && userEmail) {
@@ -121,14 +124,16 @@ router.get('/', async (req, res) => {
 // POST create department — admin and above
 router.post('/', requireMinRole('admin'), async (req, res) => {
     try {
-        const { name, color, bg, division, deptLeader } = req.body;
+        const { name, color, bg, division, deptLeader, companyId } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ error: 'Department name is required' });
+        if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
-        const count = await Department.countDocuments();
+        const count = await Department.countDocuments({ companyId });
         const palette = COLOR_PALETTE[count % COLOR_PALETTE.length];
 
         const dept = new Department({
             name: name.trim(),
+            companyId,
             color: color || palette.color,
             bg: bg || palette.bg,
             division: division || '',
@@ -137,7 +142,7 @@ router.post('/', requireMinRole('admin'), async (req, res) => {
         await dept.save();
         res.status(201).json(dept);
     } catch (err) {
-        if (err.code === 11000) return res.status(409).json({ error: 'Department already exists' });
+        if (err.code === 11000) return res.status(409).json({ error: 'Department already exists in this company' });
         res.status(500).json({ error: err.message });
     }
 });

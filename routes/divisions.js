@@ -8,7 +8,10 @@ router.get('/', async (req, res) => {
     try {
         const role = req.headers['x-user-role'] || 'employee';
         const userName = req.headers['x-user-name'] || '';
-        let divisions = await Division.find().sort({ createdAt: 1 });
+        const companyId = req.headers['x-company-id'] || req.query.companyId || null;
+        
+        const baseQuery = companyId ? { companyId } : {};
+        let divisions = await Division.find(baseQuery).sort({ createdAt: 1 });
 
         // Division head only sees their own division
         if (role === 'division_head') {
@@ -45,11 +48,13 @@ router.get('/', async (req, res) => {
 // POST create division — admin only
 router.post('/', requireMinRole('admin'), async (req, res) => {
     try {
-        const { name, color, bg } = req.body;
+        const { name, color, bg, companyId } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ error: 'Division name is required' });
+        if (!companyId) return res.status(400).json({ error: 'companyId is required' });
 
         const division = new Division({
             name: name.trim(),
+            companyId,
             color: color || '#6366f1',
             bg: bg || 'rgba(99,102,241,0.12)',
             createdBy: req.headers['x-user-name'] || ''
@@ -57,7 +62,7 @@ router.post('/', requireMinRole('admin'), async (req, res) => {
         await division.save();
         res.status(201).json(division);
     } catch (err) {
-        if (err.code === 11000) return res.status(409).json({ error: 'Division already exists' });
+        if (err.code === 11000) return res.status(409).json({ error: 'Division already exists in this company' });
         res.status(500).json({ error: err.message });
     }
 });

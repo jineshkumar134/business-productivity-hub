@@ -106,8 +106,10 @@ router.get('/', async (req, res) => {
         const userEmail    = req.headers['x-user-email']      || '';
         const userDivision = req.headers['x-user-division']   || '';
         const userDept     = req.headers['x-user-department'] || '';
+        const companyId    = req.headers['x-company-id']      || req.query.companyId || null;
 
-        const allTasks = await Task.find({}).sort({ createdAt: -1 });
+        const baseQuery = companyId ? { companyId } : {};
+        const allTasks = await Task.find(baseQuery).sort({ createdAt: -1 });
         const filtered = await filterTasksForUser(allTasks, role, userName, userDivision, userDept, userEmail);
         res.json(filtered);
     } catch (err) {
@@ -118,7 +120,8 @@ router.get('/', async (req, res) => {
 // POST create task — all roles allowed
 router.post('/', async (req, res) => {
     try {
-        const newTask = new Task(req.body);
+        const companyId = req.headers['x-company-id'] || req.body.companyId || null;
+        const newTask = new Task({ ...req.body, companyId });
         if (newTask.department) {
             const dept = await Department.findOne({ name: newTask.department });
             if (dept) {

@@ -18,6 +18,9 @@ window.fetch = function(url, options = {}) {
         if (user.email)      options.headers['x-user-email']      = user.email;
         if (user.division)   options.headers['x-user-division']   = user.division;
         if (user.department) options.headers['x-user-department'] = user.department;
+        
+        const activeCompanyId = localStorage.getItem('bh_active_company_id');
+        if (activeCompanyId) options.headers['x-company-id'] = activeCompanyId;
     }
     return originalFetch(url, options);
 };
@@ -119,7 +122,9 @@ async function init() {
     setupEventListeners();
     renderUserGreeting();
     loadVisionMission();
+    await loadCompanies();
     await fetchData();     // load data first
+    populateStageDeptDropdown();
     
     // Set initial view AFTER data is loaded
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
@@ -546,13 +551,8 @@ async function fetchData() {
         state.tasks = tRes; state.personal = pRes; state.logs = lRes; state.documents = dRes;
         state.divisions = divisionsRes || [];
 
-        // If no departments in DB yet, seed with defaults
-        if (!deptsRes || deptsRes.length === 0) {
-            await seedDefaultDepartments();
-        } else {
-            state.deptObjects = deptsRes;
-            state.departments = deptsRes.map(d => d.name);
-        }
+        state.deptObjects = deptsRes || [];
+        state.departments = (deptsRes || []).map(d => d.name);
 
         populateDeptDropdowns();
         populateHierarchyDropdowns();
@@ -1681,19 +1681,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('add-dept-btn');
             const nameInput = document.getElementById('new-dept-name');
             const name = nameInput?.value?.trim();
             if (!name) return;
             const division = document.getElementById('new-dept-division')?.value || '';
             const deptLeader = document.getElementById('new-dept-leader')?.value || '';
 
-            const btn = document.getElementById('add-dept-btn');
+            const companyId = localStorage.getItem('bh_active_company_id');
+            if (!companyId) {
+                showNotification('Please select or create a company first', 'error');
+                return;
+            }
             if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+
             try {
                 const res = await fetch('/api/departments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, division, deptLeader })
+                    body: JSON.stringify({ name, division, deptLeader, companyId })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Failed');
@@ -1955,10 +1961,11 @@ function setupAdminPanel() {
             msgEl.style.display = 'none';
 
             const doSignup = async (forceFlag) => {
+                const activeCompanyId = localStorage.getItem('bh_active_company_id') || null;
                 const res = await fetch('/api/auth/signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
-                    body: JSON.stringify({ name, email, phone, password, role, division, department, force: forceFlag })
+                    body: JSON.stringify({ name, email, phone, password, role, division, department, companyId: activeCompanyId, force: forceFlag })
                 });
                 return res;
             };
@@ -2028,11 +2035,19 @@ function setupAdminPanel() {
             btn.disabled = true;
             btn.textContent = 'Adding…';
 
+            const companyId = localStorage.getItem('bh_active_company_id');
+            if (!companyId) {
+                showNotification('Please select or create a company first', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                return;
+            }
+
             try {
                 const res = await fetch('/api/divisions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name })
+                    body: JSON.stringify({ name, companyId })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Failed to add division');
@@ -2053,6 +2068,460 @@ function setupAdminPanel() {
 
 
 
+
+// ── MULTI-COMPANY AND STAGES LOGIC (NEW) ──────────────────────────────────────
+state.companies = [];
+state.activeCompanyId = localStorage.getItem('bh_active_company_id') || '';
+state.currentDeptStages = [];
+
+async function loadCompanies() {
+    try {
+        const res = await fetch('/api/companies');
+        const list = await res.json();
+        state.companies = list || [];
+        
+        if (state.companies.length > 0) {
+            const exists = state.companies.some(c => c._id === state.activeCompanyId);
+            if (!exists) {
+                state.activeCompanyId = state.companies[0]._id;
+                localStorage.setItem('bh_active_company_id', state.activeCompanyId);
+            }
+        } else {
+            state.activeCompanyId = '';
+            localStorage.removeItem('bh_active_company_id');
+        }
+        
+        updateCompanyUI();
+    } catch (err) {
+        console.error('Error loading companies:', err);
+    }
+}
+window.loadCompanies = loadCompanies;
+
+function updateCompanyUI() {
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const isAdmin = user.role === 'admin';
+    
+    const switcherWrap = $('company-switcher-wrap');
+    if (switcherWrap) {
+        if (state.companies.length > 0) {
+            switcherWrap.style.display = 'flex';
+        } else {
+            switcherWrap.style.display = 'none';
+        }
+    }
+    
+    const activeCompName = $('active-company-name');
+    const active = state.companies.find(c => c._id === state.activeCompanyId);
+    if (activeCompName) {
+        activeCompName.textContent = active ? active.name : 'Select Company';
+    }
+    
+    const dropdownList = $('company-dropdown-list');
+    if (dropdownList) {
+        dropdownList.innerHTML = '';
+        state.companies.forEach(comp => {
+            const item = document.createElement('div');
+            item.style.cssText = `padding: 0.6rem 0.85rem; font-size: 0.82rem; cursor: pointer; color: var(--text); border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; background: ${comp._id === state.activeCompanyId ? 'rgba(99,102,241,0.1)' : 'transparent'}; font-weight: ${comp._id === state.activeCompanyId ? '700' : 'normal'};`;
+            item.innerHTML = `
+                <span>🏢 ${comp.name}</span>
+                ${comp._id === state.activeCompanyId ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+            `;
+            item.onclick = () => selectCompany(comp._id);
+            dropdownList.appendChild(item);
+        });
+    }
+    
+    const switcherAdd = $('company-switcher-add');
+    if (switcherAdd) {
+        switcherAdd.style.display = isAdmin ? 'block' : 'none';
+    }
+    
+    const banner = $('active-company-banner');
+    const bannerName = $('banner-company-name');
+    const bannerMeta = $('banner-company-meta');
+    if (banner) {
+        if (active) {
+            banner.style.cssText = 'display:flex;padding:0.75rem 1.25rem;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(167,139,250,0.08));border:1px solid rgba(99,102,241,0.2);align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;';
+            if (bannerName) bannerName.textContent = active.name;
+            if (bannerMeta) bannerMeta.textContent = `${active.industry || 'General'} • Est. ${active.establishedYear || 'N/A'}`;
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+    
+    const adminCompList = $('company-admin-list');
+    if (adminCompList) {
+        adminCompList.innerHTML = '';
+        if (state.companies.length === 0) {
+            adminCompList.innerHTML = `<p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1.5rem;background:var(--gray-50);border-radius:10px;border:1px dashed var(--gray-200);">No companies registered yet. Create one on the left!</p>`;
+        } else {
+            state.companies.forEach(comp => {
+                const isActive = comp._id === state.activeCompanyId;
+                const card = document.createElement('div');
+                card.style.cssText = `background: var(--surface); border: 1px solid ${isActive ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 12px; padding: 0.85rem 1.15rem; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); margin-bottom: 0.5rem;`;
+                card.innerHTML = `
+                    <div>
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--text); display:flex; align-items:center; gap:0.4rem;">
+                            <span>🏢 ${comp.name}</span>
+                            ${isActive ? '<span style="font-size:0.62rem; font-weight:700; color:var(--primary); background:rgba(99,102,241,0.12); padding:2px 6px; border-radius:10px; text-transform:uppercase;">Active</span>' : ''}
+                        </div>
+                        <div style="font-size: 0.72rem; color: var(--secondary); margin-top: 0.2rem;">
+                            ${comp.industry || 'No industry specified'} • Est. ${comp.establishedYear || 'N/A'}
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:0.4rem;">
+                        <button onclick="selectCompany('${comp._id}')" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.65rem;">Use</button>
+                        <button onclick="handleDeleteCompany('${comp._id}')" class="btn btn-secondary" style="font-size:0.75rem; padding:0.35rem 0.65rem; color:#ef4444; border-color:transparent;">Delete</button>
+                    </div>
+                `;
+                adminCompList.appendChild(card);
+            });
+        }
+    }
+}
+
+function toggleCompanySwitcher() {
+    const dropdown = $('company-switcher-dropdown');
+    if (!dropdown) return;
+    const isShowing = dropdown.style.display === 'block';
+    dropdown.style.display = isShowing ? 'none' : 'block';
+    
+    if (!isShowing) {
+        const closeDropdown = (e) => {
+            if (!e.target.closest('#company-switcher-wrap')) {
+                dropdown.style.display = 'none';
+                document.removeEventListener('click', closeDropdown);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+    }
+}
+window.toggleCompanySwitcher = toggleCompanySwitcher;
+
+async function selectCompany(id) {
+    state.activeCompanyId = id;
+    localStorage.setItem('bh_active_company_id', id);
+    
+    const dropdown = $('company-switcher-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+    
+    showNotification('Switched company context', 'success');
+    updateCompanyUI();
+    
+    await fetchData();
+    renderAll();
+    
+    populateStageDeptDropdown();
+}
+window.selectCompany = selectCompany;
+
+async function handleAddCompany() {
+    const nameInput = $('new-company-name');
+    const indInput = $('new-company-industry');
+    const yearInput = $('new-company-year');
+    
+    const name = nameInput.value.trim();
+    if (!name) {
+        showNotification('Company name is required', 'error');
+        return;
+    }
+    
+    const body = {
+        name,
+        industry: indInput.value.trim(),
+        establishedYear: yearInput.value ? parseInt(yearInput.value) : null
+    };
+    
+    try {
+        const res = await fetch('/api/companies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to add company');
+        
+        nameInput.value = '';
+        indInput.value = '';
+        yearInput.value = '';
+        
+        showNotification(`Company "${name}" created!`, 'success');
+        
+        await loadCompanies();
+        if (state.companies.length > 0) {
+            const newComp = state.companies.find(c => c.name === name);
+            if (newComp) await selectCompany(newComp._id);
+        }
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+}
+window.handleAddCompany = handleAddCompany;
+
+async function handleDeleteCompany(id) {
+    const comp = state.companies.find(c => c._id === id);
+    if (!comp) return;
+    
+    const conf = confirm(`⚠️ Warning: Are you sure you want to delete "${comp.name}"?\n\nThis will also delete ALL departments, tasks, divisions, and members linked to this company!`);
+    if (!conf) return;
+    
+    try {
+        const res = await fetch(`/api/companies/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to delete company');
+        }
+        
+        showNotification(`Company "${comp.name}" deleted successfully.`, 'success');
+        
+        if (state.activeCompanyId === id) {
+            state.activeCompanyId = '';
+            localStorage.removeItem('bh_active_company_id');
+        }
+        
+        await loadCompanies();
+        await fetchData();
+        renderAll();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+}
+window.handleDeleteCompany = handleDeleteCompany;
+
+function openAddCompanyModal() {
+    const dropdown = $('company-switcher-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+    
+    switchView('admin');
+    const input = $('new-company-name');
+    if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+window.openAddCompanyModal = openAddCompanyModal;
+
+function openEditCompanyModal() {
+    const active = state.companies.find(c => c._id === state.activeCompanyId);
+    if (!active) return;
+    
+    $('edit-company-id').value = active._id;
+    $('edit-company-name-input').value = active.name;
+    $('edit-company-industry-input').value = active.industry || '';
+    $('edit-company-year-input').value = active.establishedYear || '';
+    
+    $('edit-company-modal').style.display = 'flex';
+}
+window.openEditCompanyModal = openEditCompanyModal;
+
+function closeEditCompanyModal() {
+    $('edit-company-modal').style.display = 'none';
+}
+window.closeEditCompanyModal = closeEditCompanyModal;
+
+async function handleSaveCompanyEdit(e) {
+    if (e) e.preventDefault();
+    const id = $('edit-company-id').value;
+    const name = $('edit-company-name-input').value.trim();
+    const industry = $('edit-company-industry-input').value.trim();
+    const establishedYear = $('edit-company-year-input').value ? parseInt($('edit-company-year-input').value) : null;
+    
+    if (!name) return;
+    
+    try {
+        const res = await fetch(`/api/companies/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, industry, establishedYear })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update company');
+        
+        closeEditCompanyModal();
+        showNotification('Company updated successfully!', 'success');
+        await loadCompanies();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+}
+window.handleSaveCompanyEdit = handleSaveCompanyEdit;
+
+async function handleMigrateData() {
+    if (!state.activeCompanyId) {
+        showNotification('Please select or create an active company first.', 'error');
+        return;
+    }
+    
+    const active = state.companies.find(c => c._id === state.activeCompanyId);
+    const conf = confirm(`Link all existing, unlinked departments, tasks, members, and divisions to "${active.name}"?`);
+    if (!conf) return;
+    
+    try {
+        const res = await fetch('/api/companies/migrate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ companyName: active.name })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Migration failed');
+        
+        showNotification(`Success! Link completed.`, 'success');
+        await fetchData();
+        renderAll();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+}
+window.handleMigrateData = handleMigrateData;
+
+function populateStageDeptDropdown() {
+    const select = $('stage-dept-select');
+    if (!select) return;
+    select.innerHTML = '<option value="">Choose a department...</option>';
+    
+    state.deptObjects.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d._id;
+        opt.textContent = `${d.name} (${d.division || 'No Division'})`;
+        select.appendChild(opt);
+    });
+}
+window.populateStageDeptDropdown = populateStageDeptDropdown;
+
+async function loadDeptStagesForAdmin() {
+    const deptId = $('stage-dept-select').value;
+    const listContainer = $('stages-admin-list');
+    const countSpan = $('stages-count');
+    
+    if (!deptId) {
+        listContainer.innerHTML = `<p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:2rem;background:var(--gray-50);border-radius:10px;border:1px dashed var(--gray-200);">Please select a department to load and edit its stages pipeline.</p>`;
+        countSpan.textContent = '0 stages';
+        state.currentDeptStages = [];
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/dept-stages/${deptId}?companyId=${state.activeCompanyId}`);
+        const stages = await res.json();
+        state.currentDeptStages = stages || [];
+        renderStagesList();
+    } catch (err) {
+        showNotification('Error loading stages', 'error');
+    }
+}
+window.loadDeptStagesForAdmin = loadDeptStagesForAdmin;
+
+function renderStagesList() {
+    const listContainer = $('stages-admin-list');
+    const countSpan = $('stages-count');
+    countSpan.textContent = `${state.currentDeptStages.length} stages`;
+    
+    listContainer.innerHTML = '';
+    
+    if (state.currentDeptStages.length === 0) {
+        listContainer.innerHTML = `<p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:2rem;background:var(--gray-50);border-radius:10px;border:1px dashed var(--gray-200);">No stages defined for this department. Add your first stage using the form!</p>`;
+        return;
+    }
+    
+    state.currentDeptStages.forEach((stage, idx) => {
+        const item = document.createElement('div');
+        item.style.cssText = `background: var(--surface); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); margin-bottom:0.5rem;`;
+        item.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: ${stage.color}; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">
+                    ${idx + 1}
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: var(--text);">${stage.title}</div>
+                    <div style="font-size: 0.72rem; color: var(--secondary); margin-top: 0.15rem;">${stage.description || 'No description'}</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <button onclick="moveStage(${idx}, -1)" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                <button onclick="moveStage(${idx}, 1)" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" ${idx === state.currentDeptStages.length - 1 ? 'disabled' : ''}>▼</button>
+                <button onclick="handleDeleteStage(${idx})" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #ef4444; border-color: transparent;">Delete</button>
+            </div>
+        `;
+        listContainer.appendChild(item);
+    });
+}
+
+async function handleAddStage() {
+    const deptId = $('stage-dept-select').value;
+    if (!deptId) {
+        showNotification('Please select a department first', 'error');
+        return;
+    }
+    
+    const titleInput = $('new-stage-title');
+    const descInput = $('new-stage-desc');
+    const colorInput = $('new-stage-color');
+    
+    const title = titleInput.value.trim();
+    if (!title) {
+        showNotification('Stage name is required', 'error');
+        return;
+    }
+    
+    const newStage = {
+        title,
+        description: descInput.value.trim(),
+        color: colorInput.value
+    };
+    
+    state.currentDeptStages.push(newStage);
+    
+    titleInput.value = '';
+    descInput.value = '';
+    colorInput.value = '#6366f1';
+    
+    await saveDeptStages();
+}
+window.handleAddStage = handleAddStage;
+
+async function handleDeleteStage(index) {
+    state.currentDeptStages.splice(index, 1);
+    await saveDeptStages();
+}
+window.handleDeleteStage = handleDeleteStage;
+
+async function moveStage(index, direction) {
+    if (index + direction < 0 || index + direction >= state.currentDeptStages.length) return;
+    const targetIdx = index + direction;
+    const temp = state.currentDeptStages[index];
+    state.currentDeptStages[index] = state.currentDeptStages[targetIdx];
+    state.currentDeptStages[targetIdx] = temp;
+    await saveDeptStages();
+}
+window.moveStage = moveStage;
+
+async function saveDeptStages() {
+    const deptId = $('stage-dept-select').value;
+    if (!deptId) return;
+    
+    try {
+        const res = await fetch(`/api/dept-stages/${deptId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                stages: state.currentDeptStages,
+                companyId: state.activeCompanyId
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to save stages');
+        
+        showNotification('Stages updated successfully!', 'success');
+        state.currentDeptStages = data || [];
+        renderStagesList();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+}
+window.saveDeptStages = saveDeptStages;
+
 // ── START ─────────────────────────────────────────────────────────────────────
 setupAdminPanel();
 init();
+

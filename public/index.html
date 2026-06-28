@@ -126,6 +126,24 @@
                         <path id="moon-path" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
                 </button>
+                <!-- Company Switcher (admin + multi-company users) -->
+                <div id="company-switcher-wrap" style="display:none;align-items:center;gap:0.5rem;position:relative;">
+                    <div id="company-switcher-pill" onclick="toggleCompanySwitcher()" style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.75rem;border-radius:20px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--primary);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                        <span id="active-company-name" style="overflow:hidden;text-overflow:ellipsis;">Company</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div id="company-switcher-dropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:200px;background:var(--surface);border:1px solid var(--gray-200);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);z-index:2000;overflow:hidden;">
+                        <div style="padding:0.5rem 0.75rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--secondary);border-bottom:1px solid var(--gray-100);">Switch Company</div>
+                        <div id="company-dropdown-list" style="max-height:220px;overflow-y:auto;"></div>
+                        <div id="company-switcher-add" style="padding:0.6rem 0.85rem;border-top:1px solid var(--gray-100);display:none;">
+                            <button onclick="openAddCompanyModal()" style="width:100%;padding:0.4rem 0.75rem;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:white;border:none;font-size:0.8rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:0.4rem;justify-content:center;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Company
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <!-- User Greeting -->
                 <div class="user-greeting" id="user-greeting" onclick="openProfileModal()">
                     <div class="user-avatar" id="header-avatar-wrap">
@@ -400,7 +418,71 @@
                 </div>
 
                 <div class="admin-panel-wrapper">
-                    
+
+                    <!-- ── Company Manager ──────────────────────────────────── -->
+                    <div class="ai-insight-panel" id="company-manager-card" style="width:100%;">
+                        <div class="ai-section-title" style="margin-bottom:1rem;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                            Company Manager
+                        </div>
+                        <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1.25rem;">Create and switch between companies. Each company has its own departments, teams, and workflow stages.</p>
+
+                        <div class="admin-dept-grid" style="gap:1.5rem;">
+                            <!-- Left: Add Company Form -->
+                            <div style="display:flex;flex-direction:column;gap:0.75rem;background:var(--gray-50);padding:1.25rem;border-radius:12px;border:1px solid var(--gray-200);">
+                                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--secondary);margin-bottom:0.25rem;">Add New Company</div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label style="font-size:0.75rem;font-weight:600;color:var(--secondary);margin-bottom:0.25rem;display:block;">Company Name *</label>
+                                    <input type="text" id="new-company-name" placeholder="e.g. Company V1" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:white;color:var(--text);outline:none;">
+                                </div>
+                                <div class="admin-form-row-2">
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.75rem;font-weight:600;color:var(--secondary);margin-bottom:0.25rem;display:block;">Industry</label>
+                                        <input type="text" id="new-company-industry" placeholder="e.g. Technology" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:white;color:var(--text);outline:none;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.75rem;font-weight:600;color:var(--secondary);margin-bottom:0.25rem;display:block;">Est. Year</label>
+                                        <input type="number" id="new-company-year" placeholder="2024" min="1900" max="2099" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:white;color:var(--text);outline:none;">
+                                    </div>
+                                </div>
+                                <button id="add-company-btn" onclick="handleAddCompany()" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);width:100%;padding:0.6rem 1rem;font-size:0.85rem;margin-top:0.25rem;">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Add Company
+                                </button>
+                                <div style="border-top:1px solid var(--gray-200);padding-top:0.75rem;">
+                                    <div style="font-size:0.7rem;color:var(--secondary);margin-bottom:0.4rem;">Link all existing data to the selected company:</div>
+                                    <button onclick="handleMigrateData()" class="btn btn-secondary" style="width:100%;font-size:0.78rem;padding:0.45rem;">
+                                        🔗 Migrate Existing Data
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Right: Company List -->
+                            <div>
+                                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--secondary);margin-bottom:0.75rem;">Your Companies</div>
+                                <div id="company-admin-list" style="display:flex;flex-direction:column;gap:0.75rem;max-height:320px;overflow-y:auto;padding-right:0.25rem;">
+                                    <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">Loading…</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Active Company Context Banner ─────────────────────── -->
+                    <div id="active-company-banner" style="display:none;padding:0.75rem 1.25rem;border-radius:12px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(167,139,250,0.08));border:1px solid rgba(99,102,241,0.2);align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+                        <div style="display:flex;align-items:center;gap:0.75rem;">
+                            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                            </div>
+                            <div>
+                                <div id="banner-company-name" style="font-weight:700;font-size:0.95rem;color:var(--text);">—</div>
+                                <div id="banner-company-meta" style="font-size:0.72rem;color:var(--secondary);">—</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <button id="banner-edit-btn" onclick="openEditCompanyModal()" class="btn btn-secondary" style="font-size:0.75rem;padding:0.35rem 0.75rem;">✏️ Edit Company</button>
+                        </div>
+                    </div>
+
                     <!-- Top Section: Department Manager (Wide Card) -->
                     <div class="ai-insight-panel" style="width: 100%;">
                         <div class="ai-section-title" style="margin-bottom:1rem;">
@@ -449,6 +531,60 @@
                                 </div>
                                 <div id="dept-admin-list" style="max-height: 380px; overflow-y: auto; padding-right: 0.5rem;">
                                     <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:1rem;">Loading…</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Department Stages Manager (NEW) -->
+                    <div class="ai-insight-panel" id="stages-manager-card" style="width: 100%;">
+                        <div class="ai-section-title" style="margin-bottom:1rem;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            Department Stages & Workflow
+                        </div>
+                        <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1.5rem;">Configure sequential stages/workflow for each department. Employees can move tasks through these stages.</p>
+
+                        <div class="admin-dept-grid" style="gap: 1.5rem;">
+                            <!-- Left: Select Dept and Add Stage -->
+                            <div style="display:flex; flex-direction:column; gap:0.75rem; background: var(--gray-50); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--gray-200);">
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Select Department</label>
+                                    <select id="stage-dept-select" onchange="loadDeptStagesForAdmin()" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text); outline:none;">
+                                        <option value="">Choose a department...</option>
+                                    </select>
+                                </div>
+
+                                <div style="border-top: 1px solid var(--gray-200); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--secondary);">Add Stage</div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-size: 0.72rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Stage Name *</label>
+                                        <input type="text" id="new-stage-title" placeholder="e.g. Planning" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.85rem; background:white; color:var(--text); outline:none;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-size: 0.72rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Description</label>
+                                        <input type="text" id="new-stage-desc" placeholder="Brief explanation of this stage" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.85rem; background:white; color:var(--text); outline:none;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-size: 0.72rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Stage Color</label>
+                                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                            <input type="color" id="new-stage-color" value="#6366f1" style="width:40px; height:32px; padding:0; border:1px solid var(--gray-200); border-radius:6px; cursor:pointer;">
+                                            <span style="font-size: 0.75rem; color: var(--secondary);">Click to choose</span>
+                                        </div>
+                                    </div>
+                                    <button onclick="handleAddStage()" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa); width:100%; padding:0.5rem 1rem; font-size:0.82rem; margin-top:0.25rem;">
+                                        Add Stage
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Right: Current Stages Flow -->
+                            <div>
+                                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--secondary);margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:center;">
+                                    <span>Stages Pipeline (Sequential)</span>
+                                    <span id="stages-count" style="font-size:0.75rem;color:var(--secondary);font-weight:normal;">0 stages</span>
+                                </div>
+                                <div id="stages-admin-list" style="display:flex; flex-direction:column; gap:0.6rem; max-height: 380px; overflow-y: auto; padding-right: 0.5rem;">
+                                    <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:2rem;background:var(--gray-50);border-radius:10px;border:1px dashed var(--gray-200);">Please select a department to load and edit its stages pipeline.</p>
                                 </div>
                             </div>
                         </div>
@@ -873,6 +1009,35 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary close-modal">Cancel</button>
                 <button type="submit" class="btn btn-primary" id="save-doc-btn">Save &amp; Upload</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ EDIT COMPANY MODAL ═══ -->
+<div id="edit-company-modal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h2>Edit Company Details</h2>
+            <button type="button" class="close-modal" onclick="closeEditCompanyModal()">&times;</button>
+        </div>
+        <form id="edit-company-form" onsubmit="handleSaveCompanyEdit(event)">
+            <input type="hidden" id="edit-company-id">
+            <div class="form-group">
+                <label for="edit-company-name-input">Company Name *</label>
+                <input type="text" id="edit-company-name-input" required style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text); outline:none;">
+            </div>
+            <div class="form-group">
+                <label for="edit-company-industry-input">Industry</label>
+                <input type="text" id="edit-company-industry-input" style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text); outline:none;">
+            </div>
+            <div class="form-group">
+                <label for="edit-company-year-input">Established Year</label>
+                <input type="number" id="edit-company-year-input" min="1900" max="2099" style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text); outline:none;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditCompanyModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
             </div>
         </form>
     </div>

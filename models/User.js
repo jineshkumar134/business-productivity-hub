@@ -15,8 +15,9 @@ const UserSchema = new mongoose.Schema({
     phone:      { type: String, required: true },
     password:   { type: String, required: true },
     role:       { type: String, enum: ['admin', 'division_head', 'dept_leader', 'employee'], default: 'employee' },
-    division:   { type: String, default: '' },   // Division name (for division_head, dept_leader, employee)
-    department: { type: String, default: '' },   // Department name (for dept_leader, employee)
+    division:   { type: String, default: '' },   // Division name
+    department: { type: String, default: '' },   // Department name
+    companyId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null },
     createdBy:  { type: String, default: '' }    // Name of user who created this account
 }, { timestamps: true });
 

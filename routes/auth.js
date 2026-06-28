@@ -32,6 +32,7 @@ router.post('/signup', async (req, res) => {
     const targetRole   = role || 'employee';
     const creatorRole  = req.headers['x-user-role'] || '';
     const creatorName  = req.headers['x-user-name']  || '';
+    const companyId    = req.headers['x-company-id'] || req.body.companyId || null;
 
     // === Case 1: Creating an Admin account (requires secret) ===
     let isCreatingAdminWithSecret = false;
@@ -98,6 +99,7 @@ router.post('/signup', async (req, res) => {
             role:       targetRole,
             division:   finalDivision,
             department: department || '',
+            companyId:  companyId  || null,
             createdBy:  creatorName
         });
         await newUser.save();
@@ -110,6 +112,7 @@ router.post('/signup', async (req, res) => {
                 role:           ROLE_DISPLAY[targetRole] || targetRole,
                 department:     department  || '',
                 division:       finalDivision,
+                companyId:      companyId  || null,
                 responsibility: ROLE_DISPLAY[targetRole] || targetRole,
                 email:          email.toLowerCase()
             },

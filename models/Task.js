@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const TaskSchema = new mongoose.Schema({
     task_name:      { type: String, required: true },
     department:     { type: String, required: true },
-    division:       { type: String, default: '' },    // which division this task belongs to
+    division:       { type: String, default: '' },
+    companyId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null },
     priority:       { type: String, default: 'Medium' },
     status:         { type: String, default: 'Not Started' },
     progress:       { type: Number, default: 0 },
