@@ -75,4 +75,60 @@ router.post('/align', async (req, res) => {
     }
 });
 
+// ── POST /chat — AI Chatbot assistant for system & general questions ────────
+router.post('/chat', async (req, res) => {
+    if (req.headers['x-user-role'] !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admins only.' });
+    }
+    try {
+        const { message, chatHistory, tasks, departments } = req.body;
+        const apiKey = process.env.GROQ_API_KEY;
+
+        if (!apiKey) {
+            return res.json({
+                reply: "Fallback: Groq API Key is not configured. Please add GROQ_API_KEY in the environment file to activate the AI Chatbot."
+            });
+        }
+
+        const groq = new Groq({ apiKey });
+
+        // Build context with current system state
+        const systemContext = `You are a high-performance AI assistant integrated into the Growth Hub Management System.
+The admin is talking to you. You can answer system-specific questions or general questions not related to the system.
+Here is the current state of the system for reference:
+- Current Registered Departments: ${JSON.stringify(departments)}
+- Active Tasks count: ${tasks.length}
+- Sample active tasks: ${JSON.stringify(tasks.slice(0, 15).map(t => ({ name: t.task_name, dept: t.department, status: t.status, assignees: t.responsible })))}
+
+Answer helpful, clearly formatted responses. Use concise bullet points if explaining complex data.`;
+
+        const messages = [
+            { role: "system", content: systemContext }
+        ];
+
+        // Add history (max 8 messages)
+        if (chatHistory && Array.isArray(chatHistory)) {
+            chatHistory.slice(-8).forEach(msg => {
+                messages.push({ role: msg.sender === 'user' ? 'user' : 'assistant', content: msg.text });
+            });
+        }
+
+        // Add current query
+        messages.push({ role: "user", content: message });
+
+        const completion = await groq.chat.completions.create({
+            messages,
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.7,
+            max_tokens: 1500
+        });
+
+        const reply = completion.choices[0]?.message?.content || "No reply generated.";
+        res.json({ reply });
+    } catch (err) {
+        console.error("AI Chatbot Error:", err);
+        res.status(500).json({ error: 'Chatbot model query failed', details: err.message });
+    }
+});
+
 module.exports = router;

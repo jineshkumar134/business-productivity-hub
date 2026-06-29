@@ -2583,7 +2583,137 @@ function toggleStageTasksPopup(id) {
 }
 window.toggleStageTasksPopup = toggleStageTasksPopup;
 
+// ── AI ANALYSIS CHATBOT ───────────────────────────────────────────────────────
+const chatHistory = [];
+
+function renderChatMessage(sender, text) {
+    const log = $('chatbot-message-log');
+    if (!log) return;
+
+    const isUser = sender === 'user';
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `display:flex; gap:0.75rem; max-width:85%; align-self:${isUser ? 'flex-end' : 'flex-start'}; animation: fadeInUp 0.25s ease;`;
+
+    const avatar = document.createElement('div');
+    avatar.style.cssText = `width:32px; height:32px; border-radius:50%; background:${isUser ? 'var(--accent, #6366f1)' : 'var(--primary)'}; color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.72rem; font-weight:bold; order:${isUser ? 2 : 0};`;
+    avatar.textContent = isUser ? 'You' : 'AI';
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = `background:${isUser ? 'var(--primary)' : 'white'}; color:${isUser ? 'white' : 'var(--text)'}; border:1px solid ${isUser ? 'transparent' : 'var(--gray-200)'}; border-radius:12px; border-${isUser ? 'top-right' : 'top-left'}-radius:2px; padding:0.85rem 1rem; font-size:0.84rem; line-height:1.6; box-shadow:var(--shadow-sm); white-space:pre-wrap; word-break:break-word;`;
+
+    // Basic markdown-lite: bold, bullet points
+    bubble.innerHTML = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^[-•] (.+)$/gm, '<span style="display:block;padding-left:0.5rem;">• $1</span>')
+        .replace(/\n/g, '<br>');
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubble);
+    log.appendChild(wrapper);
+    log.scrollTop = log.scrollHeight;
+}
+
+function showChatTypingIndicator() {
+    const log = $('chatbot-message-log');
+    if (!log) return null;
+
+    const el = document.createElement('div');
+    el.id = 'chatbot-typing-indicator';
+    el.style.cssText = 'display:flex; gap:0.75rem; max-width:85%; align-self:flex-start; animation: fadeInUp 0.2s ease;';
+    el.innerHTML = `
+        <div style="width:32px; height:32px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.72rem; font-weight:bold;">AI</div>
+        <div style="background:white; border:1px solid var(--gray-200); border-radius:12px; border-top-left-radius:2px; padding:0.85rem 1rem; box-shadow:var(--shadow-sm); display:flex; gap:5px; align-items:center;">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--secondary);display:inline-block;animation:chatBounce 1s infinite 0s;"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--secondary);display:inline-block;animation:chatBounce 1s infinite 0.2s;"></span>
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--secondary);display:inline-block;animation:chatBounce 1s infinite 0.4s;"></span>
+        </div>
+    `;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return el;
+}
+
+async function sendChatMessage(message) {
+    if (!message || !message.trim()) return;
+
+    // Push to UI
+    renderChatMessage('user', message);
+    chatHistory.push({ sender: 'user', text: message });
+
+    // Clear input
+    const input = $('chatbot-input-field');
+    if (input) input.value = '';
+
+    // Show typing
+    const typingEl = showChatTypingIndicator();
+
+    try {
+        const tasksAll = state.tasks || [];
+        const depts = state.departments || [];
+
+        const res = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-role': state.currentUser?.role || 'admin',
+                'x-user-id': state.currentUser?._id || ''
+            },
+            body: JSON.stringify({
+                message,
+                chatHistory: chatHistory.slice(-10),
+                tasks: tasksAll,
+                departments: depts.map(d => ({ name: d.name, manager: d.manager }))
+            })
+        });
+
+        const data = await res.json();
+        const reply = data.reply || 'Sorry, I could not generate a response.';
+
+        // Remove typing indicator
+        typingEl?.remove();
+
+        renderChatMessage('ai', reply);
+        chatHistory.push({ sender: 'ai', text: reply });
+
+    } catch (err) {
+        typingEl?.remove();
+        renderChatMessage('ai', '⚠️ Failed to reach the AI assistant. Please check your connection or API key.');
+        console.error('Chatbot error:', err);
+    }
+}
+
+async function handleChatbotSubmit(e) {
+    e.preventDefault();
+    const input = $('chatbot-input-field');
+    const msg = input?.value?.trim();
+    if (msg) await sendChatMessage(msg);
+}
+
+async function sendQuickChat(msg) {
+    await sendChatMessage(msg);
+}
+
+// Inject chatbot bounce animation
+(function injectChatbotStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes chatBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+            40% { transform: translateY(-6px); opacity: 1; }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+window.handleChatbotSubmit = handleChatbotSubmit;
+window.sendQuickChat = sendQuickChat;
+
 // ── START ─────────────────────────────────────────────────────────────────────
 setupAdminPanel();
 init();
+
 
