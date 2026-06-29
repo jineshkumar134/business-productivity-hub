@@ -1471,7 +1471,7 @@ async function handlePersonalSubmit(e){
             if(warnData.warn) {
                 if(btn){ btn.disabled=false; btn.innerHTML=originalHtml; }
                 const confirmed = confirm(
-                    `⚠️ ${warnData.message}\n\nNote: Same naam ke do employees hone se task tracking mein confusion ho sakta hai.\n\nPhir bhi add karna chahte hain?`
+                    `⚠️ ${warnData.message}\n\nNote: Having two employees with the same name might cause confusion in task tracking.\n\nDo you still want to add them?`
                 );
                 if(confirmed){
                     if(btn){ btn.disabled=true; btn.innerHTML='<div class="spinner-small"></div> Saving...'; }
@@ -1977,7 +1977,7 @@ function setupAdminPanel() {
                 if (res.status === 409 && data.warn) {
                     btn.disabled = false;
                     btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create User Account`;
-                    const confirmed = confirm(`⚠️ ${data.message}\n\nNote: Same naam ke do accounts hone se task tracking mein confusion ho sakta hai.\n\nPhir bhi create karna chahte hain?`);
+                    const confirmed = confirm(`⚠️ ${data.message}\n\nNote: Having two accounts with the same name might cause confusion in task tracking.\n\nDo you still want to create it?`);
                     if (confirmed) {
                         btn.disabled = true;
                         btn.innerHTML = `<span style="opacity:0.7">Creating…</span>`;

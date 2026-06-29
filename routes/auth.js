@@ -80,7 +80,7 @@ router.post('/signup', async (req, res) => {
                 return res.status(409).json({
                     warn: true,
                     existingDept: existingByName.department || 'N/A',
-                    message: `"${incomingName}" naam ka user already exist karta hai (Department: ${existingByName.department || 'N/A'}). Kya aap phir bhi is naam se naya account banana chahte hain?`
+                    message: `A user named "${incomingName}" already exists (Department: ${existingByName.department || 'N/A'}). Do you still want to create a new account with this name?`
                 });
             }
         }

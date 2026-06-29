@@ -84,7 +84,7 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
                 return res.status(409).json({
                     warn: true,
                     existingDept: existingByName.department || 'N/A',
-                    message: `"${incomingName}" naam ka employee already exist karta hai (Department: ${existingByName.department || 'N/A'}). Kya aap phir bhi is naam se naya employee add karna chahte hain?`
+                    message: `An employee named "${incomingName}" already exists (Department: ${existingByName.department || 'N/A'}). Do you still want to add a new employee with this name?`
                 });
             }
         }
