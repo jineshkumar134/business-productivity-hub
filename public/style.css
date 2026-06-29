@@ -1251,7 +1251,7 @@ select { width:100%; }
 }
 .pipeline-task-pill {
     width: 100%;
-    background: #fff;
+    background: var(--card-bg);
     border: 1.5px solid var(--gray-200);
     border-radius: 14px;
     padding: 0.5rem 0.65rem;

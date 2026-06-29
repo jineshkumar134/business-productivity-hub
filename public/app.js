@@ -697,7 +697,7 @@ function renderMyPortal() {
             const commentCount = (t.comments || []).length;
             const cfg = getDeptConfig(t.department || '');
             return `
-            <div class="task-item" onclick="openTaskModal('${t._id}', null)" style="background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:0.85rem;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;position:relative;">
+            <div class="task-item" onclick="openTaskModal('${t._id}', null)" style="background:var(--card-bg);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:0.85rem;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;position:relative;">
                 <div style="font-weight:600;font-size:0.85rem;color:var(--dark);margin-bottom:0.3rem;">${t.task_name} ${t.is_locked ? '<span style="font-size:0.75rem;" title="Locked">🔒</span>' : ''}</div>
                 <div style="font-size:0.75rem;color:var(--secondary);margin-bottom:0.4rem;">${t.department || 'No Dept'}</div>
                 ${t.currentStage ? `<div style="margin-bottom:0.45rem;"><span style="font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:12px;background:${cfg.color}15;color:${cfg.color};border:1px solid ${cfg.color}30;">📍 ${t.currentStage}</span></div>` : ''}
@@ -793,7 +793,7 @@ function renderDashboard() {
                                 if (due < today) isOverdue = true;
                             }
                             return `
-                            <div style="background: white; padding: 0.8rem 1rem; border-radius: 8px; border-left: 4px solid #ef4444; display: flex; flex-direction: column; gap: 0.3rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: pointer;" onclick="openTaskModal('${t._id}')">
+                            <div style="background: var(--card-bg); padding: 0.8rem 1rem; border-radius: 8px; border-left: 4px solid #ef4444; display: flex; flex-direction: column; gap: 0.3rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: pointer;" onclick="openTaskModal('${t._id}')">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <span style="font-weight: 700; font-size: 0.9rem; color: var(--dark);">${t.task_name}</span>
                                     <span style="font-size: 0.7rem; font-weight: 700; background: ${isOverdue ? '#ef4444' : '#f97316'}; color: white; padding: 0.15rem 0.5rem; border-radius: 20px;">${isOverdue ? 'Overdue' : 'High Risk'}</span>
@@ -1543,7 +1543,7 @@ function renderDeptAdminList() {
     container.innerHTML = state.deptObjects.map(d => {
         const deptEmployees = state.personal.filter(p => p.department && p.department.trim().toLowerCase() === d.name.trim().toLowerCase());
         const employeesHtml = deptEmployees.length > 0
-            ? `<div style="margin-top: 0.5rem; background: white; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid var(--gray-150);">
+            ? `<div style="margin-top: 0.5rem; background: var(--card-bg); padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid var(--gray-150);">
                 <div style="font-size: 0.72rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing:0.04em;">👥 Team Members (${deptEmployees.length}):</div>
                 <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
                     ${deptEmployees.map(e => `<span style="background:var(--gray-100); color:var(--text); padding:3px 9px; border-radius:12px; font-size:0.72rem; font-weight:600; border:1px solid var(--gray-200);">${e.name} <span style="font-size:0.6rem; color:var(--secondary); font-weight:normal;">(${e.role})</span></span>`).join('')}
@@ -1554,7 +1554,7 @@ function renderDeptAdminList() {
         const deptStageDoc = state.deptStages.find(s => String(s.departmentId) === String(d._id));
         const stagesList = deptStageDoc ? deptStageDoc.stages : [];
         const stagesHtml = stagesList.length > 0
-            ? `<div style="margin-top: 0.5rem; background: white; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid var(--gray-150);">
+            ? `<div style="margin-top: 0.5rem; background: var(--card-bg); padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid var(--gray-150);">
                 <div style="font-size: 0.72rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing:0.04em;">Workflow Pipeline:</div>
                 <div style="display: flex; align-items: center; gap: 0.4rem; overflow-x: auto; padding-bottom: 2px;">
                     ${stagesList.map((s, idx) => `
@@ -1578,7 +1578,7 @@ function renderDeptAdminList() {
                     </div>
                     <button class="btn btn-danger" onclick="deleteDepartment('${d._id}', '${d.name}')" style="padding:0.25rem 0.6rem;font-size:0.7rem;line-height:1;">Delete</button>
                 </div>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;font-size:0.78rem;color:var(--secondary);background:white;padding:0.5rem;border-radius:6px;border:1px solid var(--gray-100);">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.6rem;font-size:0.78rem;color:var(--secondary);background:var(--card-bg);padding:0.5rem;border-radius:6px;border:1px solid var(--gray-100);">
                     <span style="white-space:nowrap;">👤 Leader: <strong style="color:var(--dark);">${d.deptLeader || 'None'}</strong></span>
                 </div>
                 
@@ -2553,7 +2553,7 @@ function renderDashboardPipelineFeed(tasks) {
         }).join('');
 
         html += `
-            <div style="padding:1rem;border:1px solid var(--gray-200);border-top:3px solid ${cfg.color};border-radius:10px;background:white;display:flex;flex-direction:column;gap:0.75rem;box-shadow:var(--shadow-sm);">
+            <div style="padding:1rem;border:1px solid var(--gray-200);border-top:3px solid ${cfg.color};border-radius:10px;background:var(--card-bg);display:flex;flex-direction:column;gap:0.75rem;box-shadow:var(--shadow-sm);">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <span style="font-weight:800;font-size:0.9rem;color:var(--dark);">${d.name}</span>
                     <span style="font-size:0.7rem;font-weight:700;background:${cfg.bg};color:${cfg.color};padding:2px 8px;border-radius:10px;">Leader: ${d.deptLeader || 'None'}</span>
