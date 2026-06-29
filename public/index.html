@@ -55,6 +55,12 @@
                 </span>
                 <span>AI Analysis</span>
             </button>
+            <button class="nav-item" data-view="ai-insights" id="nav-ai-insights" data-admin-only="true">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.75 2.75-1.75 3.5L16 22H8l1.75-12.5C8.75 8.75 8 7.5 8 6a4 4 0 0 1 4-4z"/><path d="M8 22h8"/></svg>
+                </span>
+                <span>AI Insights</span>
+            </button>
             <button class="nav-item" data-view="hr" id="nav-hr" data-admin-only="true">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -230,9 +236,9 @@
                 <div class="summary-blocks" id="summary-blocks"></div>
             </div>
 
-            <!-- ── AI INSIGHTS VIEW ── -->
             <!-- ── AI ANALYSIS (CHATBOT) VIEW ── -->
-            <div id="ai-view" class="view" style="display:flex; flex-direction:column; height:calc(100vh - 120px); gap:1.25rem;">
+            <div id="ai-view" class="view">
+            <div class="ai-chatbot-inner" style="display:flex; flex-direction:column; height:calc(100vh - 120px); gap:1.25rem;">
                 <div class="ai-view-header" style="flex-shrink:0;">
                     <div>
                         <h2 style="font-size:1.15rem; margin-bottom:0.2rem; display:flex; align-items:center; gap:0.5rem;">
@@ -280,6 +286,57 @@
                         </button>
                     </form>
                 </div>
+            </div>
+            </div>
+
+            <!-- ── AI INSIGHTS VIEW ── -->
+            <div id="ai-insights-view" class="view">
+                <div class="ai-view-header">
+                    <div>
+                        <h2 style="font-size:1.1rem;margin-bottom:0.2rem;display:flex;align-items:center;gap:0.5rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.75 2.75-1.75 3.5L16 22H8l1.75-12.5C8.75 8.75 8 7.5 8 6a4 4 0 0 1 4-4z"/><path d="M8 22h8"/></svg>
+                            AI Strategic Alignment
+                        </h2>
+                        <p style="font-size:0.78rem;color:var(--secondary);">Evaluating task alignment with your organization's vision &amp; mission.</p>
+                    </div>
+                    <div style="display:flex;gap:0.75rem;">
+                        <button id="export-ai-btn" class="btn btn-secondary" style="display:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Export PDF
+                        </button>
+                        <button id="run-ai-btn" class="btn btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Run Analysis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Vision & Mission Panel -->
+                <div class="ai-insight-panel">
+                    <div class="ai-section-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Organization Vision &amp; Mission
+                    </div>
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="form-group" style="gap:0.4rem;">
+                            <label>🎯 Vision Statement</label>
+                            <textarea class="vision-textarea" id="org-vision" placeholder="e.g. To be the #1 product company empowering every household…"></textarea>
+                        </div>
+                        <div class="form-group" style="gap:0.4rem;">
+                            <label>🚀 Mission Statement</label>
+                            <textarea class="vision-textarea" id="org-mission" placeholder="e.g. We build intuitive products that simplify everyday lives…"></textarea>
+                        </div>
+                    </div>
+                    <div style="margin-top:0.75rem;display:flex;justify-content:flex-end;">
+                        <button id="save-vision-btn" class="btn btn-glass" style="font-size:0.78rem;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Save Vision &amp; Mission
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Results -->
+                <div id="ai-results-area"></div>
             </div>
 
             <!-- ── HR VIEW ── -->

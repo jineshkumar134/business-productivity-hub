@@ -75,9 +75,8 @@ router.post('/align', async (req, res) => {
     }
 });
 
-// ── POST /chat — AI Chatbot assistant for system & general questions ────────
+// ── POST /chat — AI Chatbot powered by Groq Llama ────────────────────────────
 router.post('/chat', async (req, res) => {
-    // Allow both admin and super_admin roles
     const role = req.headers['x-user-role'];
     if (role !== 'admin' && role !== 'super_admin') {
         return res.status(403).json({ error: 'Access denied. Admins only.' });
@@ -88,7 +87,7 @@ router.post('/chat', async (req, res) => {
 
         if (!apiKey) {
             return res.json({
-                reply: "⚠️ GROQ_API_KEY is not set on this server. Please add it in Vercel environment variables under Settings → Environment Variables."
+                reply: "⚠️ GROQ_API_KEY is not configured on this server. Please add it in your .env file."
             });
         }
 
@@ -98,43 +97,40 @@ router.post('/chat', async (req, res) => {
         const safeTasks = Array.isArray(tasks) ? tasks : [];
         const safeDepts = Array.isArray(departments) ? departments : [];
 
-        // Build context with current system state
         const systemContext = `You are a high-performance AI assistant integrated into the Growth Hub Management System.
-The admin is talking to you. You can answer system-specific questions or general questions not related to the system.
-Here is the current state of the system for reference:
-- Current Registered Departments: ${JSON.stringify(safeDepts)}
-- Active Tasks count: ${safeTasks.length}
-- Sample active tasks: ${JSON.stringify(safeTasks.slice(0, 15).map(t => ({ name: t.task_name, dept: t.department, status: t.status, assignees: t.responsible })))}
+The admin is talking to you. Answer system-specific or general questions helpfully.
+Current system state:
+- Departments: ${JSON.stringify(safeDepts)}
+- Active Tasks: ${safeTasks.length}
+- Sample tasks: ${JSON.stringify(safeTasks.slice(0, 10).map(t => ({ name: t.task_name, dept: t.department, status: t.status })))}
+Use concise bullet points when listing data.`;
 
-Answer helpful, clearly formatted responses. Use concise bullet points if explaining complex data.`;
+        const messages = [{ role: 'system', content: systemContext }];
 
-        const messages = [
-            { role: "system", content: systemContext }
-        ];
-
-        // Add history (max 8 messages)
         if (chatHistory && Array.isArray(chatHistory)) {
             chatHistory.slice(-8).forEach(msg => {
                 messages.push({ role: msg.sender === 'user' ? 'user' : 'assistant', content: msg.text });
             });
         }
-
-        // Add current query
-        messages.push({ role: "user", content: message });
+        messages.push({ role: 'user', content: message });
 
         const completion = await groq.chat.completions.create({
             messages,
-            model: "llama-3.3-70b-versatile",
+            model: 'llama-3.3-70b-versatile',
             temperature: 0.7,
-            max_tokens: 1500
+            max_tokens: 1200
         });
 
-        const reply = completion.choices[0]?.message?.content || "No reply generated.";
+        const reply = completion.choices[0]?.message?.content || 'No reply generated.';
         res.json({ reply });
+
     } catch (err) {
-        console.error("AI Chatbot Error:", err);
-        res.status(500).json({ error: 'Chatbot model query failed', details: err.message });
+        console.error('Chatbot Error:', err.message);
+        // Send only the human-readable message, not the full JSON blob
+        const msg = err?.error?.error?.message || err?.message || 'AI query failed';
+        res.status(500).json({ error: msg });
     }
 });
 
 module.exports = router;
+

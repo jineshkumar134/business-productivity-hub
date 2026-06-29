@@ -521,7 +521,8 @@ const VIEW_META = {
     'my-portal': { t:'My Portal',                  d:'Manage your assigned tasks and collaborate.' },
     dashboard: { t:'Dashboard Overview',           d:'Monitor organizational performance in real-time.' },
     summary:   { t:'Organizational Working',        d:'Live pipeline and health of all departments.' },
-    ai:        { t:'AI Analysis Admin Panel',        d:'Ask the AI assistant anything — tasks, departments, or general questions.' },
+    ai:           { t:'AI Analysis Admin Panel',     d:'Ask the AI assistant anything — tasks, departments, or general questions.' },
+    'ai-insights':{ t:'AI Strategic Alignment',      d:'Evaluate task alignment with your organization\'s vision & mission.' },
     hr:        { t:'Team Management',               d:'Manage personnel and define core responsibilities.' },
     logs:      { t:'Activity Logs',                 d:'Full audit trail of all system changes and task updates.' },
     invoicing: { t:'Invoicing Calculator',          d:'Estimate GST and TDS for your transactions with ease.' },
@@ -2667,8 +2668,12 @@ async function sendChatMessage(message) {
         typingEl?.remove();
 
         if (!res.ok) {
-            // Show actual backend error (403 access denied, 500 etc)
-            const errMsg = [data?.error, data?.details].filter(Boolean).join(' — ') || `Server error (${res.status})`;
+            // Show only human-readable part, not raw JSON
+            let errMsg = data?.error || `Server error (${res.status})`;
+            // If it's a JSON string, try to extract just the message
+            if (typeof errMsg === 'string' && errMsg.startsWith('{')) {
+                try { errMsg = JSON.parse(errMsg)?.message || errMsg; } catch(e) {}
+            }
             renderChatMessage('ai', `⚠️ ${errMsg}`);
             return;
         }
