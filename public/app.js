@@ -270,6 +270,16 @@ function setupEventListeners() {
             : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
     });
 
+    // Expand sidebar if clicking on the logo when collapsed
+    document.querySelector('.logo')?.addEventListener('click', () => {
+        if (el.sidebar.classList.contains('collapsed')) {
+            el.sidebar.classList.remove('collapsed');
+            if (el.sidebarToggle) {
+                el.sidebarToggle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
+            }
+        }
+    });
+
     // Modals
     el.addTaskGlobalBtn?.addEventListener('click', () => openTaskModal());
     el.addPersonalBtn?.addEventListener('click', () => openPersonalModal());
