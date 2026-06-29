@@ -97,13 +97,18 @@ router.post('/chat', async (req, res) => {
         const safeTasks = Array.isArray(tasks) ? tasks : [];
         const safeDepts = Array.isArray(departments) ? departments : [];
 
-        const systemContext = `You are a high-performance AI assistant integrated into the Growth Hub Management System.
-The admin is talking to you. Answer system-specific or general questions helpfully.
-Current system state:
-- Departments: ${JSON.stringify(safeDepts)}
+        const systemContext = `You are a helpful AI assistant embedded in the Growth Hub business management system.
+You have access to the following system data as BACKGROUND CONTEXT ONLY — do NOT repeat, list, or summarize this data in your responses unless the admin explicitly asks about it:
+- Departments (${safeDepts.length}): ${safeDepts.map(d => d.name).join(', ')}
 - Active Tasks: ${safeTasks.length}
-- Sample tasks: ${JSON.stringify(safeTasks.slice(0, 10).map(t => ({ name: t.task_name, dept: t.department, status: t.status })))}
-Use concise bullet points when listing data.`;
+- Task details: ${JSON.stringify(safeTasks.slice(0, 10).map(t => ({ name: t.task_name, dept: t.department, status: t.status })))}
+
+RULES:
+- Answer questions directly and concisely
+- Do NOT append system state summaries at the end of responses
+- Use bullet points only when the question requires a list
+- For general questions (not about the system), just answer normally like a knowledgeable assistant
+- Today's date context: ${new Date().toDateString()}`;
 
         const messages = [{ role: 'system', content: systemContext }];
 
