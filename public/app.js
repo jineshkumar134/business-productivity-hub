@@ -1265,8 +1265,8 @@ function populateTaskStageDropdown(deptName, selectedStage) {
     const stages = stageDoc ? stageDoc.stages : [];
 
     if (stages.length === 0) {
-        stageGroup.style.display = 'none';
-        stageSelect.innerHTML = '<option value="">— Not In A Stage —</option>';
+        stageGroup.style.display = 'block';
+        stageSelect.innerHTML = '<option value="">— No Stages Configured (Not In A Stage) —</option>';
         return;
     }
 
