@@ -496,16 +496,16 @@
                                 <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--secondary);margin-bottom:0.25rem;">Add New Company</div>
                                 <div class="form-group" style="margin-bottom:0;">
                                     <label style="font-size:0.75rem;font-weight:600;color:var(--secondary);margin-bottom:0.25rem;display:block;">Company Name *</label>
-                                    <input type="text" id="new-company-name" placeholder="e.g. Company V1" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:white;color:var(--text);outline:none;">
+                                    <input type="text" id="new-company-name" placeholder="e.g. Company V1" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--white);color:var(--text);outline:none;">
                                 </div>
                                 <div class="admin-form-row-2">
                                     <div class="form-group" style="margin-bottom:0;">
                                         <label style="font-size:0.75rem;font-weight:600;color:var(--secondary);margin-bottom:0.25rem;display:block;">Industry</label>
-                                        <input type="text" id="new-company-industry" placeholder="e.g. Technology" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:white;color:var(--text);outline:none;">
+                                        <input type="text" id="new-company-industry" placeholder="e.g. Technology" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--white);color:var(--text);outline:none;">
                                     </div>
                                     <div class="form-group" style="margin-bottom:0;">
                                         <label style="font-size:0.75rem;font-weight:600;color:var(--secondary);margin-bottom:0.25rem;display:block;">Est. Year</label>
-                                        <input type="number" id="new-company-year" placeholder="2024" min="1900" max="2099" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:white;color:var(--text);outline:none;">
+                                        <input type="number" id="new-company-year" placeholder="2024" min="1900" max="2099" style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--white);color:var(--text);outline:none;">
                                     </div>
                                 </div>
                                 <button id="add-company-btn" onclick="handleAddCompany()" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);width:100%;padding:0.6rem 1rem;font-size:0.85rem;margin-top:0.25rem;">
@@ -564,14 +564,14 @@
                                         type="text"
                                         id="new-dept-name"
                                         placeholder="e.g. Legal, Design, Operations…"
-                                        style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:white;color:var(--text);outline:none;"
+                                        style="width:100%;padding:0.6rem 0.85rem;border:1px solid var(--gray-200);border-radius:var(--radius-md);font-size:0.88rem;background:var(--white);color:var(--text);outline:none;"
                                         required
                                         maxlength="60"
                                     >
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label for="new-dept-leader" style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Department Leader</label>
-                                    <select id="new-dept-leader" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text);">
+                                    <select id="new-dept-leader" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--white); color:var(--text);">
                                         <option value="">Select Dept Leader (Optional)</option>
                                     </select>
                                 </div>
@@ -995,15 +995,15 @@
             <input type="hidden" id="edit-company-id">
             <div class="form-group">
                 <label for="edit-company-name-input">Company Name *</label>
-                <input type="text" id="edit-company-name-input" required style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text); outline:none;">
+                <input type="text" id="edit-company-name-input" required style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--white); color:var(--text); outline:none;">
             </div>
             <div class="form-group">
                 <label for="edit-company-industry-input">Industry</label>
-                <input type="text" id="edit-company-industry-input" style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text); outline:none;">
+                <input type="text" id="edit-company-industry-input" style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--white); color:var(--text); outline:none;">
             </div>
             <div class="form-group">
                 <label for="edit-company-year-input">Established Year</label>
-                <input type="number" id="edit-company-year-input" min="1900" max="2099" style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text); outline:none;">
+                <input type="number" id="edit-company-year-input" min="1900" max="2099" style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--white); color:var(--text); outline:none;">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeEditCompanyModal()">Cancel</button>
