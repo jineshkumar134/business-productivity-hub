@@ -1245,11 +1245,13 @@ function openTaskModal(taskId=null,dept=null){
 function populateTaskStageDropdown(deptName, selectedStage) {
     const stageGroup = $('task-stage-group');
     const stageSelect = $('task-current-stage');
-    if (!stageGroup || !stageSelect) return;
+    const stageDatalist = $('stage-suggestions');
+    if (!stageGroup || !stageSelect || !stageDatalist) return;
 
     if (!deptName) {
         stageGroup.style.display = 'none';
-        stageSelect.innerHTML = '<option value="">— Not In A Stage —</option>';
+        stageSelect.value = '';
+        stageDatalist.innerHTML = '';
         return;
     }
 
@@ -1257,6 +1259,8 @@ function populateTaskStageDropdown(deptName, selectedStage) {
     const deptObj = state.deptObjects.find(d => d.name.trim().toLowerCase() === deptName.trim().toLowerCase());
     if (!deptObj) {
         stageGroup.style.display = 'none';
+        stageSelect.value = '';
+        stageDatalist.innerHTML = '';
         return;
     }
 
@@ -1264,15 +1268,22 @@ function populateTaskStageDropdown(deptName, selectedStage) {
     const stageDoc = state.deptStages.find(s => String(s.departmentId) === String(deptObj._id));
     const stages = stageDoc ? stageDoc.stages : [];
 
-    if (stages.length === 0) {
-        stageGroup.style.display = 'block';
-        stageSelect.innerHTML = '<option value="">— No Stages Configured (Not In A Stage) —</option>';
-        return;
+    stageGroup.style.display = 'block';
+    stageSelect.value = selectedStage || '';
+
+    // Collect all stage suggestions
+    const taskStages = new Set(stages.map(s => s.title));
+    
+    // Add unique stages currently used by tasks of this department as suggestions
+    if (state.tasks && Array.isArray(state.tasks)) {
+        state.tasks.forEach(t => {
+            if ((t.department || '').trim().toLowerCase() === deptName.trim().toLowerCase() && t.currentStage) {
+                taskStages.add(t.currentStage);
+            }
+        });
     }
 
-    stageGroup.style.display = 'block';
-    stageSelect.innerHTML = `<option value="">— Not In A Stage —</option>` +
-        stages.map(s => `<option value="${s.title}" ${s.title === selectedStage ? 'selected' : ''}>${s.order}. ${s.title}</option>`).join('');
+    stageDatalist.innerHTML = Array.from(taskStages).map(s => `<option value="${s}"></option>`).join('');
 }
 window.populateTaskStageDropdown = populateTaskStageDropdown;
 

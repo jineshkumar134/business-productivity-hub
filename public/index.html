@@ -842,12 +842,9 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                     Current Workflow Stage
                 </label>
-                <div class="select-wrapper">
-                    <select id="task-current-stage">
-                        <option value="">— Not In A Stage —</option>
-                    </select>
-                </div>
-                <p style="font-size:0.72rem; color:var(--secondary); margin-top:0.3rem;">📍 Select which stage of the department workflow this task is currently in.</p>
+                <input type="text" id="task-current-stage" placeholder="e.g. Ideation, Development, QA..." list="stage-suggestions" style="width:100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:var(--white); color:var(--text); outline:none;">
+                <datalist id="stage-suggestions"></datalist>
+                <p style="font-size:0.72rem; color:var(--secondary); margin-top:0.3rem;">📍 Type any custom stage name or select from the suggestions list.</p>
             </div>
             <div class="form-group" style="margin-top:1rem;">
                 <label for="task-description">
