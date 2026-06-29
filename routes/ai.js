@@ -77,7 +77,9 @@ router.post('/align', async (req, res) => {
 
 // ── POST /chat — AI Chatbot assistant for system & general questions ────────
 router.post('/chat', async (req, res) => {
-    if (req.headers['x-user-role'] !== 'admin') {
+    // Allow both admin and super_admin roles
+    const role = req.headers['x-user-role'];
+    if (role !== 'admin' && role !== 'super_admin') {
         return res.status(403).json({ error: 'Access denied. Admins only.' });
     }
     try {
@@ -86,7 +88,7 @@ router.post('/chat', async (req, res) => {
 
         if (!apiKey) {
             return res.json({
-                reply: "Fallback: Groq API Key is not configured. Please add GROQ_API_KEY in the environment file to activate the AI Chatbot."
+                reply: "⚠️ GROQ_API_KEY is not set on this server. Please add it in Vercel environment variables under Settings → Environment Variables."
             });
         }
 

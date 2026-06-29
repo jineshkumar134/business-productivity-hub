@@ -2653,11 +2653,7 @@ async function sendChatMessage(message) {
 
         const res = await fetch('/api/ai/chat', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-user-role': state.currentUser?.role || 'admin',
-                'x-user-id': state.currentUser?._id || ''
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message,
                 chatHistory: chatHistory.slice(-10),
@@ -2667,17 +2663,23 @@ async function sendChatMessage(message) {
         });
 
         const data = await res.json();
-        const reply = data.reply || 'Sorry, I could not generate a response.';
 
-        // Remove typing indicator
         typingEl?.remove();
 
+        if (!res.ok) {
+            // Show actual backend error (403 access denied, 500 etc)
+            const errMsg = data?.error || data?.details || `Server error (${res.status})`;
+            renderChatMessage('ai', `⚠️ ${errMsg}`);
+            return;
+        }
+
+        const reply = data.reply || 'No reply generated.';
         renderChatMessage('ai', reply);
         chatHistory.push({ sender: 'ai', text: reply });
 
     } catch (err) {
         typingEl?.remove();
-        renderChatMessage('ai', '⚠️ Failed to reach the AI assistant. Please check your connection or API key.');
+        renderChatMessage('ai', `⚠️ Network error: ${err.message}`);
         console.error('Chatbot error:', err);
     }
 }
