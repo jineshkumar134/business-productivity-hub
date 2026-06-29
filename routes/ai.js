@@ -94,13 +94,17 @@ router.post('/chat', async (req, res) => {
 
         const groq = new Groq({ apiKey });
 
+        // Null-safe defaults
+        const safeTasks = Array.isArray(tasks) ? tasks : [];
+        const safeDepts = Array.isArray(departments) ? departments : [];
+
         // Build context with current system state
         const systemContext = `You are a high-performance AI assistant integrated into the Growth Hub Management System.
 The admin is talking to you. You can answer system-specific questions or general questions not related to the system.
 Here is the current state of the system for reference:
-- Current Registered Departments: ${JSON.stringify(departments)}
-- Active Tasks count: ${tasks.length}
-- Sample active tasks: ${JSON.stringify(tasks.slice(0, 15).map(t => ({ name: t.task_name, dept: t.department, status: t.status, assignees: t.responsible })))}
+- Current Registered Departments: ${JSON.stringify(safeDepts)}
+- Active Tasks count: ${safeTasks.length}
+- Sample active tasks: ${JSON.stringify(safeTasks.slice(0, 15).map(t => ({ name: t.task_name, dept: t.department, status: t.status, assignees: t.responsible })))}
 
 Answer helpful, clearly formatted responses. Use concise bullet points if explaining complex data.`;
 

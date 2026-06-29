@@ -521,7 +521,7 @@ const VIEW_META = {
     'my-portal': { t:'My Portal',                  d:'Manage your assigned tasks and collaborate.' },
     dashboard: { t:'Dashboard Overview',           d:'Monitor organizational performance in real-time.' },
     summary:   { t:'Organizational Working',        d:'Live pipeline and health of all departments.' },
-    ai:        { t:'AI Strategic Alignment',        d:'Evaluate tasks against your organization\'s vision & mission.' },
+    ai:        { t:'AI Analysis Admin Panel',        d:'Ask the AI assistant anything — tasks, departments, or general questions.' },
     hr:        { t:'Team Management',               d:'Manage personnel and define core responsibilities.' },
     logs:      { t:'Activity Logs',                 d:'Full audit trail of all system changes and task updates.' },
     invoicing: { t:'Invoicing Calculator',          d:'Estimate GST and TDS for your transactions with ease.' },
@@ -2668,7 +2668,7 @@ async function sendChatMessage(message) {
 
         if (!res.ok) {
             // Show actual backend error (403 access denied, 500 etc)
-            const errMsg = data?.error || data?.details || `Server error (${res.status})`;
+            const errMsg = [data?.error, data?.details].filter(Boolean).join(' — ') || `Server error (${res.status})`;
             renderChatMessage('ai', `⚠️ ${errMsg}`);
             return;
         }
