@@ -495,7 +495,13 @@ function checkTaskConstraints() {
 function renderUserGreeting() {
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
     const nameEl = $('header-user-name');
-    if (nameEl) nameEl.textContent = user.name || 'User';
+    if (nameEl) {
+        let displayName = user.name || 'User';
+        if ((user.role === 'department_leader' || user.role === 'employee') && user.department) {
+            displayName = `${displayName} (${user.department})`;
+        }
+        nameEl.textContent = displayName;
+    }
     updateHeaderAvatar(user.photo, user.name || 'U');
 }
 
@@ -2600,7 +2606,7 @@ function renderChatMessage(sender, text) {
     avatar.textContent = isUser ? 'You' : 'AI';
 
     const bubble = document.createElement('div');
-    bubble.style.cssText = `background:${isUser ? 'var(--primary)' : 'white'}; color:${isUser ? 'white' : 'var(--text)'}; border:1px solid ${isUser ? 'transparent' : 'var(--gray-200)'}; border-radius:12px; border-${isUser ? 'top-right' : 'top-left'}-radius:2px; padding:0.85rem 1rem; font-size:0.84rem; line-height:1.6; box-shadow:var(--shadow-sm); white-space:pre-wrap; word-break:break-word;`;
+    bubble.style.cssText = `background:${isUser ? 'var(--primary)' : 'var(--white)'}; color:${isUser ? '#fff' : 'var(--text)'}; border:1px solid ${isUser ? 'transparent' : 'var(--gray-200)'}; border-radius:12px; border-${isUser ? 'top-right' : 'top-left'}-radius:2px; padding:0.85rem 1rem; font-size:0.84rem; line-height:1.6; box-shadow:var(--shadow-sm); white-space:pre-wrap; word-break:break-word;`;
 
     // Basic markdown-lite: bold, bullet points
     bubble.innerHTML = text
@@ -2622,8 +2628,8 @@ function showChatTypingIndicator() {
     el.id = 'chatbot-typing-indicator';
     el.style.cssText = 'display:flex; gap:0.75rem; max-width:85%; align-self:flex-start; animation: fadeInUp 0.2s ease;';
     el.innerHTML = `
-        <div style="width:32px; height:32px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.72rem; font-weight:bold;">AI</div>
-        <div style="background:white; border:1px solid var(--gray-200); border-radius:12px; border-top-left-radius:2px; padding:0.85rem 1rem; box-shadow:var(--shadow-sm); display:flex; gap:5px; align-items:center;">
+        <div style="width:32px; height:32px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.72rem; font-weight:bold;">AI</div>
+        <div style="background:var(--white); border:1px solid var(--gray-200); border-radius:12px; border-top-left-radius:2px; padding:0.85rem 1rem; box-shadow:var(--shadow-sm); display:flex; gap:5px; align-items:center;">
             <span style="width:7px;height:7px;border-radius:50%;background:var(--secondary);display:inline-block;animation:chatBounce 1s infinite 0s;"></span>
             <span style="width:7px;height:7px;border-radius:50%;background:var(--secondary);display:inline-block;animation:chatBounce 1s infinite 0.2s;"></span>
             <span style="width:7px;height:7px;border-radius:50%;background:var(--secondary);display:inline-block;animation:chatBounce 1s infinite 0.4s;"></span>

@@ -257,14 +257,14 @@
                         <!-- Initial Message -->
                         <div style="display:flex; gap:0.75rem; max-width:80%; align-self:flex-start;">
                             <div style="width:32px; height:32px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.8rem; font-weight:bold;">AI</div>
-                            <div style="background:white; border:1px solid var(--gray-200); border-radius:12px; border-top-left-radius:2px; padding:0.8rem 1rem; font-size:0.85rem; color:var(--text); line-height:1.4; box-shadow:var(--shadow-sm);">
+                            <div style="background:var(--white); border:1px solid var(--gray-200); border-radius:12px; border-top-left-radius:2px; padding:0.8rem 1rem; font-size:0.85rem; color:var(--text); line-height:1.4; box-shadow:var(--shadow-sm);">
                                 Hello Admin! I am your Growth Hub AI Assistant. Ask me anything about the active tasks, registered departments, or any general question not related to the system!
                             </div>
                         </div>
                     </div>
 
                     <!-- Quick Suggestions -->
-                    <div style="padding:0.75rem 1.25rem; background:white; border-top:1px solid var(--gray-150); display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                    <div style="padding:0.75rem 1.25rem; background:var(--white); border-top:1px solid var(--gray-150); display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
                         <span style="font-size:0.7rem; font-weight:700; color:var(--secondary); text-transform:uppercase; margin-right:0.25rem;">Quick Ask:</span>
                         <button class="btn btn-glass" onclick="sendQuickChat('Give me a summary of all active tasks across departments')" style="padding:0.35rem 0.75rem; font-size:0.72rem; border-radius:30px;">📋 Task Summary</button>
                         <button class="btn btn-glass" onclick="sendQuickChat('Which tasks are currently in danger or delayed?')" style="padding:0.35rem 0.75rem; font-size:0.72rem; border-radius:30px;">⚠️ Stuck Tasks</button>
@@ -272,7 +272,7 @@
                     </div>
 
                     <!-- Input Bar -->
-                    <form id="chatbot-input-form" onsubmit="handleChatbotSubmit(event)" style="padding:1rem 1.25rem; background:white; border-top:1px solid var(--gray-200); display:flex; gap:0.75rem; align-items:center;">
+                    <form id="chatbot-input-form" onsubmit="handleChatbotSubmit(event)" style="padding:1rem 1.25rem; background:var(--white); border-top:1px solid var(--gray-200); display:flex; gap:0.75rem; align-items:center;">
                         <input 
                             type="text" 
                             id="chatbot-input-field" 
