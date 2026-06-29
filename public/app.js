@@ -1576,7 +1576,6 @@ function renderDeptAdminList() {
                 </div>
                 
                 ${employeesHtml}
-                ${stagesHtml}
 
                 <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;margin-top:0.25rem;">
                     <input type="checkbox" id="vis-${d._id}" ${d.employeeVisibility ? 'checked' : ''} onchange="toggleDeptVisibility('${d._id}', this.checked)" style="width:auto;cursor:pointer;">

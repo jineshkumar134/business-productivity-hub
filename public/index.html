@@ -534,59 +534,7 @@
                         </div>
                     </div>
 
-                    <!-- Department Stages Manager (NEW) -->
-                    <div class="ai-insight-panel" id="stages-manager-card" style="width: 100%;">
-                        <div class="ai-section-title" style="margin-bottom:1rem;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            Department Stages & Workflow
-                        </div>
-                        <p style="font-size:0.78rem;color:var(--secondary);margin-bottom:1.5rem;">Configure sequential stages/workflow for each department. Employees can move tasks through these stages.</p>
 
-                        <div class="admin-dept-grid" style="gap: 1.5rem;">
-                            <!-- Left: Select Dept and Add Stage -->
-                            <div style="display:flex; flex-direction:column; gap:0.75rem; background: var(--gray-50); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--gray-200);">
-                                <div class="form-group" style="margin-bottom: 0.5rem;">
-                                    <label style="font-size: 0.75rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Select Department</label>
-                                    <select id="stage-dept-select" onchange="loadDeptStagesForAdmin()" style="width: 100%; padding:0.6rem 0.85rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.88rem; background:white; color:var(--text); outline:none;">
-                                        <option value="">Choose a department...</option>
-                                    </select>
-                                </div>
-
-                                <div style="border-top: 1px solid var(--gray-200); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem;">
-                                    <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--secondary);">Add Stage</div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label style="font-size: 0.72rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Stage Name *</label>
-                                        <input type="text" id="new-stage-title" placeholder="e.g. Planning" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.85rem; background:white; color:var(--text); outline:none;">
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label style="font-size: 0.72rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Description</label>
-                                        <input type="text" id="new-stage-desc" placeholder="Brief explanation of this stage" style="width:100%; padding:0.5rem 0.75rem; border:1px solid var(--gray-200); border-radius:var(--radius-md); font-size:0.85rem; background:white; color:var(--text); outline:none;">
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label style="font-size: 0.72rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.25rem; display: block;">Stage Color</label>
-                                        <div style="display: flex; gap: 0.35rem; align-items: center;">
-                                            <input type="color" id="new-stage-color" value="#6366f1" style="width:40px; height:32px; padding:0; border:1px solid var(--gray-200); border-radius:6px; cursor:pointer;">
-                                            <span style="font-size: 0.75rem; color: var(--secondary);">Click to choose</span>
-                                        </div>
-                                    </div>
-                                    <button onclick="handleAddStage()" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#a78bfa); width:100%; padding:0.5rem 1rem; font-size:0.82rem; margin-top:0.25rem;">
-                                        Add Stage
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Right: Current Stages Flow -->
-                            <div>
-                                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--secondary);margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:center;">
-                                    <span>Stages Pipeline (Sequential)</span>
-                                    <span id="stages-count" style="font-size:0.75rem;color:var(--secondary);font-weight:normal;">0 stages</span>
-                                </div>
-                                <div id="stages-admin-list" style="display:flex; flex-direction:column; gap:0.6rem; max-height: 380px; overflow-y: auto; padding-right: 0.5rem;">
-                                    <p style="color:var(--secondary);font-size:0.85rem;text-align:center;padding:2rem;background:var(--gray-50);border-radius:10px;border:1px dashed var(--gray-200);">Please select a department to load and edit its stages pipeline.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Bottom Section: User Registration (Full Width) -->
                     <div class="admin-bottom-grid">
