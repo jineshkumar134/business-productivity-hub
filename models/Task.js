@@ -15,6 +15,7 @@ const TaskSchema = new mongoose.Schema({
     responsible:    [{ type: String }],
     requested_by:   { type: String },
     is_locked:      { type: Boolean, default: false },
+    attachedDoc:    { type: String, default: '' },
     comments: [{
         text:      String,
         author:    String,

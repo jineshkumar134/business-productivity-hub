@@ -216,9 +216,6 @@
                 <div id="dashboard-stats-banner" class="dashboard-banner"></div>
                 <div id="dashboard-risk-alerts" style="display:none; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;"></div>
                 
-                <!-- Department Stages & Workflow Tracker Feed (NEW) -->
-                <div id="dashboard-pipeline-feed" style="margin-bottom: 1.5rem;"></div>
-                
                 <div class="module-grid" id="module-grid"></div>
             </div>
 
@@ -638,10 +635,10 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="admin-new-dept">Department</label>
-                                        <select id="admin-new-dept">
-                                            <!-- Populated dynamically from database -->
-                                        </select>
+                                        <label>Department(s)</label>
+                                        <div id="admin-new-dept-container" style="display:flex; flex-direction:column; gap:0.4rem; padding:0.6rem 0.85rem; background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-md); max-height:120px; overflow-y:auto; font-size:0.85rem; color:var(--text);">
+                                            <!-- Populated dynamically -->
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="form-group" style="margin-top: 0.5rem;">
@@ -846,6 +843,15 @@
                 <datalist id="stage-suggestions"></datalist>
                 <p style="font-size:0.72rem; color:var(--secondary); margin-top:0.3rem;">📍 Type any custom stage name or select from the suggestions list.</p>
             </div>
+            <!-- Task Document Attachment -->
+            <div class="form-group" style="margin-top:1rem;">
+                <label for="task-attached-doc">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Attach Document
+                </label>
+                <input type="text" id="task-attached-doc" placeholder="Paste document link or type document name..." autocomplete="off">
+                <p style="font-size:0.72rem; color:var(--secondary); margin-top:0.3rem;">📎 Enter a document name, Google Drive link, or any URL to attach to this task.</p>
+            </div>
             <div class="form-group" style="margin-top:1rem;">
                 <label for="task-description">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -917,10 +923,10 @@
                     <input type="text" id="person-role" placeholder="e.g. Lead Researcher" required>
                 </div>
                 <div class="form-group">
-                    <label for="person-dept">Department</label>
-                    <select id="person-dept">
-                        <!-- Populated dynamically from database -->
-                    </select>
+                    <label>Department(s)</label>
+                    <div id="person-dept-container" style="display:flex; flex-direction:column; gap:0.4rem; padding:0.6rem 0.85rem; background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-md); max-height:120px; overflow-y:auto; font-size:0.85rem; color:var(--text);">
+                        <!-- Populated dynamically -->
+                    </div>
                 </div>
             </div>
             <div class="form-group">

@@ -82,7 +82,7 @@ router.post('/chat', async (req, res) => {
         return res.status(403).json({ error: 'Access denied. Admins only.' });
     }
     try {
-        const { message, chatHistory, tasks, departments } = req.body;
+        const { message, chatHistory, tasks, departments, members, company } = req.body;
         const apiKey = process.env.GROQ_API_KEY;
 
         if (!apiKey) {
@@ -96,18 +96,37 @@ router.post('/chat', async (req, res) => {
         // Null-safe defaults
         const safeTasks = Array.isArray(tasks) ? tasks : [];
         const safeDepts = Array.isArray(departments) ? departments : [];
+        const safeMembers = Array.isArray(members) ? members : [];
+        const companyName = company || 'Growth Hub';
 
-        const systemContext = `You are a helpful AI assistant embedded in the Growth Hub business management system.
-You have access to the following system data as BACKGROUND CONTEXT ONLY — do NOT repeat, list, or summarize this data in your responses unless the admin explicitly asks about it:
-- Departments (${safeDepts.length}): ${safeDepts.map(d => d.name).join(', ')}
-- Active Tasks: ${safeTasks.length}
-- Task details: ${JSON.stringify(safeTasks.slice(0, 10).map(t => ({ name: t.task_name, dept: t.department, status: t.status })))}
+        // Compactly summarize all tasks, departments, and members to keep context clean but fully informative
+        const deptSummary = safeDepts.map(d => `${d.name} (Leader: ${d.leader || 'None'})`).join(', ');
+        const membersSummary = safeMembers.map(m => `${m.name} (${m.role} in ${m.department})`).join(', ');
+        
+        const taskDetails = safeTasks.map(t => ({
+            name: t.task_name,
+            dept: t.department,
+            stage: t.currentStage || 'Unassigned',
+            status: t.status,
+            priority: t.priority,
+            assignees: t.responsible || [],
+            dueDate: t.due_date
+        }));
+
+        const systemContext = `You are a helpful AI assistant embedded in the "${companyName}" workspace on the Growth Hub business management system.
+You have access to the complete current system data. Feel free to reference this database directly to answer any user queries about the organization, teams, tasks, leaders, and progress.
+
+BACKGROUND CONTEXT:
+- Company Name: ${companyName}
+- Departments: ${deptSummary}
+- Team Members Register: ${membersSummary}
+- Active Tasks (${safeTasks.length}): ${JSON.stringify(taskDetails)}
 
 RULES:
-- Answer questions directly and concisely
-- Do NOT append system state summaries at the end of responses
-- Use bullet points only when the question requires a list
-- For general questions (not about the system), just answer normally like a knowledgeable assistant
+- You must answer questions about the system state (who is doing what task, department leaders, task stages, due dates) accurately and directly using the BACKGROUND CONTEXT above.
+- Answer questions directly and concisely without echoing the system configuration or metadata in your greeting.
+- Use bullet points only when the question requires a list.
+- For general questions (not about the system), answer normally like a knowledgeable assistant.
 - Today's date context: ${new Date().toDateString()}`;
 
         const messages = [{ role: 'system', content: systemContext }];

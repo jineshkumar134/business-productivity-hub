@@ -605,23 +605,20 @@ async function seedDefaultDepartments() {
 
 function populateDeptDropdowns() {
     const depts = state.departments;
+    
+    // Populate standard select dropdowns for task form
     const selects = [
         document.getElementById('task-department'),
-        document.getElementById('task-requested-by'),
-        document.getElementById('person-dept'),
-        document.getElementById('admin-new-dept')
+        document.getElementById('task-requested-by')
     ];
     selects.forEach(sel => {
         if (!sel) return;
         const isRequestedBy = sel.id === 'task-requested-by';
-        const isAdminDept = sel.id === 'admin-new-dept';
         const currentVal = sel.value;
         if (isRequestedBy) {
             sel.innerHTML = '<option value="">Self</option>';
-        } else if (isAdminDept) {
-            sel.innerHTML = '<option value="">None / Select Department</option>';
         } else {
-            sel.innerHTML = '';
+            sel.innerHTML = '<option value="">Select Department</option>';
         }
         depts.forEach(name => {
             const opt = document.createElement('option');
@@ -629,8 +626,20 @@ function populateDeptDropdowns() {
             opt.textContent = name;
             sel.appendChild(opt);
         });
-        // restore previous value if still valid
         if (currentVal && (depts.includes(currentVal) || currentVal === "")) sel.value = currentVal;
+    });
+
+    // Populate checkbox containers for registration and member modals
+    const checkboxContainers = ['admin-new-dept-container', 'person-dept-container'];
+    checkboxContainers.forEach(id => {
+        const container = $(id);
+        if (!container) return;
+        container.innerHTML = depts.map(name => `
+            <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer;">
+                <input type="checkbox" value="${name}" style="width:16px; height:16px; cursor:pointer;">
+                <span>${name}</span>
+            </label>
+        `).join('');
     });
 
     // When dept changes inside the task modal, refresh stage options
@@ -641,6 +650,24 @@ function populateDeptDropdowns() {
         });
         deptSel._stageListenerAdded = true;
     }
+}
+
+// Helpers for multi-select departments
+function getSelectedDepartments(containerId) {
+    const container = $(containerId);
+    if (!container) return '';
+    const checked = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'));
+    return checked.map(cb => cb.value).join(', ');
+}
+
+function setSelectedDepartments(containerId, deptString) {
+    const container = $(containerId);
+    if (!container) return;
+    const depts = (deptString || '').split(',').map(d => d.trim().toLowerCase());
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.checked = depts.includes(cb.value.trim().toLowerCase());
+    });
 }
 
 function renderAll() {
@@ -731,8 +758,8 @@ function renderMyPortal() {
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard() {
     const tasks = state.searchQuery
-        ? state.tasks.filter(t => 
-            t.task_name?.toLowerCase().includes(state.searchQuery) || 
+        ? state.tasks.filter(t =>
+            t.task_name?.toLowerCase().includes(state.searchQuery) ||
             t.description?.toLowerCase().includes(state.searchQuery) ||
             (t.responsible && t.responsible.some(r => r.toLowerCase().includes(state.searchQuery))) ||
             t.requested_by?.toLowerCase().includes(state.searchQuery) ||
@@ -774,7 +801,7 @@ function renderDashboard() {
     if (riskAlerts) {
         const today = new Date();
         today.setHours(0,0,0,0);
-        
+
         const highRiskTasks = tasks.filter(t => {
             if (t.status === 'Completed') return false;
             let isOverdue = false;
@@ -792,7 +819,7 @@ function renderDashboard() {
                 <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); padding: 1rem 1.5rem;">
                     <h3 style="color: #ef4444; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-weight: 700;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        High Risk & Overdue Alerts
+                        High Risk &amp; Overdue Alerts
                     </h3>
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                         ${highRiskTasks.map(t => {
@@ -832,14 +859,16 @@ function renderDashboard() {
         const deptTasks = tasks.filter(t => t.department === dept);
         const doneCount = deptTasks.filter(t => t.status === 'Completed').length;
         const prog = deptTasks.length > 0 ? Math.round((doneCount / deptTasks.length) * 100) : 0;
-        const leads = state.personal.filter(p => p.department === dept && (p.role||'').toLowerCase().includes('lead'));
+        const leads = state.personal.filter(p => {
+            const depts = (p.department || '').split(',').map(d => d.trim().toLowerCase());
+            return depts.includes(dept.trim().toLowerCase()) && (p.role||'').toLowerCase().includes('lead');
+        });
 
         const card = document.createElement('div');
         card.className = 'module-card';
         card.style.setProperty('--dept-color', cfg.color);
         card.style.cssText += `--dept-color:${cfg.color};`;
         card.innerHTML = `
-            <style>#mc-${dept.replace(/\W/g,'')}{}</style>
             <div class="module-card-header">
                 <div class="module-title-row">
                     <div class="module-icon-wrap" style="background:${cfg.bg};color:${cfg.color};">${cfg.icon}</div>
@@ -861,12 +890,13 @@ function renderDashboard() {
                 </div>`).join('')}
             </div>` : ''}
             <div class="task-list-mini">
-                ${deptTasks.length === 0 ? '<p class="empty-msg">No tasks yet. Add one below!</p>' : deptTasks.map(t => `
+                ${deptTasks.length === 0 ? '<p class="empty-msg">No tasks yet. Add one below!</p>' : deptTasks.map((t, idx) => `
                 <div class="mini-task-item" onclick="openTaskModal('${t._id}')">
                     <div class="mini-task-row">
                         <div style="flex-grow:1;">
-                            <div class="mini-task-content" style="font-weight:700;font-size:0.88rem;">${t.task_name} ${t.is_locked ? '<span style="font-size:0.75rem;" title="Locked">🔒</span>' : ''}</div>
+                            <div class="mini-task-content" style="font-weight:700;font-size:0.88rem;"><span style="color:var(--secondary);font-weight:600;margin-right:0.3rem;">${idx + 1}.</span>${t.task_name} ${t.is_locked ? '<span style="font-size:0.75rem;" title="Locked">🔒</span>' : ''}</div>
                             ${t.description ? `<div style="font-size:0.72rem;color:var(--secondary);margin-top:0.2rem;line-height:1.4;">${t.description.slice(0,80)}${t.description.length>80?'…':''}</div>` : ''}
+                            ${t.attachedDoc ? `<div style="font-size:0.7rem;margin-top:0.25rem;">${t.attachedDoc.startsWith('http') ? `<a href="${t.attachedDoc}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#6366f1;font-weight:600;text-decoration:underline;">📎 ${t.attachedDoc.length>50?t.attachedDoc.slice(0,50)+'…':t.attachedDoc}</a>` : `<span style="color:#6366f1;font-weight:600;">📎 ${t.attachedDoc}</span>`}</div>` : ''}
                         </div>
                         <button class="mini-delete-btn" onclick="event.stopPropagation();deleteTask('${t._id}')" title="Delete">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -895,10 +925,8 @@ function renderDashboard() {
                 Add Task
             </button>
         `;
-        // set ::before color via inline style trick
         card.style.setProperty('--card-accent', cfg.color);
         card.setAttribute('style', card.getAttribute('style') + `--card-accent:${cfg.color};`);
-        // We apply border-top bar using a real element
         const bar2 = document.createElement('div');
         bar2.style.cssText = `position:absolute;top:0;left:0;width:100%;height:4px;background:${cfg.color};border-radius:20px 20px 0 0;`;
         card.style.position = 'relative';
@@ -906,8 +934,10 @@ function renderDashboard() {
         card.prepend(bar2);
         el.moduleGrid.appendChild(card);
     });
-    renderDashboardPipelineFeed(tasks);
+    // Stage badges are shown inline on task cards — pipeline feed section removed
 }
+
+
 
 // ── SUMMARY / ORG WORKING ─────────────────────────────────────────────────────
 function renderSummary() {
@@ -1240,6 +1270,8 @@ function openTaskModal(taskId=null,dept=null){
         renderTaskComments(task.comments || []);
         // Populate stage dropdown for this task's department
         populateTaskStageDropdown(task.department, task.currentStage || '');
+        // Populate document attachment dropdown
+        populateTaskDocDropdown(task.attachedDoc || '');
     } else {
         $('task-id').value=''; if(dept)$('task-department').value=dept;
         $('task-requested-by').value=user.name||''; $('modal-title').textContent='Create New Task';
@@ -1248,6 +1280,8 @@ function openTaskModal(taskId=null,dept=null){
         const lockCb = $('task-is-locked'); if(lockCb) lockCb.checked = false;
         // Populate stage dropdown for the preset dept (if any)
         populateTaskStageDropdown(dept || '', '');
+        // Populate document attachment dropdown
+        populateTaskDocDropdown('');
     }
     el.taskModal.classList.add('active'); checkTaskConstraints();
 }
@@ -1297,6 +1331,12 @@ function populateTaskStageDropdown(deptName, selectedStage) {
 }
 window.populateTaskStageDropdown = populateTaskStageDropdown;
 
+function populateTaskDocDropdown(selectedDoc) {
+    const inp = $('task-attached-doc');
+    if (!inp) return;
+    inp.value = selectedDoc || '';
+}
+
 
 function renderTaskComments(comments) {
     const container = $('task-comments-container');
@@ -1333,12 +1373,17 @@ function openPersonalModal(personId=null){
     if(personId){
         const person=state.personal.find(p=>p._id===personId);if(!person)return;
         $('person-id').value=person._id; $('person-name').value=person.name;
-        $('person-role').value=person.role; $('person-dept').value=person.department;
+        $('person-role').value=person.role;
+        setSelectedDepartments('person-dept-container', person.department || '');
         $('person-email').value=person.email||''; $('person-password').value=''; $('person-responsibility').value=person.responsibility||'';
         if(pInit)pInit.textContent=person.name.charAt(0).toUpperCase();
         if(person.photoData){state.personPhotoData=person.photoData;$('person-photo-data').value=person.photoData;const av=$('person-preview-avatar');if(av){const img=document.createElement('img');img.src=person.photoData;img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:18px;';av.appendChild(img);}}
         $('personal-modal-title').textContent='Edit Team Member';
-    } else { $('person-id').value=''; $('personal-modal-title').textContent='Add Team Member'; }
+    } else { 
+        $('person-id').value=''; 
+        setSelectedDepartments('person-dept-container', '');
+        $('personal-modal-title').textContent='Add Team Member'; 
+    }
     el.personalModal.classList.add('active');
 }
 
@@ -1393,7 +1438,7 @@ async function handleTaskSubmit(e){
     e.preventDefault();
     const id=$('task-id').value;
     if(state.selectedPersonal.length===0){showNotification('Assign at least one person','error');return;}
-    const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal, is_locked: $('task-is-locked')?.checked || false, currentStage: ($('task-current-stage')?.value || '')};
+    const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal, is_locked: $('task-is-locked')?.checked || false, currentStage: ($('task-current-stage')?.value || ''), attachedDoc: ($('task-attached-doc')?.value || '')};
     if(taskData.status==='Completed'&&taskData.completed_date&&new Date(taskData.completed_date)>new Date(taskData.due_date)&&!taskData.delay_reason){showNotification('Delay reason required','error');return;}
     const btn = $('save-task-btn');
     const originalHtml = btn ? btn.innerHTML : '';
@@ -1428,7 +1473,7 @@ async function handlePersonalSubmit(e){
     const id=$('person-id').value;
     const photoData = state.personPhotoData || $('person-photo-data').value || '';
     const loggedInUser = JSON.parse(localStorage.getItem('bh_user') || '{}');
-    const selectedDeptName = $('person-dept').value;
+    const selectedDeptName = getSelectedDepartments('person-dept-container');
 
     const personData={
         name:$('person-name').value,
@@ -1914,22 +1959,21 @@ function setupAdminPanel() {
     
     // Add dynamic UI adjustments for registration form
     const roleSelect = $('admin-new-role');
-    const deptSelect = $('admin-new-dept');
+    const deptContainer = $('admin-new-dept-container');
     
     const adjustFields = () => {
-        if (!roleSelect || !deptSelect) return;
+        if (!roleSelect || !deptContainer) return;
         const role = roleSelect.value;
+        const checkboxes = deptContainer.querySelectorAll('input[type="checkbox"]');
         if (role === 'admin') {
-            deptSelect.value = '';
-            deptSelect.disabled = true;
+            checkboxes.forEach(cb => { cb.checked = false; cb.disabled = true; });
         } else {
-            deptSelect.disabled = false;
+            checkboxes.forEach(cb => { cb.disabled = false; });
         }
     };
 
     if (roleSelect) {
         roleSelect.addEventListener('change', adjustFields);
-        // Observe mutation or initialization
         setTimeout(adjustFields, 500);
     }
 
@@ -1948,7 +1992,7 @@ function setupAdminPanel() {
             const role       = $('admin-new-role').value;
             
             // Set department based on selected role
-            let department = deptSelect ? deptSelect.value : '';
+            let department = getSelectedDepartments('admin-new-dept-container');
             if (role === 'admin') {
                 department = '';
             }
@@ -2679,6 +2723,7 @@ async function sendChatMessage(message) {
         const tasksAll = state.tasks || [];
         const depts = state.departments || [];
 
+        const activeComp = state.companies?.find(c => c._id === state.activeCompanyId)?.name || 'Growth Hub';
         const res = await fetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2686,7 +2731,9 @@ async function sendChatMessage(message) {
                 message,
                 chatHistory: chatHistory.slice(-10),
                 tasks: tasksAll,
-                departments: depts.map(d => ({ name: d.name, manager: d.manager }))
+                departments: state.deptObjects.map(d => ({ name: d.name, leader: d.deptLeader || 'None' })),
+                members: state.personal.map(p => ({ name: p.name, role: p.role, department: p.department, responsibility: p.responsibility || '' })),
+                company: activeComp
             })
         });
 
