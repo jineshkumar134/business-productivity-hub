@@ -2635,7 +2635,6 @@ async function handleAddStage() {
     
     const titleInput = $('new-stage-title');
     const descInput = $('new-stage-desc');
-    const colorInput = $('new-stage-color');
     
     const title = titleInput.value.trim();
     if (!title) {
@@ -2645,15 +2644,13 @@ async function handleAddStage() {
     
     const newStage = {
         title,
-        description: descInput.value.trim(),
-        color: colorInput.value
+        description: descInput.value.trim()
     };
     
     state.currentDeptStages.push(newStage);
     
     titleInput.value = '';
     descInput.value = '';
-    colorInput.value = '#6366f1';
     
     await saveDeptStages();
 }
