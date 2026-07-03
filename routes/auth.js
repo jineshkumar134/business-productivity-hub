@@ -34,18 +34,24 @@ router.post('/signup', async (req, res) => {
     const creatorName  = req.headers['x-user-name']  || '';
     const companyId    = req.headers['x-company-id'] || req.body.companyId || null;
 
-    // === Case 1: Creating an Admin account (requires secret) ===
+    // === Case 1: Creating an Admin account ===
     let isCreatingAdminWithSecret = false;
     if (targetRole === 'admin') {
-        const providedSecret = req.headers['x-admin-secret'] || adminSecret || '';
-        const actualSecret   = process.env.ADMIN_SECRET;
-        if (!actualSecret) {
-            return res.status(500).json({ error: 'Server misconfiguration: Contact your system administrator.' });
+        if (creatorRole === 'admin') {
+            // An already-logged-in admin can create another admin freely — no secret needed
+            isCreatingAdminWithSecret = true;
+        } else {
+            // Someone not logged in as admin tries to create admin → needs ADMIN_SECRET
+            const providedSecret = req.headers['x-admin-secret'] || adminSecret || '';
+            const actualSecret   = process.env.ADMIN_SECRET;
+            if (!actualSecret) {
+                return res.status(500).json({ error: 'Server misconfiguration: ADMIN_SECRET env variable is not set on the server.' });
+            }
+            if (providedSecret.trim() !== actualSecret.trim()) {
+                return res.status(403).json({ error: 'Creating an Admin account requires the correct Admin Secret.' });
+            }
+            isCreatingAdminWithSecret = true;
         }
-        if (providedSecret.trim() !== actualSecret.trim()) {
-            return res.status(403).json({ error: 'Creating an Admin account requires the correct Admin Secret.' });
-        }
-        isCreatingAdminWithSecret = true;
     }
 
     if (!isCreatingAdminWithSecret) {
