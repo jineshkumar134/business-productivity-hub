@@ -30,8 +30,8 @@ router.get('/:deptId', async (req, res) => {
     }
 });
 
-// PUT save/replace all stages for a department — dept_leader and above
-router.put('/:deptId', requireMinRole('dept_leader'), async (req, res) => {
+// PUT save/replace all stages for a department — admin only
+router.put('/:deptId', requireMinRole('admin'), async (req, res) => {
     try {
         const { stages, companyId } = req.body;
         if (!companyId) return res.status(400).json({ error: 'companyId is required' });

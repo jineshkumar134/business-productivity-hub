@@ -1304,13 +1304,12 @@ function openTaskModal(taskId=null,dept=null){
 function populateTaskStageDropdown(deptName, selectedStage) {
     const stageGroup = $('task-stage-group');
     const stageSelect = $('task-current-stage');
-    const stageDatalist = $('stage-suggestions');
-    if (!stageGroup || !stageSelect || !stageDatalist) return;
+    if (!stageGroup || !stageSelect) return;
 
     if (!deptName) {
         stageGroup.style.display = 'none';
         stageSelect.value = '';
-        stageDatalist.innerHTML = '';
+        stageSelect.innerHTML = '<option value="">-- No Stage Selected --</option>';
         return;
     }
 
@@ -1319,7 +1318,7 @@ function populateTaskStageDropdown(deptName, selectedStage) {
     if (!deptObj) {
         stageGroup.style.display = 'none';
         stageSelect.value = '';
-        stageDatalist.innerHTML = '';
+        stageSelect.innerHTML = '<option value="">-- No Stage Selected --</option>';
         return;
     }
 
@@ -1328,21 +1327,17 @@ function populateTaskStageDropdown(deptName, selectedStage) {
     const stages = stageDoc ? stageDoc.stages : [];
 
     stageGroup.style.display = 'block';
-    stageSelect.value = selectedStage || '';
 
-    // Collect all stage suggestions
-    const taskStages = new Set(stages.map(s => s.title));
-    
-    // Add unique stages currently used by tasks of this department as suggestions
-    if (state.tasks && Array.isArray(state.tasks)) {
-        state.tasks.forEach(t => {
-            if ((t.department || '').trim().toLowerCase() === deptName.trim().toLowerCase() && t.currentStage) {
-                taskStages.add(t.currentStage);
-            }
-        });
+    // Populate stageSelect dropdown options
+    stageSelect.innerHTML = '<option value="">-- Select Predefined Stage --</option>' +
+        stages.map(s => `<option value="${s.title}" ${s.title === selectedStage ? 'selected' : ''}>${s.title}</option>`).join('');
+
+    // If there is an existing selected stage that isn't in the predefined list (e.g. legacy data), keep it as an option
+    if (selectedStage && !stages.find(s => s.title === selectedStage)) {
+        stageSelect.innerHTML += `<option value="${selectedStage}" selected>${selectedStage} (Custom)</option>`;
     }
 
-    stageDatalist.innerHTML = Array.from(taskStages).map(s => `<option value="${s}"></option>`).join('');
+    stageSelect.value = selectedStage || '';
 }
 window.populateTaskStageDropdown = populateTaskStageDropdown;
 
