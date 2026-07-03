@@ -121,8 +121,11 @@ router.put('/:id', async (req, res) => {
         const existingTask = await Task.findById(req.params.id);
         if (!existingTask) return res.status(404).json({ error: 'Task not found' });
 
+        // Locked task: only admin can edit core fields.
+        // Employees/dept_leaders can still update their limited set of fields (status, progress, comments, etc.)
         if (existingTask.is_locked && role !== 'admin') {
-            return res.status(403).json({ error: 'Task is locked. Only Admin can edit it.' });
+            // Allow limited updates (status, progress, stage, completed_date, delay_reason, comments) even when locked
+            // Full block is removed — per-role logic below will restrict what they can change
         }
 
         let updateData = {};
@@ -150,9 +153,20 @@ router.put('/:id', async (req, res) => {
             }
 
             // Department Leaders can edit all core task details, but NOT is_locked or companyId
-            updateData = { ...req.body };
-            delete updateData.is_locked;
-            delete updateData.companyId;
+            // When task is locked, they are also restricted to limited fields only
+            if (existingTask.is_locked) {
+                updateData = {
+                    status:         req.body.status         !== undefined ? req.body.status         : existingTask.status,
+                    progress:       req.body.progress       !== undefined ? req.body.progress       : existingTask.progress,
+                    currentStage:   req.body.currentStage   !== undefined ? req.body.currentStage   : existingTask.currentStage,
+                    completed_date: req.body.completed_date !== undefined ? req.body.completed_date : existingTask.completed_date,
+                    delay_reason:   req.body.delay_reason   !== undefined ? req.body.delay_reason   : existingTask.delay_reason
+                };
+            } else {
+                updateData = { ...req.body };
+                delete updateData.is_locked;
+                delete updateData.companyId;
+            }
         } else {
             // Employee role
             let dept = userDept;
@@ -180,7 +194,7 @@ router.put('/:id', async (req, res) => {
                 return res.status(403).json({ error: 'Access denied. You can only update tasks assigned to or requested by you.' });
             }
 
-            // Employees can only update progress/status fields
+            // Employees can only update progress/status fields and add comments
             updateData = {
                 status:         req.body.status         !== undefined ? req.body.status         : existingTask.status,
                 progress:       req.body.progress       !== undefined ? req.body.progress       : existingTask.progress,
@@ -188,6 +202,10 @@ router.put('/:id', async (req, res) => {
                 completed_date: req.body.completed_date !== undefined ? req.body.completed_date : existingTask.completed_date,
                 delay_reason:   req.body.delay_reason   !== undefined ? req.body.delay_reason   : existingTask.delay_reason
             };
+            // Allow appending comments even on locked tasks
+            if (req.body.comments && Array.isArray(req.body.comments)) {
+                updateData.comments = req.body.comments;
+            }
         }
 
         const updatedTask = await Task.findByIdAndUpdate(req.params.id, updateData, { new: true });
