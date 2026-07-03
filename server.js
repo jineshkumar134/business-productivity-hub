@@ -15,19 +15,28 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── MongoDB Connection (cached for Vercel serverless) ─────────────────────────
-let isConnected = false;
+// Use a global variable so the connection is reused across warm Vercel invocations
+// Without this, each cold start creates a new pool — hitting M0's 500-connection limit
+let cachedConn = global._mongoConn || null;
 
 async function connectDB() {
-    if (isConnected && mongoose.connection.readyState === 1) return;
+    // If already connected (warm serverless instance), reuse it
+    if (cachedConn && mongoose.connection.readyState === 1) return;
+
+    // Prevent duplicate connection attempts on simultaneous cold starts
+    mongoose.set('bufferCommands', false);
+
     await mongoose.connect(process.env.MONGODB_URI, {
-        maxPoolSize: 3,           // M0 free tier is limited — keep pool small
-        minPoolSize: 1,           // keep 1 alive so first request is fast
+        maxPoolSize: 1,           // ⚡ Serverless: each instance only needs 1 connection
+        minPoolSize: 0,           // Don't hold connections open when idle
         socketTimeoutMS: 45000,
         connectTimeoutMS: 10000,
         serverSelectionTimeoutMS: 10000,
-        maxIdleTimeMS: 60000,     // auto-close connections idle > 60s
+        maxIdleTimeMS: 10000,     // Close idle connections after 10s (serverless-safe)
     });
-    isConnected = true;
+
+    cachedConn = mongoose.connection;
+    global._mongoConn = cachedConn;   // Cache globally across warm invocations
     console.log('✅ Connected to MongoDB Atlas!');
 
     // ── Auto-migrate old roles (owner→admin, staff→employee) ─────────────────
