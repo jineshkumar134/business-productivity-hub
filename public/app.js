@@ -1251,6 +1251,7 @@ async function handleAIAnalysis() {
 // ── MODALS ────────────────────────────────────────────────────────────────────
 function openTaskModal(taskId=null,dept=null){
     el.taskForm.reset(); state.selectedPersonal=[]; renderSelectedPersonal();
+    window.taskPendingUploadFile = null;
     const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
     if(taskId){
         const task=state.tasks.find(t=>t._id===taskId);if(!task)return;
@@ -1331,10 +1332,64 @@ function populateTaskStageDropdown(deptName, selectedStage) {
 }
 window.populateTaskStageDropdown = populateTaskStageDropdown;
 
+let taskPendingUploadFile = null;
+
+function onTaskFileSelected(input) {
+    const file = input.files[0];
+    const label = $('task-attached-doc-file-name');
+    if (!file) {
+        taskPendingUploadFile = null;
+        if (label) label.textContent = 'No file chosen';
+        return;
+    }
+    taskPendingUploadFile = file;
+    
+    let sizeStr = '0 B';
+    if (file.size > 1024 * 1024) {
+        sizeStr = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+    } else if (file.size > 1024) {
+        sizeStr = (file.size / 1024).toFixed(1) + ' KB';
+    } else {
+        sizeStr = file.size + ' B';
+    }
+    
+    if (label) label.textContent = file.name + ` (${sizeStr})`;
+    
+    const select = $('task-attached-doc-select');
+    if (select) select.value = '';
+}
+window.onTaskFileSelected = onTaskFileSelected;
+
+async function downloadAttachedDocumentByName(name) {
+    if (!name) return;
+    const docObj = (state.documents || []).find(d => (d.name || d.fileName) === name);
+    if (docObj) {
+        downloadDocument(docObj._id || docObj.id);
+    } else {
+        showNotification('Document not found in registry', 'error');
+    }
+}
+window.downloadAttachedDocumentByName = downloadAttachedDocumentByName;
+
 function populateTaskDocDropdown(selectedDoc) {
-    const inp = $('task-attached-doc');
-    if (!inp) return;
-    inp.value = selectedDoc || '';
+    const select = $('task-attached-doc-select');
+    if (!select) return;
+    
+    taskPendingUploadFile = null;
+    const fileLabel = $('task-attached-doc-file-name');
+    if (fileLabel) fileLabel.textContent = 'No file chosen';
+    const fileInput = $('task-attached-doc-file');
+    if (fileInput) fileInput.value = '';
+
+    const docs = state.documents || [];
+    select.innerHTML = '<option value="">— Select Existing Document —</option>' +
+        docs.map(d => `<option value="${d.name || d.fileName || d._id}" ${(d.name || d.fileName || d._id) === selectedDoc ? 'selected' : ''}>${d.name || d.fileName || 'Unnamed Doc'}</option>`).join('');
+    
+    if (selectedDoc && !docs.find(d => (d.name || d.fileName || d._id) === selectedDoc)) {
+        select.innerHTML += `<option value="${selectedDoc}" selected>📎 ${selectedDoc}</option>`;
+    }
+    
+    select.value = selectedDoc || '';
 }
 
 
@@ -1438,12 +1493,79 @@ async function handleTaskSubmit(e){
     e.preventDefault();
     const id=$('task-id').value;
     if(state.selectedPersonal.length===0){showNotification('Assign at least one person','error');return;}
-    const taskData={task_name:$('task-name').value,department:$('task-department').value,priority:document.querySelector('input[name="task-priority"]:checked').value,status:document.querySelector('input[name="task-status"]:checked').value,progress:parseInt($('task-progress').value),due_date:$('task-due-date').value,completed_date:$('task-completed-date').value,delay_reason:$('task-delay-reason').value,requested_by:$('task-requested-by').value,description:$('task-description').value,responsible:state.selectedPersonal, is_locked: $('task-is-locked')?.checked || false, currentStage: ($('task-current-stage')?.value || ''), attachedDoc: ($('task-attached-doc')?.value || '')};
-    if(taskData.status==='Completed'&&taskData.completed_date&&new Date(taskData.completed_date)>new Date(taskData.due_date)&&!taskData.delay_reason){showNotification('Delay reason required','error');return;}
+    
     const btn = $('save-task-btn');
     const originalHtml = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner-small"></div> Saving...'; }
-    try{
+    
+    try {
+        let finalDocName = $('task-attached-doc')?.value || '';
+        
+        // If there's a file pending upload, upload it first!
+        if (taskPendingUploadFile) {
+            if (btn) btn.innerHTML = '<div class="spinner-small"></div> Uploading File...';
+            
+            const fileUploadedName = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+                        const docData = {
+                            name: taskPendingUploadFile.name,
+                            type: taskPendingUploadFile.type || 'application/octet-stream',
+                            size: taskPendingUploadFile.size,
+                            data: ev.target.result,
+                            category: $('task-department').value || 'Other',
+                            description: `Attached to task: ${$('task-name').value}`,
+                            uploadedBy: user.name || 'User'
+                        };
+                        const res = await fetch('/api/documents', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(docData)
+                        });
+                        if (res.ok) {
+                            const resData = await res.json();
+                            // Refresh documents registry
+                            fetch('/api/documents').then(r => r.json()).then(docs => { state.documents = docs; });
+                            resolve(taskPendingUploadFile.name);
+                        } else {
+                            reject(new Error('Document upload failed'));
+                        }
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = () => reject(new Error('File reading failed'));
+                reader.readAsDataURL(taskPendingUploadFile);
+            });
+            
+            finalDocName = fileUploadedName;
+        }
+        
+        const taskData={
+            task_name:$('task-name').value,
+            department:$('task-department').value,
+            priority:document.querySelector('input[name="task-priority"]:checked').value,
+            status:document.querySelector('input[name="task-status"]:checked').value,
+            progress:parseInt($('task-progress').value),
+            due_date:$('task-due-date').value,
+            completed_date:$('task-completed-date').value,
+            delay_reason:$('task-delay-reason').value,
+            requested_by:$('task-requested-by').value,
+            description:$('task-description').value,
+            responsible:state.selectedPersonal,
+            is_locked: $('task-is-locked')?.checked || false,
+            currentStage: ($('task-current-stage')?.value || ''),
+            attachedDoc: finalDocName
+        };
+        
+        if(taskData.status==='Completed'&&taskData.completed_date&&new Date(taskData.completed_date)>new Date(taskData.due_date)&&!taskData.delay_reason){
+            showNotification('Delay reason required','error');
+            if(btn){ btn.disabled = false; btn.innerHTML = originalHtml; }
+            return;
+        }
+        
         const res=await fetch(id?`/api/tasks/${id}`:'/api/tasks',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(taskData)});
         if(res.ok){
             const updatedData = await res.json();
@@ -1454,6 +1576,7 @@ async function handleTaskSubmit(e){
             }
             showNotification(id?'Task updated ✅':'Task created ✅','success');
             el.taskModal.classList.remove('active');
+            taskPendingUploadFile = null;
             fetch('/api/logs').then(r => r.json()).then(l => { state.logs = l; renderAll(); });
             renderAll();
         } else {

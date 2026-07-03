@@ -134,12 +134,12 @@
                 </button>
                 <!-- Company Switcher (admin + multi-company users) -->
                 <div id="company-switcher-wrap" style="display:none;align-items:center;gap:0.5rem;position:relative;">
-                    <div id="company-switcher-pill" onclick="toggleCompanySwitcher()" style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.75rem;border-radius:20px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--primary);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">
+                    <div id="company-switcher-pill" onclick="toggleCompanySwitcher()" style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.75rem;border-radius:20px;background:var(--primary);border:1px solid var(--primary);cursor:pointer;font-size:0.78rem;font-weight:600;color:#fff;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                         <span id="active-company-name" style="overflow:hidden;text-overflow:ellipsis;">Company</span>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
                     </div>
-                    <div id="company-switcher-dropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:200px;background:var(--surface);border:1px solid var(--gray-200);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);z-index:2000;overflow:hidden;">
+                    <div id="company-switcher-dropdown" class="company-dropdown-panel">
                         <div style="padding:0.5rem 0.75rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--secondary);border-bottom:1px solid var(--gray-100);">Switch Company</div>
                         <div id="company-dropdown-list" style="max-height:220px;overflow-y:auto;"></div>
                         <div id="company-switcher-add" style="padding:0.6rem 0.85rem;border-top:1px solid var(--gray-100);display:none;">
@@ -845,12 +845,34 @@
             </div>
             <!-- Task Document Attachment -->
             <div class="form-group" style="margin-top:1rem;">
-                <label for="task-attached-doc">
+                <label>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                     Attach Document
                 </label>
-                <input type="text" id="task-attached-doc" placeholder="Paste document link or type document name..." autocomplete="off">
-                <p style="font-size:0.72rem; color:var(--secondary); margin-top:0.3rem;">📎 Enter a document name, Google Drive link, or any URL to attach to this task.</p>
+                <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                    <!-- Option 1: Select Existing -->
+                    <div class="select-wrapper">
+                        <select id="task-attached-doc-select" style="width:100%;">
+                            <option value="">— Select Existing Document —</option>
+                        </select>
+                    </div>
+                    <!-- Divider -->
+                    <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; font-size:0.7rem; color:var(--secondary); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin: 0.2rem 0;">
+                        <span style="flex-grow:1; height:1px; background:var(--gray-200);"></span>
+                        <span>OR Upload New File</span>
+                        <span style="flex-grow:1; height:1px; background:var(--gray-200);"></span>
+                    </div>
+                    <!-- Option 2: Upload New -->
+                    <div style="display:flex; align-items:center; gap:0.75rem; background:var(--gray-50); padding:0.6rem 0.85rem; border:1px dashed var(--gray-300); border-radius:var(--radius-md);">
+                        <label class="btn btn-glass" style="margin:0; padding:0.4rem 0.75rem; font-size:0.78rem; display:flex; align-items:center; gap:0.35rem; cursor:pointer; background:var(--white); border:1px solid var(--gray-200); box-shadow:var(--shadow-sm);">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Choose File
+                            <input type="file" id="task-attached-doc-file" style="display:none;" onchange="onTaskFileSelected(this)">
+                        </label>
+                        <span id="task-attached-doc-file-name" style="font-size:0.8rem; color:var(--secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px;">No file chosen</span>
+                    </div>
+                </div>
+                <p style="font-size:0.72rem; color:var(--secondary); margin-top:0.3rem;">📎 Select a document already uploaded, or pick a file from your computer to attach to this task.</p>
             </div>
             <div class="form-group" style="margin-top:1rem;">
                 <label for="task-description">

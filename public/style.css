@@ -1348,3 +1348,51 @@ select { width:100%; }
         margin: 10mm;
     }
 }
+
+/* Company Switcher Dropdown Styles */
+.company-dropdown-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    z-index: 2000;
+    overflow: hidden;
+}
+.dark-theme .company-dropdown-panel {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.company-dropdown-item {
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    color: var(--dark);
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    transition: var(--transition);
+}
+.company-dropdown-item:hover {
+    background: var(--gray-50);
+}
+.company-dropdown-item.active {
+    background: rgba(99,102,241,0.1);
+    font-weight: 700;
+}
+.dark-theme .company-dropdown-item {
+    border-bottom-color: #334155;
+}
+.dark-theme .company-dropdown-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+.dark-theme .company-dropdown-item.active {
+    background: rgba(99,102,241,0.25);
+}
