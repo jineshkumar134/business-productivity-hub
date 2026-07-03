@@ -261,24 +261,18 @@ function setupEventListeners() {
         });
     });
 
-    // Sidebar toggle
-    el.sidebarToggle?.addEventListener('click', () => {
+    // Sidebar toggle — button on the right side
+    function doSidebarToggle() {
         el.sidebar.classList.toggle('collapsed');
         const c = el.sidebar.classList.contains('collapsed');
         el.sidebarToggle.innerHTML = c
             ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`
             : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
-    });
+    }
+    el.sidebarToggle?.addEventListener('click', doSidebarToggle);
 
-    // Expand sidebar if clicking on the logo when collapsed
-    document.querySelector('.logo')?.addEventListener('click', () => {
-        if (el.sidebar.classList.contains('collapsed')) {
-            el.sidebar.classList.remove('collapsed');
-            if (el.sidebarToggle) {
-                el.sidebarToggle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
-            }
-        }
-    });
+    // Logo icon also toggles the sidebar (expand OR collapse)
+    document.getElementById('sidebar-logo-toggle')?.addEventListener('click', doSidebarToggle);
 
     // Modals
     el.addTaskGlobalBtn?.addEventListener('click', () => openTaskModal());
