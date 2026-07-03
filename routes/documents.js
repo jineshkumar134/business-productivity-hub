@@ -24,6 +24,27 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// Download document as file
+router.get('/:id/download', async (req, res) => {
+    try {
+        const doc = await Document.findById(req.params.id);
+        if (!doc) return res.status(404).json({ error: 'Document not found' });
+        
+        let buffer;
+        if (doc.data.includes('base64,')) {
+            buffer = Buffer.from(doc.data.split('base64,')[1], 'base64');
+        } else {
+            buffer = Buffer.from(doc.data); // Fallback
+        }
+        
+        res.setHeader('Content-Type', doc.type || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${doc.name}"`);
+        res.send(buffer);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Upload document
 router.post('/', async (req, res) => {
     try {

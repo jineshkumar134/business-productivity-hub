@@ -854,7 +854,15 @@ function renderDashboard() {
 
     // Module cards
     el.moduleGrid.innerHTML = '';
-    state.departments.forEach(dept => {
+    
+    let displayDepartments = state.departments;
+    const currentUser = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    if (currentUser.role === 'dept_leader' && currentUser.department) {
+        const userDepts = currentUser.department.split(',').map(d => d.trim().toLowerCase());
+        displayDepartments = displayDepartments.filter(d => userDepts.includes(d.trim().toLowerCase()));
+    }
+    
+    displayDepartments.forEach(dept => {
         const cfg = getDeptConfig(dept);
         const deptTasks = tasks.filter(t => t.department === dept);
         const doneCount = deptTasks.filter(t => t.status === 'Completed').length;
@@ -880,15 +888,14 @@ function renderDashboard() {
                 <div class="progress-info"><span>Performance</span><span style="color:${cfg.color};font-weight:800;">${prog}%</span></div>
                 <div class="progress-track"><div class="progress-fill" style="width:${prog}%;background:linear-gradient(90deg,${cfg.color},${cfg.color}99);"></div></div>
             </div>
-            ${leads.length > 0 ? `
             <div style="background:var(--gray-50);border:1px solid var(--gray-100);border-radius:10px;padding:0.6rem 0.75rem;">
                 <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--secondary);letter-spacing:0.06em;margin-bottom:0.4rem;">Team Lead</div>
-                ${leads.map(p=>`
+                ${leads.length > 0 ? leads.map(p=>`
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;">
                     <span style="font-weight:600;color:var(--dark);">${p.name}</span>
                     <span style="font-size:0.65rem;font-weight:600;color:${cfg.color};background:${cfg.bg};padding:0.1rem 0.45rem;border-radius:50px;">${p.role}</span>
-                </div>`).join('')}
-            </div>` : ''}
+                </div>`).join('') : `<div style="font-size:0.8rem;font-weight:600;color:var(--secondary);">None</div>`}
+            </div>
             <div class="task-list-mini">
                 ${deptTasks.length === 0 ? '<p class="empty-msg">No tasks yet. Add one below!</p>' : deptTasks.map((t, idx) => `
                 <div class="mini-task-item" onclick="openTaskModal('${t._id}')">
@@ -896,7 +903,7 @@ function renderDashboard() {
                         <div style="flex-grow:1;">
                             <div class="mini-task-content" style="font-weight:700;font-size:0.88rem;"><span style="color:var(--secondary);font-weight:600;margin-right:0.3rem;">${idx + 1}.</span>${t.task_name} ${t.is_locked ? '<span style="font-size:0.75rem;" title="Locked">🔒</span>' : ''}</div>
                             ${t.description ? `<div style="font-size:0.72rem;color:var(--secondary);margin-top:0.2rem;line-height:1.4;">${t.description.slice(0,80)}${t.description.length>80?'…':''}</div>` : ''}
-                            ${t.attachedDoc ? `<div style="font-size:0.7rem;margin-top:0.25rem;">${t.attachedDoc.startsWith('http') ? `<a href="${t.attachedDoc}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#6366f1;font-weight:600;text-decoration:underline;">📎 ${t.attachedDoc.length>50?t.attachedDoc.slice(0,50)+'…':t.attachedDoc}</a>` : `<span style="color:#6366f1;font-weight:600;">📎 ${t.attachedDoc}</span>`}</div>` : ''}
+                            ${t.attachedDoc ? `<div style="font-size:0.7rem;margin-top:0.25rem;">${t.attachedDoc.startsWith('UPLOAD:') ? `<a href="/api/documents/${t.attachedDoc.split(':')[1]}/download" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#6366f1;font-weight:600;text-decoration:underline;">📎 ${t.attachedDoc.split(':').slice(2).join(':')}</a>` : t.attachedDoc.startsWith('http') ? `<a href="${t.attachedDoc}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#6366f1;font-weight:600;text-decoration:underline;">📎 ${t.attachedDoc.length>50?t.attachedDoc.slice(0,50)+'…':t.attachedDoc}</a>` : `<span style="color:#6366f1;font-weight:600;">📎 ${t.attachedDoc}</span>`}</div>` : ''}
                         </div>
                         <button class="mini-delete-btn" onclick="event.stopPropagation();deleteTask('${t._id}')" title="Delete">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -1528,7 +1535,7 @@ async function handleTaskSubmit(e){
                             const resData = await res.json();
                             // Refresh documents registry
                             fetch('/api/documents').then(r => r.json()).then(docs => { state.documents = docs; });
-                            resolve(taskPendingUploadFile.name);
+                            resolve(`UPLOAD:${resData.document.id}:${taskPendingUploadFile.name}`);
                         } else {
                             reject(new Error('Document upload failed'));
                         }
