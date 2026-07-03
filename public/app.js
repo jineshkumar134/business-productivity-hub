@@ -465,31 +465,39 @@ function checkTaskConstraints() {
     const isNewTask = !$('task-id').value;
 
     el.taskForm.querySelectorAll('input:not([type="radio"]), select, textarea').forEach(inp => {
-        // IDs that employees (non-managers) can edit
-        const staffEditable = ['task-progress', 'task-completed-date', 'task-delay-reason', 'task-new-comment', 'task-current-stage'];
+        // IDs that employees (and locked tasks) can edit
+        const staffEditable = ['task-progress', 'task-completed-date', 'task-delay-reason', 'task-new-comment', 'task-current-stage', 'task-attached-doc'];
         
-        let shouldDisable = isCompleted || (isLocked && !isAdmin);
-        if (!isManager && !isNewTask && !staffEditable.includes(inp.id)) {
-            shouldDisable = true; // Non-managers can't edit core fields of EXISTING tasks
+        let shouldDisable = false;
+        const restrictCoreFields = (!isNewTask && !isManager) || (isLocked && !isAdmin);
+        
+        if (restrictCoreFields && !staffEditable.includes(inp.id)) {
+            shouldDisable = true; 
+        }
+        
+        if (isCompleted && !staffEditable.includes(inp.id)) {
+            shouldDisable = true;
         }
 
-        if (!['task-completed-date','task-due-date','task-delay-reason','task-id'].includes(inp.id) || (!isManager && !isNewTask)) {
-            // Keep completed date editable if completed, but if it's a field they shouldn't edit, disable it
-            if (isCompleted && inp.id === 'task-completed-date' && (isManager || isNewTask)) shouldDisable = false;
-            inp.disabled = shouldDisable;
-        }
+        inp.disabled = shouldDisable;
     });
 
     el.taskForm.querySelectorAll('input[type="radio"]').forEach(inp => {
-        let shouldDisable = isCompleted || (isLocked && !isAdmin);
-        if (!isManager && !isNewTask && inp.name !== 'task-status') {
-            shouldDisable = true; // Non-managers can't edit priority of existing tasks
+        let shouldDisable = false;
+        const restrictCoreFields = (!isNewTask && !isManager) || (isLocked && !isAdmin);
+        
+        if (restrictCoreFields && inp.name !== 'task-status') {
+            shouldDisable = true;
+        }
+        if (isCompleted && inp.name !== 'task-status') {
+            shouldDisable = true; // Allow reopening!
         }
         inp.disabled = shouldDisable;
     });
 
     const pDrop = $('personal-dropdown');
-    if(pDrop) pDrop.disabled = isCompleted || (isLocked && !isAdmin) || (!isManager && !isNewTask);
+    const restrictCoreFields = (!isNewTask && !isManager) || (isLocked && !isAdmin);
+    if(pDrop) pDrop.disabled = isCompleted || restrictCoreFields;
     
     // Always enable the new comment field and post button
     const commentInp = $('task-new-comment');
@@ -497,9 +505,9 @@ function checkTaskConstraints() {
     if (commentInp) commentInp.disabled = false;
     if (commentBtn) commentBtn.disabled = false;
     
-    // Save button disabled if locked and not admin
+    // Save button enabled as long as they can edit something
     const saveBtn = $('save-task-btn');
-    if (saveBtn) saveBtn.disabled = isLocked && !isAdmin;
+    if (saveBtn) saveBtn.disabled = false;
 }
 
 function renderUserGreeting() {
