@@ -1410,6 +1410,25 @@ function populateTaskDocDropdown(selectedDoc) {
     }
     
     select.value = selectedDoc || '';
+
+    const dlDiv = $('task-attached-doc-download');
+    if (dlDiv) {
+        if (selectedDoc) {
+            dlDiv.style.display = 'block';
+            if (selectedDoc.startsWith('UPLOAD:')) {
+                const docId = selectedDoc.split(':')[1];
+                const docName = selectedDoc.split(':').slice(2).join(':');
+                dlDiv.innerHTML = `Current Attachment: <a href="/api/documents/${docId}/download" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700; text-decoration:underline;">📎 Download ${docName}</a>`;
+            } else if (selectedDoc.startsWith('http')) {
+                dlDiv.innerHTML = `Current Attachment: <a href="${selectedDoc}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:700; text-decoration:underline;">📎 View Link</a>`;
+            } else {
+                dlDiv.innerHTML = `Current Attachment: <span style="color:var(--primary); font-weight:700; cursor:pointer; text-decoration:underline;" onclick="downloadAttachedDocumentByName('${selectedDoc}')">📎 Download ${selectedDoc}</span>`;
+            }
+        } else {
+            dlDiv.style.display = 'none';
+            dlDiv.innerHTML = '';
+        }
+    }
 }
 
 
