@@ -757,7 +757,7 @@ function renderMyPortal() {
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard() {
-    const tasks = state.searchQuery
+    let tasks = state.searchQuery
         ? state.tasks.filter(t =>
             t.task_name?.toLowerCase().includes(state.searchQuery) ||
             t.description?.toLowerCase().includes(state.searchQuery) ||
@@ -765,7 +765,12 @@ function renderDashboard() {
             t.requested_by?.toLowerCase().includes(state.searchQuery) ||
             t.department?.toLowerCase().includes(state.searchQuery)
           )
-        : state.tasks;
+        : [...state.tasks];
+
+    const currentUser = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    if (currentUser.role === 'employee' && currentUser.name) {
+        tasks = tasks.filter(t => t.responsible && t.responsible.includes(currentUser.name));
+    }
 
     const total = tasks.length;
     const done  = tasks.filter(t => t.status === 'Completed').length;
@@ -856,8 +861,7 @@ function renderDashboard() {
     el.moduleGrid.innerHTML = '';
     
     let displayDepartments = state.departments;
-    const currentUser = JSON.parse(localStorage.getItem('bh_user') || '{}');
-    if (currentUser.role === 'dept_leader' && currentUser.department) {
+    if ((currentUser.role === 'dept_leader' || currentUser.role === 'employee') && currentUser.department) {
         const userDepts = currentUser.department.split(',').map(d => d.trim().toLowerCase());
         displayDepartments = displayDepartments.filter(d => userDepts.includes(d.trim().toLowerCase()));
     }
@@ -914,6 +918,7 @@ function renderDashboard() {
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             ${(t.responsible||[]).join(', ')||'Unassigned'}
                         </span>
+                        ${t.requested_by ? `<span style="display:flex;align-items:center;gap:0.25rem;margin-left:0.4rem;color:var(--primary);"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>By: ${t.requested_by}</span>` : ''}
                         <span style="display:flex;align-items:center;gap:0.25rem;">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             ${t.due_date ? new Date(t.due_date).toLocaleDateString('en',{month:'short',day:'numeric'}) : 'No date'}
