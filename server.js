@@ -20,12 +20,12 @@ let isConnected = false;
 async function connectDB() {
     if (isConnected && mongoose.connection.readyState === 1) return;
     await mongoose.connect(process.env.MONGODB_URI, {
-        maxPoolSize: 5,           // M0 free tier is limited — keep pool tiny
+        maxPoolSize: 3,           // M0 free tier is limited — keep pool small
         minPoolSize: 1,           // keep 1 alive so first request is fast
-        socketTimeoutMS: 30000,   // close idle sockets after 30s
+        socketTimeoutMS: 45000,
         connectTimeoutMS: 10000,
         serverSelectionTimeoutMS: 10000,
-        maxIdleTimeMS: 30000,     // auto-close connections idle > 30s
+        maxIdleTimeMS: 60000,     // auto-close connections idle > 60s
     });
     isConnected = true;
     console.log('✅ Connected to MongoDB Atlas!');

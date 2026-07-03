@@ -130,8 +130,8 @@ async function init() {
     const isHighLevel = hasMinRole(user.role, 'dept_leader');
     switchView(isHighLevel ? 'dashboard' : 'my-portal');
 
-    // Start background polling for real-time updates (every 4 seconds)
-    setInterval(syncDataInBackground, 4000);
+    // Background polling — every 30s to stay within MongoDB M0 connection limits
+    setInterval(syncDataInBackground, 30000);
 }
 
 async function syncDataInBackground() {
