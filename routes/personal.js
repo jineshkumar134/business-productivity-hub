@@ -4,6 +4,16 @@ const Personal = require('../models/Personal');
 const Department = require('../models/Department');
 const { requireMinRole, ROLE_LEVELS } = require('../middleware/roleCheck');
 
+function getNormalizedRole(roleStr) {
+    if (!roleStr) return 'employee';
+    // Clean emojis, convert to lowercase, and check matches
+    const clean = roleStr.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '').trim().toLowerCase();
+    
+    if (clean.includes('admin')) return 'admin';
+    if (clean.includes('leader') || clean.includes('lead') || clean.includes('head')) return 'dept_leader';
+    return 'employee';
+}
+
 // GET personal — role-filtered
 router.get('/', async (req, res) => {
     try {
@@ -55,13 +65,7 @@ router.post('/', requireMinRole('dept_leader'), async (req, res) => {
         const targetRoleDisplay = req.body.role || 'Employee';
         const companyId = req.headers['x-company-id'] || req.body.companyId || null;
         
-        // Map targetRoleDisplay to system role
-        const roleMap = {
-            'Admin': 'admin',
-            'Department Leader': 'dept_leader',
-            'Employee': 'employee', 'Staff': 'employee'
-        };
-        const targetRole = roleMap[targetRoleDisplay] || 'employee';
+        const targetRole = getNormalizedRole(targetRoleDisplay);
         
         const creatorLevel = ROLE_LEVELS[creatorRole] || 0;
         const targetLevel = ROLE_LEVELS[targetRole] || 0;
@@ -133,13 +137,8 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
         const existingPerson = await Personal.findById(req.params.id);
         if (!existingPerson) return res.status(404).json({ error: 'Personal profile not found' });
         
-        const roleMap = {
-            'Admin': 'admin',
-            'Department Leader': 'dept_leader',
-            'Employee': 'employee', 'Staff': 'employee'
-        };
-        const currentTargetRole = roleMap[existingPerson.role] || 'employee';
-        const newTargetRole = roleMap[req.body.role || existingPerson.role] || 'employee';
+        const currentTargetRole = getNormalizedRole(existingPerson.role);
+        const newTargetRole = getNormalizedRole(req.body.role || existingPerson.role);
         
         const currentTargetLevel = ROLE_LEVELS[currentTargetRole] || 0;
         const newTargetLevel = ROLE_LEVELS[newTargetRole] || 0;
@@ -163,12 +162,7 @@ router.put('/:id', requireMinRole('dept_leader'), async (req, res) => {
                     department: updatedPerson.department || ''
                 };
                 if (req.body.role) {
-                    const roleMap = {
-                        'Admin': 'admin',
-                        'Department Leader': 'dept_leader',
-                        'Employee': 'employee', 'Staff': 'employee'
-                    };
-                    userUpdate.role = roleMap[req.body.role] || 'employee';
+                    userUpdate.role = getNormalizedRole(req.body.role);
                 }
                 await User.findOneAndUpdate({ email: updatedPerson.email.toLowerCase() }, { $set: userUpdate });
             }
@@ -234,12 +228,7 @@ router.delete('/:id', requireMinRole('dept_leader'), async (req, res) => {
         const person = await Personal.findById(req.params.id);
         if (!person) return res.status(404).json({ error: 'Member not found' });
         
-        const roleMap = {
-            'Admin': 'admin',
-            'Department Leader': 'dept_leader',
-            'Employee': 'employee', 'Staff': 'employee'
-        };
-        const targetRole = roleMap[person.role] || 'employee';
+        const targetRole = getNormalizedRole(person.role);
         const targetLevel = ROLE_LEVELS[targetRole] || 0;
         
         if (creatorLevel <= targetLevel) {
