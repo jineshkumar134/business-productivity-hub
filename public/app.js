@@ -139,34 +139,27 @@ async function syncDataInBackground() {
         if (!localStorage.getItem('bh_user')) return;
 
         const activeCompanyId = localStorage.getItem('bh_active_company_id') || '';
-        const [tRes, pRes, lRes, dRes, deptsRes, stagesRes] = await Promise.all([
-            fetch('/api/tasks').then(r => r.json()),
-            fetch('/api/personal').then(r => r.json()),
-            fetch('/api/logs').then(r => r.json()),
-            fetch('/api/documents').then(r => r.json()).catch(() => []),
-            fetch('/api/departments').then(r => r.json()).catch(() => []),
-            activeCompanyId ? fetch(`/api/dept-stages?companyId=${activeCompanyId}`).then(r => r.json()).catch(() => null) : Promise.resolve(null)
-        ]);
+        const res = await fetch(`/api/sync?companyId=${activeCompanyId}`).then(r => r.json());
 
-        const tasksChanged = JSON.stringify(state.tasks) !== JSON.stringify(tRes);
-        const personalChanged = JSON.stringify(state.personal) !== JSON.stringify(pRes);
-        const logsChanged = JSON.stringify(state.logs) !== JSON.stringify(lRes);
-        const docsChanged = JSON.stringify(state.documents) !== JSON.stringify(dRes);
-        const stagesChanged = stagesRes !== null && JSON.stringify(state.deptStages) !== JSON.stringify(stagesRes);
+        const tasksChanged = JSON.stringify(state.tasks) !== JSON.stringify(res.tasks);
+        const personalChanged = JSON.stringify(state.personal) !== JSON.stringify(res.personal);
+        const logsChanged = JSON.stringify(state.logs) !== JSON.stringify(res.logs);
+        const docsChanged = JSON.stringify(state.documents) !== JSON.stringify(res.documents);
+        const stagesChanged = res.deptStages !== null && JSON.stringify(state.deptStages) !== JSON.stringify(res.deptStages);
         
-        const deptNames = deptsRes.map(d => d.name);
+        const deptNames = (res.deptObjects || []).map(d => d.name);
         const deptsChanged = JSON.stringify(state.departments) !== JSON.stringify(deptNames);
 
         let shouldRender = tasksChanged || personalChanged || logsChanged || docsChanged || deptsChanged || stagesChanged;
 
-        if (tasksChanged) state.tasks = tRes;
-        if (personalChanged) state.personal = pRes;
-        if (logsChanged) state.logs = lRes;
-        if (docsChanged) state.documents = dRes;
-        if (stagesChanged) state.deptStages = stagesRes;
+        if (tasksChanged) state.tasks = res.tasks;
+        if (personalChanged) state.personal = res.personal;
+        if (logsChanged) state.logs = res.logs;
+        if (docsChanged) state.documents = res.documents;
+        if (stagesChanged) state.deptStages = res.deptStages;
         
         if (deptsChanged) {
-            state.deptObjects = deptsRes;
+            state.deptObjects = res.deptObjects || [];
             state.departments = deptNames;
             populateDeptDropdowns();
         }
@@ -565,19 +558,15 @@ function switchView(viewName) {
 async function fetchData() {
     try {
         const activeCompanyId = localStorage.getItem('bh_active_company_id') || '';
-        const [tRes, pRes, lRes, dRes, deptsRes, stagesRes] = await Promise.all([
-            fetch('/api/tasks').then(r => r.json()),
-            fetch('/api/personal').then(r => r.json()),
-            fetch('/api/logs').then(r => r.json()),
-            fetch('/api/documents').then(r => r.json()).catch(() => []),
-            fetch('/api/departments').then(r => r.json()).catch(() => []),
-            activeCompanyId ? fetch(`/api/dept-stages?companyId=${activeCompanyId}`).then(r => r.json()).catch(() => []) : Promise.resolve([])
-        ]);
-        state.tasks = tRes; state.personal = pRes; state.logs = lRes; state.documents = dRes;
-        state.deptStages = stagesRes || [];
-
-        state.deptObjects = deptsRes || [];
-        state.departments = (deptsRes || []).map(d => d.name);
+        const res = await fetch(`/api/sync?companyId=${activeCompanyId}`).then(r => r.json());
+        
+        state.tasks = res.tasks || [];
+        state.personal = res.personal || [];
+        state.logs = res.logs || [];
+        state.documents = res.documents || [];
+        state.deptStages = res.deptStages || [];
+        state.deptObjects = res.deptObjects || [];
+        state.departments = (res.deptObjects || []).map(d => d.name);
 
         populateDeptDropdowns();
         populateHierarchyDropdowns();
