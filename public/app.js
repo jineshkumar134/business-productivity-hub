@@ -538,6 +538,7 @@ const VIEW_META = {
     logs:      { t:'Activity Logs',                 d:'Full audit trail of all system changes and task updates.' },
     invoicing: { t:'Invoicing Calculator',          d:'Estimate GST and TDS for your transactions with ease.' },
     documents: { t:'Document Center',               d:'Upload and manage core organizational files and documents.' },
+    'content-os':{ t:'Content OS',                  d:'Full content pipeline from idea to performance review.' },
     admin:     { t:'Admin Panel',                    d:'Create and manage user accounts. Admin access only.' },
 };
 function switchView(viewName) {
@@ -551,6 +552,9 @@ function switchView(viewName) {
     if (viewName === 'admin') {
         renderDeptAdminList();
         populateHierarchyDropdowns();
+    }
+    if (viewName === 'content-os') {
+        loadContentOS();
     }
 }
 
@@ -2943,8 +2947,299 @@ async function sendQuickChat(msg) {
     document.head.appendChild(style);
 })();
 
-window.handleChatbotSubmit = handleChatbotSubmit;
-window.sendQuickChat = sendQuickChat;
+// ── CONTENT OS ──────────────────────────────────────────────────────────────
+let cosEntries = [];
+let cosEditId = null;
+
+async function loadContentOS() {
+    try {
+        const companyId = localStorage.getItem('bh_active_company_id') || '';
+        const res = await fetch(`/api/content-os?companyId=${companyId}`);
+        cosEntries = await res.json();
+        renderContentOS();
+        renderCOSPipeline();
+    } catch(e) { console.warn('Content OS load failed:', e); }
+}
+
+function renderCOSPipeline() {
+    const bar = document.getElementById('cos-pipeline-bar');
+    if (!bar) return;
+    const stages = ['Idea','Research','Script Ready','Shoot Scheduled','Shooting Done','Editing','Review Round 1','Review Round 2','Approved','Scheduled','Published','Performance Review'];
+    const colors = ['#6366f1','#8b5cf6','#0ea5e9','#f97316','#f59e0b','#10b981','#14b8a6','#06b6d4','#22c55e','#84cc16','#ef4444','#ec4899'];
+    bar.innerHTML = stages.map((s, i) => {
+        const count = cosEntries.filter(e => e.currentStatus === s).length;
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;padding:0.4rem 0.75rem;background:${colors[i]}18;border:1px solid ${colors[i]}40;border-radius:8px;cursor:pointer;min-width:80px;" onclick="filterCOSByStatus('${s}')">
+            <span style="font-size:1.1rem;font-weight:700;color:${colors[i]};">${count}</span>
+            <span style="font-size:0.65rem;color:var(--secondary);text-align:center;font-weight:600;">${s}</span>
+        </div>`;
+    }).join('');
+}
+
+function filterCOSByStatus(status) {
+    const filter = document.getElementById('cos-status-filter');
+    if (filter) filter.value = filter.value === status ? '' : status;
+    renderContentOS();
+}
+
+const COS_STATUS_COLORS = {
+    'Idea':'#6366f1','Research':'#8b5cf6','Script Ready':'#0ea5e9','Shoot Scheduled':'#f97316',
+    'Shooting Done':'#f59e0b','Editing':'#10b981','Review Round 1':'#14b8a6','Review Round 2':'#06b6d4',
+    'Approved':'#22c55e','Scheduled':'#84cc16','Published':'#ef4444','Performance Review':'#ec4899'
+};
+
+function renderContentOS() {
+    const grid = document.getElementById('content-os-grid');
+    if (!grid) return;
+    const search = (document.getElementById('cos-search')?.value || '').toLowerCase();
+    const statusFilter = document.getElementById('cos-status-filter')?.value || '';
+    let entries = cosEntries;
+    if (search) entries = entries.filter(e => (e.title||'').toLowerCase().includes(search) || (e.category||'').toLowerCase().includes(search) || (e.objective||'').toLowerCase().includes(search));
+    if (statusFilter) entries = entries.filter(e => e.currentStatus === statusFilter);
+    if (!entries.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--secondary);">
+            <div style="font-size:2.5rem;margin-bottom:0.75rem;">🎬</div>
+            <div style="font-weight:600;margin-bottom:0.35rem;">No content entries yet</div>
+            <div style="font-size:0.85rem;">Click "+ New Content" to add your first content piece.</div>
+        </div>`;
+        return;
+    }
+    grid.innerHTML = entries.map(e => {
+        const color = COS_STATUS_COLORS[e.currentStatus] || '#6366f1';
+        const engRate = e.instagramLikes && e.instagramReach ? ((( (e.instagramLikes||0)+(e.instagramComments||0)+(e.instagramShares||0)+(e.instagramSaves||0)) / e.instagramReach)*100).toFixed(1) : null;
+        const publishedLink = e.publishedLink ? `<a href="${e.publishedLink}" target="_blank" style="color:var(--primary);font-size:0.75rem;">🔗 View Published</a>` : '';
+        return `<div class="module-card" style="cursor:pointer;border-left:3px solid ${color};" onclick="openContentOSModal('${e._id}')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;margin-bottom:0.75rem;">
+                <div style="font-weight:700;font-size:0.95rem;color:var(--dark);line-height:1.3;flex:1;">${e.title}</div>
+                <button onclick="event.stopPropagation();deleteContentOS('${e._id}')" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:1rem;padding:0.2rem;flex-shrink:0;" title="Delete">🗑️</button>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.75rem;">
+                <span style="font-size:0.7rem;padding:2px 8px;border-radius:20px;background:${color}18;color:${color};font-weight:600;">${e.currentStatus}</span>
+                <span style="font-size:0.7rem;padding:2px 8px;border-radius:20px;background:var(--gray-100);color:var(--secondary);">${e.category||'—'}</span>
+                <span style="font-size:0.7rem;padding:2px 8px;border-radius:20px;background:var(--gray-100);color:var(--secondary);">${e.objective||'—'}</span>
+            </div>
+            ${e.publishedLink ? `<div style="margin-bottom:0.5rem;">${publishedLink}</div>` : ''}
+            ${engRate ? `<div style="font-size:0.75rem;color:var(--secondary);">📊 Engagement Rate: <strong style="color:var(--dark);">${engRate}%</strong></div>` : ''}
+            ${e.ytViews ? `<div style="font-size:0.75rem;color:var(--secondary);">▶️ YT Views: <strong style="color:var(--dark);">${e.ytViews.toLocaleString()}</strong></div>` : ''}
+            <div style="font-size:0.72rem;color:var(--gray-400);margin-top:0.5rem;">${new Date(e.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+        </div>`;
+    }).join('');
+}
+
+function openContentOSModal(id = null) {
+    const modal = document.getElementById('content-os-modal');
+    if (!modal) return;
+    cosEditId = id;
+    const entry = id ? cosEntries.find(e => e._id === id) : null;
+    document.getElementById('cos-modal-title').textContent = entry ? 'Edit Content Entry' : 'New Content Entry';
+    // Reset
+    document.getElementById('cos-form').reset();
+    document.getElementById('cos-id').value = id || '';
+    switchCOSTab(0);
+    if (entry) {
+        document.getElementById('cos-title').value = entry.title || '';
+        document.getElementById('cos-category').value = entry.category || 'Students';
+        document.getElementById('cos-objective').value = entry.objective || 'Awareness';
+        document.getElementById('cos-ref-link').value = entry.referenceLink || '';
+        document.getElementById('cos-hook').value = entry.hook || '';
+        document.getElementById('cos-curiosity').value = entry.curiosity || '';
+        document.getElementById('cos-story').value = entry.story || '';
+        document.getElementById('cos-proof').value = entry.proof || '';
+        document.getElementById('cos-lesson').value = entry.lesson || '';
+        document.getElementById('cos-cta').value = entry.cta || '';
+        document.getElementById('cos-status').value = entry.currentStatus || 'Idea';
+        ['idea','research','script','shoot','editing','review','approval','publishing'].forEach(f => {
+            const el = document.getElementById(`cos-${f}-date`);
+            const key = f + 'Date';
+            if (el && entry[key]) el.value = entry[key].split('T')[0];
+        });
+        document.getElementById('cos-reviewer').value = entry.reviewer || '';
+        document.getElementById('cos-review-status').value = entry.reviewStatus || 'Pending';
+        document.getElementById('cos-review-notes').value = entry.reviewNotes || '';
+        document.getElementById('cos-raw-video').value = entry.rawVideoLink || '';
+        document.getElementById('cos-voice-over').value = entry.voiceOverLink || '';
+        document.getElementById('cos-broll').value = entry.bRollFolder || '';
+        document.getElementById('cos-music').value = entry.musicLink || '';
+        document.getElementById('cos-thumbnail').value = entry.thumbnailLink || '';
+        document.getElementById('cos-canva').value = entry.canvaLink || '';
+        document.getElementById('cos-drive').value = entry.driveFolder || '';
+        document.getElementById('cos-published').value = entry.publishedLink || '';
+        // Instagram
+        ['reach','views','likes','comments','shares','saves'].forEach(f => { const el = document.getElementById(`cos-ig-${f}`); if(el) el.value = entry[`instagram${f.charAt(0).toUpperCase()+f.slice(1)}`] || ''; });
+        document.getElementById('cos-ig-profile-visits').value = entry.instagramProfileVisits || '';
+        document.getElementById('cos-ig-followers').value = entry.instagramFollowersGained || '';
+        document.getElementById('cos-ig-watch-time').value = entry.instagramWatchTime || '';
+        document.getElementById('cos-ig-avg-watch').value = entry.instagramAvgWatchTime || '';
+        document.getElementById('cos-ig-retention').value = entry.instagramRetention || '';
+        document.getElementById('cos-ig-completion').value = entry.instagramCompletion || '';
+        // YouTube
+        document.getElementById('cos-yt-views').value = entry.ytViews || '';
+        document.getElementById('cos-yt-impressions').value = entry.ytImpressions || '';
+        document.getElementById('cos-yt-ctr').value = entry.ytCTR || '';
+        document.getElementById('cos-yt-watch-hours').value = entry.ytWatchHours || '';
+        document.getElementById('cos-yt-avg-duration').value = entry.ytAvgViewDuration || '';
+        document.getElementById('cos-yt-subs').value = entry.ytSubscribersGained || '';
+        document.getElementById('cos-yt-returning').value = entry.ytReturningViewers || '';
+        document.getElementById('cos-yt-new').value = entry.ytNewViewers || '';
+        document.getElementById('cos-yt-revenue').value = entry.ytRevenue || '';
+        document.getElementById('cos-yt-rpm').value = entry.ytRPM || '';
+        document.getElementById('cos-yt-cpm').value = entry.ytCPM || '';
+        // Learnings
+        document.getElementById('cos-what-worked').value = entry.whatWorked || '';
+        document.getElementById('cos-what-failed').value = entry.whatFailed || '';
+        document.getElementById('cos-best-hook').value = entry.bestHook || '';
+        document.getElementById('cos-improvements').value = entry.improvements || '';
+        document.getElementById('cos-repurpose').checked = entry.repurposeToShorts || false;
+        document.getElementById('cos-carousel').checked = entry.createCarousel || false;
+        document.getElementById('cos-ads').checked = entry.runAds || false;
+        document.getElementById('cos-part2').checked = entry.makePart2 || false;
+    }
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeContentOSModal() {
+    const modal = document.getElementById('content-os-modal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+    cosEditId = null;
+}
+
+function switchCOSTab(idx) {
+    document.querySelectorAll('.cos-tab').forEach((t,i) => {
+        const active = i === idx;
+        t.style.color = active ? 'var(--primary)' : 'var(--secondary)';
+        t.style.borderBottom = active ? '2px solid var(--primary)' : '2px solid transparent';
+    });
+    document.querySelectorAll('.cos-tab-panel').forEach((p,i) => { p.style.display = i === idx ? 'block' : 'none'; });
+    // Auto-calculate IG KPIs on tab 3
+    if (idx === 3) calculateIGKPIs();
+}
+
+function calculateIGKPIs() {
+    const reach = parseFloat(document.getElementById('cos-ig-reach')?.value) || 0;
+    const likes = parseFloat(document.getElementById('cos-ig-likes')?.value) || 0;
+    const comments = parseFloat(document.getElementById('cos-ig-comments')?.value) || 0;
+    const shares = parseFloat(document.getElementById('cos-ig-shares')?.value) || 0;
+    const saves = parseFloat(document.getElementById('cos-ig-saves')?.value) || 0;
+    const followers = parseFloat(document.getElementById('cos-ig-followers')?.value) || 0;
+    const views = parseFloat(document.getElementById('cos-ig-views')?.value) || 0;
+    const kpiDiv = document.getElementById('cos-ig-kpis');
+    if (!kpiDiv) return;
+    if (!reach) { kpiDiv.innerHTML = '<p style="font-size:0.8rem;color:var(--secondary);margin:0;">Enter Reach to calculate KPIs automatically.</p>'; return; }
+    const engRate = (((likes+comments+shares+saves)/reach)*100).toFixed(2);
+    const likeRate = ((likes/reach)*100).toFixed(2);
+    const saveRate = ((saves/reach)*100).toFixed(2);
+    const shareRate = ((shares/reach)*100).toFixed(2);
+    const followerConv = followers && views ? ((followers/views)*100).toFixed(2) : '—';
+    kpiDiv.innerHTML = `<div style="font-weight:700;font-size:0.8rem;margin-bottom:0.6rem;color:var(--dark);">📊 Auto-Calculated KPIs</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+            <div style="font-size:0.8rem;">Engagement Rate: <strong>${engRate}%</strong></div>
+            <div style="font-size:0.8rem;">Like Rate: <strong>${likeRate}%</strong></div>
+            <div style="font-size:0.8rem;">Save Rate: <strong>${saveRate}%</strong></div>
+            <div style="font-size:0.8rem;">Share Rate: <strong>${shareRate}%</strong></div>
+            <div style="font-size:0.8rem;">Follower Conv.: <strong>${followerConv}${followerConv !== '—' ? '%' : ''}</strong></div>
+        </div>`;
+}
+
+async function saveContentOS() {
+    const title = document.getElementById('cos-title')?.value.trim();
+    if (!title) { showNotification('Content title is required', 'error'); return; }
+    const user = JSON.parse(localStorage.getItem('bh_user') || '{}');
+    const companyId = localStorage.getItem('bh_active_company_id') || '';
+    const payload = {
+        title, companyId,
+        category: document.getElementById('cos-category')?.value,
+        objective: document.getElementById('cos-objective')?.value,
+        referenceLink: document.getElementById('cos-ref-link')?.value,
+        hook: document.getElementById('cos-hook')?.value,
+        curiosity: document.getElementById('cos-curiosity')?.value,
+        story: document.getElementById('cos-story')?.value,
+        proof: document.getElementById('cos-proof')?.value,
+        lesson: document.getElementById('cos-lesson')?.value,
+        cta: document.getElementById('cos-cta')?.value,
+        currentStatus: document.getElementById('cos-status')?.value,
+        ideaDate: document.getElementById('cos-idea-date')?.value || null,
+        researchDate: document.getElementById('cos-research-date')?.value || null,
+        scriptDate: document.getElementById('cos-script-date')?.value || null,
+        shootDate: document.getElementById('cos-shoot-date')?.value || null,
+        editingDate: document.getElementById('cos-editing-date')?.value || null,
+        reviewDate: document.getElementById('cos-review-date')?.value || null,
+        approvalDate: document.getElementById('cos-approval-date')?.value || null,
+        publishingDate: document.getElementById('cos-publishing-date')?.value || null,
+        reviewer: document.getElementById('cos-reviewer')?.value,
+        reviewStatus: document.getElementById('cos-review-status')?.value,
+        reviewNotes: document.getElementById('cos-review-notes')?.value,
+        rawVideoLink: document.getElementById('cos-raw-video')?.value,
+        voiceOverLink: document.getElementById('cos-voice-over')?.value,
+        bRollFolder: document.getElementById('cos-broll')?.value,
+        musicLink: document.getElementById('cos-music')?.value,
+        thumbnailLink: document.getElementById('cos-thumbnail')?.value,
+        canvaLink: document.getElementById('cos-canva')?.value,
+        driveFolder: document.getElementById('cos-drive')?.value,
+        publishedLink: document.getElementById('cos-published')?.value,
+        instagramReach: parseFloat(document.getElementById('cos-ig-reach')?.value) || null,
+        instagramViews: parseFloat(document.getElementById('cos-ig-views')?.value) || null,
+        instagramLikes: parseFloat(document.getElementById('cos-ig-likes')?.value) || null,
+        instagramComments: parseFloat(document.getElementById('cos-ig-comments')?.value) || null,
+        instagramShares: parseFloat(document.getElementById('cos-ig-shares')?.value) || null,
+        instagramSaves: parseFloat(document.getElementById('cos-ig-saves')?.value) || null,
+        instagramProfileVisits: parseFloat(document.getElementById('cos-ig-profile-visits')?.value) || null,
+        instagramFollowersGained: parseFloat(document.getElementById('cos-ig-followers')?.value) || null,
+        instagramWatchTime: document.getElementById('cos-ig-watch-time')?.value,
+        instagramAvgWatchTime: document.getElementById('cos-ig-avg-watch')?.value,
+        instagramRetention: document.getElementById('cos-ig-retention')?.value,
+        instagramCompletion: document.getElementById('cos-ig-completion')?.value,
+        ytViews: parseFloat(document.getElementById('cos-yt-views')?.value) || null,
+        ytImpressions: parseFloat(document.getElementById('cos-yt-impressions')?.value) || null,
+        ytCTR: document.getElementById('cos-yt-ctr')?.value,
+        ytWatchHours: document.getElementById('cos-yt-watch-hours')?.value,
+        ytAvgViewDuration: document.getElementById('cos-yt-avg-duration')?.value,
+        ytSubscribersGained: parseFloat(document.getElementById('cos-yt-subs')?.value) || null,
+        ytReturningViewers: parseFloat(document.getElementById('cos-yt-returning')?.value) || null,
+        ytNewViewers: parseFloat(document.getElementById('cos-yt-new')?.value) || null,
+        ytRevenue: document.getElementById('cos-yt-revenue')?.value,
+        ytRPM: document.getElementById('cos-yt-rpm')?.value,
+        ytCPM: document.getElementById('cos-yt-cpm')?.value,
+        whatWorked: document.getElementById('cos-what-worked')?.value,
+        whatFailed: document.getElementById('cos-what-failed')?.value,
+        bestHook: document.getElementById('cos-best-hook')?.value,
+        improvements: document.getElementById('cos-improvements')?.value,
+        repurposeToShorts: document.getElementById('cos-repurpose')?.checked,
+        createCarousel: document.getElementById('cos-carousel')?.checked,
+        runAds: document.getElementById('cos-ads')?.checked,
+        makePart2: document.getElementById('cos-part2')?.checked,
+        createdBy: user.name || ''
+    };
+    try {
+        const method = cosEditId ? 'PUT' : 'POST';
+        const url = cosEditId ? `/api/content-os/${cosEditId}` : '/api/content-os';
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'x-company-id': companyId }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('Save failed');
+        showNotification(cosEditId ? 'Content updated!' : 'Content saved!', 'success');
+        closeContentOSModal();
+        loadContentOS();
+    } catch(e) { showNotification('Failed to save content', 'error'); }
+}
+
+async function deleteContentOS(id) {
+    if (!confirm('Delete this content entry?')) return;
+    try {
+        const companyId = localStorage.getItem('bh_active_company_id') || '';
+        await fetch(`/api/content-os/${id}`, { method: 'DELETE', headers: { 'x-company-id': companyId } });
+        cosEntries = cosEntries.filter(e => e._id !== id);
+        renderContentOS();
+        renderCOSPipeline();
+        showNotification('Content deleted', 'success');
+    } catch(e) { showNotification('Delete failed', 'error'); }
+}
+
+window.openContentOSModal = openContentOSModal;
+window.closeContentOSModal = closeContentOSModal;
+window.switchCOSTab = switchCOSTab;
+window.saveContentOS = saveContentOS;
+window.deleteContentOS = deleteContentOS;
+window.renderContentOS = renderContentOS;
+window.filterCOSByStatus = filterCOSByStatus;
 
 // ── START ─────────────────────────────────────────────────────────────────────
 setupAdminPanel();

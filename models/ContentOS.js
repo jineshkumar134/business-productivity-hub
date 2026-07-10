@@ -1,0 +1,115 @@
+const mongoose = require('mongoose');
+
+const ContentOSSchema = new mongoose.Schema({
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        required: true
+    },
+    title: {
+        type: String,
+        required: true
+    },
+    category: {
+        type: String,
+        enum: ['Parents', 'Students', 'Teachers', 'Principals', 'Custom'],
+        default: 'Students'
+    },
+    objective: {
+        type: String,
+        enum: ['Awareness', 'Education', 'Engagement', 'Lead Generation', 'Sales', 'Brand Building'],
+        default: 'Awareness'
+    },
+    referenceLink: String,
+    
+    // Framework
+    hook: String,
+    curiosity: String,
+    story: String,
+    proof: String,
+    lesson: String,
+    cta: String,
+
+    // Production Status
+    currentStatus: {
+        type: String,
+        enum: [
+            'Idea', 'Research', 'Script Ready', 'Shoot Scheduled', 
+            'Shooting Done', 'Editing', 'Review Round 1', 'Review Round 2', 
+            'Approved', 'Scheduled', 'Published', 'Performance Review'
+        ],
+        default: 'Idea'
+    },
+    
+    // Dates
+    ideaDate: Date,
+    researchDate: Date,
+    scriptDate: Date,
+    shootDate: Date,
+    editingDate: Date,
+    reviewDate: Date,
+    approvalDate: Date,
+    publishingDate: Date,
+
+    // Review Details
+    reviewer: String,
+    reviewStatus: {
+        type: String,
+        enum: ['Pending', 'Changes Required', 'Approved'],
+        default: 'Pending'
+    },
+    reviewNotes: String,
+
+    // Production Links
+    rawVideoLink: String,
+    voiceOverLink: String,
+    bRollFolder: String,
+    musicLink: String,
+    thumbnailLink: String,
+    canvaLink: String,
+    driveFolder: String,
+    publishedLink: String,
+
+    // Instagram Analytics
+    instagramReach: Number,
+    instagramViews: Number,
+    instagramLikes: Number,
+    instagramComments: Number,
+    instagramShares: Number,
+    instagramSaves: Number,
+    instagramProfileVisits: Number,
+    instagramFollowersGained: Number,
+    instagramWatchTime: String,
+    instagramAvgWatchTime: String,
+    instagramRetention: String,
+    instagramCompletion: String,
+
+    // YouTube Analytics
+    ytViews: Number,
+    ytImpressions: Number,
+    ytCTR: String,
+    ytWatchHours: String,
+    ytAvgViewDuration: String,
+    ytSubscribersGained: Number,
+    ytReturningViewers: Number,
+    ytNewViewers: Number,
+    ytRevenue: String,
+    ytRPM: String,
+    ytCPM: String,
+
+    // Learnings & Next Actions
+    whatWorked: String,
+    whatFailed: String,
+    bestHook: String,
+    improvements: String,
+    repurposeToShorts: { type: Boolean, default: false },
+    createCarousel: { type: Boolean, default: false },
+    runAds: { type: Boolean, default: false },
+    makePart2: { type: Boolean, default: false },
+
+    createdBy: String
+}, {
+    timestamps: true
+});
+
+module.exports = mongoose.model('ContentOS', ContentOSSchema);

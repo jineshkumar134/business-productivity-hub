@@ -80,6 +80,13 @@
                 <span>Invoicing</span>
             </button>
 
+            <button class="nav-item" data-view="content-os" id="nav-content-os" data-admin-only="true">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="m8 21 4-4 4 4"/><path d="M12 17V3"/></svg>
+                </span>
+                <span>Content OS</span>
+            </button>
+
             <button class="nav-item" data-view="admin" id="nav-admin" data-admin-only="true" style="color: #a78bfa; margin-top: 0.5rem; border-top: 1px solid var(--gray-200); padding-top: 0.75rem;">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
@@ -702,14 +709,204 @@
                         </div>
                     </div>
                 </div>
-                    </div>
-                </div>
+                     </div>
+                 </div>
 
-        </div><!-- /content-area -->
-    </main>
-</div><!-- /app-container -->
+             <!-- ── CONTENT OS VIEW ── -->
+             <div id="content-os-view" class="view">
+                 <div class="hr-header" style="margin-bottom:1.5rem;">
+                     <div>
+                         <h2 style="display:flex;align-items:center;gap:0.6rem;">
+                             <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="20" height="20"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="m8 21 4-4 4 4"/><path d="M12 17V3"/></svg>
+                             Content Operating System
+                         </h2>
+                         <p style="font-size:0.78rem;color:var(--secondary);margin-top:0.15rem;">Manage your full content pipeline from idea to performance review.</p>
+                     </div>
+                     <div style="display:flex;gap:0.75rem;align-items:center;">
+                         <input id="cos-search" placeholder="🔍 Search content..." style="padding:0.5rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;font-size:0.85rem;background:var(--gray-50);color:var(--dark);min-width:200px;" oninput="renderContentOS()">
+                         <select id="cos-status-filter" style="padding:0.5rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;font-size:0.85rem;background:var(--gray-50);color:var(--dark);" onchange="renderContentOS()">
+                             <option value="">All Statuses</option>
+                             <option>Idea</option><option>Research</option><option>Script Ready</option>
+                             <option>Shoot Scheduled</option><option>Shooting Done</option><option>Editing</option>
+                             <option>Review Round 1</option><option>Review Round 2</option><option>Approved</option>
+                             <option>Scheduled</option><option>Published</option><option>Performance Review</option>
+                         </select>
+                         <button class="btn btn-primary" onclick="openContentOSModal()" id="add-content-btn">
+                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                             <span>+ New Content</span>
+                         </button>
+                     </div>
+                 </div>
 
-<!-- ═══ PROFILE MODAL ═══ -->
+                 <!-- Status Pipeline Bar -->
+                 <div style="display:flex;gap:0.35rem;overflow-x:auto;padding-bottom:0.5rem;margin-bottom:1.5rem;scrollbar-width:none;">
+                     <div id="cos-pipeline-bar" style="display:flex;gap:0.35rem;min-width:max-content;"></div>
+                 </div>
+
+                 <!-- Content Cards Grid -->
+                 <div id="content-os-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:1.25rem;"></div>
+             </div>
+
+         </div><!-- /content-area -->
+     </main>
+ </div><!-- /app-container -->
+
+ <!-- ── CONTENT OS MODAL ── -->
+ <div id="content-os-modal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;padding:1rem;">
+     <div class="modal-content" style="background:var(--surface);border-radius:var(--radius-xl);width:100%;max-width:800px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+         <div class="modal-header" style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
+             <h3 id="cos-modal-title" style="margin:0;font-size:1.1rem;font-weight:700;">New Content Entry</h3>
+             <button onclick="closeContentOSModal()" style="background:none;border:none;cursor:pointer;color:var(--secondary);font-size:1.4rem;line-height:1;">&times;</button>
+         </div>
+
+         <!-- Tabs -->
+         <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-200);overflow-x:auto;scrollbar-width:none;">
+             <button class="cos-tab active" data-tab="0" onclick="switchCOSTab(0)" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--primary);border-bottom:2px solid var(--primary);white-space:nowrap;">📋 Details</button>
+             <button class="cos-tab" data-tab="1" onclick="switchCOSTab(1)" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--secondary);white-space:nowrap;">🎯 Framework</button>
+             <button class="cos-tab" data-tab="2" onclick="switchCOSTab(2)" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--secondary);white-space:nowrap;">🎬 Production</button>
+             <button class="cos-tab" data-tab="3" onclick="switchCOSTab(3)" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--secondary);white-space:nowrap;">📸 Instagram</button>
+             <button class="cos-tab" data-tab="4" onclick="switchCOSTab(4)" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--secondary);white-space:nowrap;">▶️ YouTube</button>
+             <button class="cos-tab" data-tab="5" onclick="switchCOSTab(5)" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--secondary);white-space:nowrap;">💡 Learnings</button>
+         </div>
+
+         <form id="cos-form" style="overflow-y:auto;flex:1;padding:1.5rem;">
+             <input type="hidden" id="cos-id">
+
+             <!-- Tab 0: Details -->
+             <div class="cos-tab-panel" data-panel="0">
+                 <div class="form-group" style="margin-bottom:1rem;">
+                     <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">Content Title / Topic *</label>
+                     <input id="cos-title" placeholder="e.g. How to study effectively" style="width:100%;padding:0.65rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);font-size:0.9rem;" required>
+                 </div>
+                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                     <div class="form-group">
+                         <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">Category</label>
+                         <select id="cos-category" style="width:100%;padding:0.65rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);">
+                             <option>Parents</option><option selected>Students</option><option>Teachers</option><option>Principals</option><option>Custom</option>
+                         </select>
+                     </div>
+                     <div class="form-group">
+                         <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">Objective</label>
+                         <select id="cos-objective" style="width:100%;padding:0.65rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);">
+                             <option>Awareness</option><option>Education</option><option>Engagement</option><option>Lead Generation</option><option>Sales</option><option>Brand Building</option>
+                         </select>
+                     </div>
+                 </div>
+                 <div class="form-group">
+                     <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">Reference Link</label>
+                     <input id="cos-ref-link" placeholder="https://..." style="width:100%;padding:0.65rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);">
+                 </div>
+             </div>
+
+             <!-- Tab 1: Framework -->
+             <div class="cos-tab-panel" data-panel="1" style="display:none;">
+                 <div style="display:flex;flex-direction:column;gap:0.9rem;">
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">🪝 Hook</label><textarea id="cos-hook" rows="2" placeholder="Opening hook..." style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">🤔 Curiosity</label><textarea id="cos-curiosity" rows="2" placeholder="Build curiosity..." style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">📖 Story</label><textarea id="cos-story" rows="3" placeholder="Tell the story..." style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">✅ Proof</label><textarea id="cos-proof" rows="2" placeholder="Evidence/data/testimonials..." style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">💎 Lesson</label><textarea id="cos-lesson" rows="2" placeholder="Key takeaway..." style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">📣 CTA</label><textarea id="cos-cta" rows="2" placeholder="Call to action..." style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                 </div>
+             </div>
+
+             <!-- Tab 2: Production -->
+             <div class="cos-tab-panel" data-panel="2" style="display:none;">
+                 <div class="form-group" style="margin-bottom:1rem;">
+                     <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">Current Status</label>
+                     <select id="cos-status" style="width:100%;padding:0.65rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);">
+                         <option>Idea</option><option>Research</option><option>Script Ready</option><option>Shoot Scheduled</option><option>Shooting Done</option><option>Editing</option><option>Review Round 1</option><option>Review Round 2</option><option>Approved</option><option>Scheduled</option><option>Published</option><option>Performance Review</option>
+                     </select>
+                 </div>
+                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Idea Date</label><input type="date" id="cos-idea-date" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Research Date</label><input type="date" id="cos-research-date" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Script Date</label><input type="date" id="cos-script-date" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Shoot Date</label><input type="date" id="cos-shoot-date" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Editing Date</label><input type="date" id="cos-editing-date" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Review Date</label><input type="date" id="cos-review-date" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Approval Date</label><input type="date" id="cos-approval-date" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Publishing Date</label><input type="date" id="cos-publishing-date" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                 </div>
+                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Reviewer</label><input id="cos-reviewer" placeholder="Name" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Review Status</label><select id="cos-review-status" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"><option>Pending</option><option>Changes Required</option><option>Approved</option></select></div>
+                 </div>
+                 <div style="margin-bottom:1rem;"><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Review Notes</label><textarea id="cos-review-notes" rows="2" style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Raw Video Link</label><input id="cos-raw-video" placeholder="Drive/Dropbox link" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Voice Over</label><input id="cos-voice-over" placeholder="Link" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">B-Roll Folder</label><input id="cos-broll" placeholder="Folder link" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Music Link</label><input id="cos-music" placeholder="Music file link" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Thumbnail Link</label><input id="cos-thumbnail" placeholder="Link" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Canva Link</label><input id="cos-canva" placeholder="Canva design link" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Google Drive Folder</label><input id="cos-drive" placeholder="Drive folder link" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Published Link</label><input id="cos-published" placeholder="YouTube/Instagram URL" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                 </div>
+             </div>
+
+             <!-- Tab 3: Instagram -->
+             <div class="cos-tab-panel" data-panel="3" style="display:none;">
+                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Reach</label><input type="number" id="cos-ig-reach" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Views</label><input type="number" id="cos-ig-views" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Likes</label><input type="number" id="cos-ig-likes" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Comments</label><input type="number" id="cos-ig-comments" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Shares</label><input type="number" id="cos-ig-shares" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Saves</label><input type="number" id="cos-ig-saves" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Profile Visits</label><input type="number" id="cos-ig-profile-visits" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Followers Gained</label><input type="number" id="cos-ig-followers" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Watch Time</label><input id="cos-ig-watch-time" placeholder="e.g. 5m 30s" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Avg Watch Time</label><input id="cos-ig-avg-watch" placeholder="e.g. 1m 20s" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Retention %</label><input id="cos-ig-retention" placeholder="e.g. 65%" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Completion %</label><input id="cos-ig-completion" placeholder="e.g. 45%" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                 </div>
+                 <!-- Auto KPIs -->
+                 <div id="cos-ig-kpis" style="margin-top:1rem;padding:1rem;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);"></div>
+             </div>
+
+             <!-- Tab 4: YouTube -->
+             <div class="cos-tab-panel" data-panel="4" style="display:none;">
+                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Views</label><input type="number" id="cos-yt-views" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Impressions</label><input type="number" id="cos-yt-impressions" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">CTR %</label><input id="cos-yt-ctr" placeholder="e.g. 4.5%" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Watch Hours</label><input id="cos-yt-watch-hours" placeholder="e.g. 120h" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Avg View Duration</label><input id="cos-yt-avg-duration" placeholder="e.g. 4m 20s" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Subscribers Gained</label><input type="number" id="cos-yt-subs" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Returning Viewers</label><input type="number" id="cos-yt-returning" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">New Viewers</label><input type="number" id="cos-yt-new" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">Revenue (₹)</label><input id="cos-yt-revenue" placeholder="e.g. ₹850" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">RPM</label><input id="cos-yt-rpm" placeholder="e.g. ₹12.5" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                     <div><label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;">CPM</label><input id="cos-yt-cpm" placeholder="e.g. ₹35" style="width:100%;padding:0.55rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);"></div>
+                 </div>
+             </div>
+
+             <!-- Tab 5: Learnings -->
+             <div class="cos-tab-panel" data-panel="5" style="display:none;">
+                 <div style="display:flex;flex-direction:column;gap:0.9rem;">
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">✅ What Worked?</label><textarea id="cos-what-worked" rows="3" style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">❌ What Failed?</label><textarea id="cos-what-failed" rows="3" style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">🪝 Best Hook</label><textarea id="cos-best-hook" rows="2" style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div><label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">🔧 Improvements</label><textarea id="cos-improvements" rows="2" style="width:100%;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);resize:vertical;"></textarea></div>
+                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;padding:1rem;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);">
+                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="cos-repurpose"> Repurpose to Shorts</label>
+                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="cos-carousel"> Create Carousel</label>
+                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="cos-ads"> Run Ads</label>
+                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="cos-part2"> Make Part 2</label>
+                     </div>
+                 </div>
+             </div>
+         </form>
+
+         <div class="modal-footer" style="padding:1rem 1.5rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
+             <button type="button" onclick="closeContentOSModal()" class="btn" style="background:var(--gray-100);color:var(--dark);">Cancel</button>
+             <button type="button" onclick="saveContentOS()" class="btn btn-primary">💾 Save Content</button>
+         </div>
+     </div>
+ </div>
+
+ <!-- ═══ PROFILE MODAL ═══ -->
 <div id="profile-modal" class="modal">
     <div class="modal-content" style="max-width:400px;">
         <div class="modal-header">

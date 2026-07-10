@@ -71,6 +71,7 @@ const departmentRoutes = require('./routes/departments');
 const companyRoutes    = require('./routes/companies');
 const deptStageRoutes  = require('./routes/deptStages');
 const syncRoutes       = require('./routes/sync');
+const contentOSRoutes  = require('./routes/contentOS');
 
 app.use('/api/tasks',       taskRoutes);
 app.use('/api/personal',    personalRoutes);
@@ -82,6 +83,7 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/companies',   companyRoutes);
 app.use('/api/dept-stages', deptStageRoutes);
 app.use('/api/sync',        syncRoutes);
+app.use('/api/content-os',  contentOSRoutes);
 
 // ── Catch-all → SPA ───────────────────────────────────────────────────────────
 app.use((req, res) => {
