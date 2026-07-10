@@ -549,12 +549,19 @@ function switchView(viewName) {
     el.viewTitle.textContent = meta.t;
     el.viewDesc.textContent = meta.d;
     renderAll();
+
+    // Content OS: switch to full-page scroll so all 6 sections are visible
+    if (viewName === 'content-os') {
+        document.body.classList.add('cos-scroll-mode');
+        window.scrollTo(0, 0);
+        loadContentOS();
+    } else {
+        document.body.classList.remove('cos-scroll-mode');
+    }
+
     if (viewName === 'admin') {
         renderDeptAdminList();
         populateHierarchyDropdowns();
-    }
-    if (viewName === 'content-os') {
-        loadContentOS();
     }
 }
 
