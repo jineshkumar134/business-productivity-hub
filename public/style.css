@@ -40,7 +40,7 @@
     --shadow-blue: 0 8px 24px rgba(37,99,235,0.25);
     --shadow-orange: 0 8px 24px rgba(249,115,22,0.25);
     --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-    --bg-gradient: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 40%, #f0f4ff 100%);
+    --bg-gradient: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
     --header-bg: rgba(255,255,255,0.72);
     --header-border: rgba(226,232,240,0.8);
     --card-bg: rgba(255,255,255,0.8);
@@ -270,11 +270,7 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 .content-area::-webkit-scrollbar { width:5px; }
 .content-area::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:10px; }
 
-/* Content OS full-page scroll override */
-body.cos-scroll-mode { overflow-y: auto !important; height: auto !important; }
-.cos-scroll-mode .app-container { height: auto !important; min-height: 100vh !important; }
-.cos-scroll-mode .main-content { overflow: visible !important; height: auto !important; min-height: 0 !important; }
-.cos-scroll-mode .content-area { overflow: visible !important; height: auto !important; min-height: 0 !important; flex: none !important; }
+
 
 /* ===== VIEW TRANSITIONS ===== */
 .view { display:none; }

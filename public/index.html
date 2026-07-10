@@ -739,7 +739,7 @@
                              <option>Scheduled</option><option>Published</option><option>Performance Review</option>
                          </select>
                          <button class="btn btn-primary" id="add-content-btn" onclick="openContentOSModal()"
-                             style="background:linear-gradient(135deg,#fd1d1d,#833ab4); border:none; padding:0.5rem 1rem; display:flex; align-items:center; gap:0.4rem;">
+                             style="background:var(--primary); border:none; padding:0.5rem 1rem; display:flex; align-items:center; gap:0.4rem;">
                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                              <span>New Topic</span>
                          </button>
@@ -757,8 +757,8 @@
                      <div class="card module-card" style="padding:1.75rem 2rem;border-radius:14px;background:var(--surface);box-shadow:var(--shadow-md);border:1px solid var(--gray-200);">
                          <h2 style="border-left:5px solid var(--primary);padding-left:12px;margin:0 0 1.5rem;font-size:1.2rem;font-weight:700;color:var(--dark);">1. Content Details</h2>
                          <div style="margin-bottom:1.1rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Content Title / Topic</label><input id="cos-title" placeholder="e.g. How to study effectively" style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);box-sizing:border-box;transition:var(--transition);"></div>
-                         <div style="margin-bottom:1.1rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Category</label><select id="cos-category" style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);transition:var(--transition);"><option>Parents</option><option selected>Students</option><option>Teachers</option><option>Principals</option><option>Custom</option></select></div>
-                         <div style="margin-bottom:1.1rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Objective</label><select id="cos-objective" style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);transition:var(--transition);"><option>Awareness</option><option>Education</option><option>Engagement</option><option>Lead Generation</option><option>Sales</option><option>Brand Building</option></select></div>
+                         <div style="margin-bottom:1.1rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Category</label><select id="cos-category" style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);transition:var(--transition);"><option selected>Employees / Internal</option><option>Clients / Parents</option><option>Department Leaders</option><option>Stakeholders</option><option>Custom / Public</option></select></div>
+                         <div style="margin-bottom:1.1rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Objective</label><select id="cos-objective" style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);transition:var(--transition);"><option selected>Internal Training</option><option>Brand Awareness</option><option>Client Engagement</option><option>Marketing / Sales Conversion</option><option>Strategic Update</option></select></div>
                          <div style="margin-bottom:1.5rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Reference Link</label><input id="cos-ref-link" placeholder="https://..." style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);box-sizing:border-box;transition:var(--transition);"></div>
                          <button onclick="saveContentOSSection(1)" class="btn btn-primary" style="padding:11px 20px;font-weight:700;font-size:.9rem;">💾 Save Section</button>
                      </div>
@@ -899,13 +899,13 @@
                      <div class="form-group">
                          <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">Category</label>
                          <select id="cos-category" style="width:100%;padding:0.65rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);">
-                             <option>Parents</option><option selected>Students</option><option>Teachers</option><option>Principals</option><option>Custom</option>
+                             <option selected>Employees / Internal</option><option>Clients / Parents</option><option>Department Leaders</option><option>Stakeholders</option><option>Custom / Public</option>
                          </select>
                      </div>
                      <div class="form-group">
                          <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.4rem;">Objective</label>
                          <select id="cos-objective" style="width:100%;padding:0.65rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;background:var(--gray-50);color:var(--dark);">
-                             <option>Awareness</option><option>Education</option><option>Engagement</option><option>Lead Generation</option><option>Sales</option><option>Brand Building</option>
+                             <option selected>Internal Training</option><option>Brand Awareness</option><option>Client Engagement</option><option>Marketing / Sales Conversion</option><option>Strategic Update</option>
                          </select>
                      </div>
                  </div>
