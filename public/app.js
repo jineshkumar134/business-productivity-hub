@@ -539,6 +539,7 @@ const VIEW_META = {
     invoicing: { t:'Invoicing Calculator',          d:'Estimate GST and TDS for your transactions with ease.' },
     documents: { t:'Document Center',               d:'Upload and manage core organizational files and documents.' },
     'content-os':{ t:'Content OS',                  d:'Full content pipeline from idea to performance review.' },
+    'school-growth': { t:'School Growth System',     d:'Branding, CRM, marketing, and admissions visualizer dashboard.' },
     admin:     { t:'Admin Panel',                    d:'Create and manage user accounts. Admin access only.' },
 };
 function switchView(viewName) {
