@@ -714,28 +714,19 @@
 
              <!-- ── CONTENT OS VIEW ── -->
              <div id="content-os-view" class="view">
-                 <div class="hr-header" style="margin-bottom:1.5rem;">
-                     <div>
-                         <h2 style="display:flex;align-items:center;gap:0.6rem;">
-                             <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="20" height="20"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="m8 21 4-4 4 4"/><path d="M12 17V3"/></svg>
-                             Content Operating System
-                         </h2>
-                         <p style="font-size:0.78rem;color:var(--secondary);margin-top:0.15rem;">Manage your full content pipeline from idea to performance review.</p>
-                     </div>
-                     <div style="display:flex;gap:0.75rem;align-items:center;">
-                         <input id="cos-search" placeholder="🔍 Search content..." style="padding:0.5rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;font-size:0.85rem;background:var(--gray-50);color:var(--dark);min-width:200px;" oninput="renderContentOS()">
-                         <select id="cos-status-filter" style="padding:0.5rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;font-size:0.85rem;background:var(--gray-50);color:var(--dark);" onchange="renderContentOS()">
-                             <option value="">All Statuses</option>
-                             <option>Idea</option><option>Research</option><option>Script Ready</option>
-                             <option>Shoot Scheduled</option><option>Shooting Done</option><option>Editing</option>
-                             <option>Review Round 1</option><option>Review Round 2</option><option>Approved</option>
-                             <option>Scheduled</option><option>Published</option><option>Performance Review</option>
-                         </select>
-                         <button class="btn btn-primary" onclick="openContentOSModal()" id="add-content-btn">
-                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                             <span>+ New Content</span>
-                         </button>
-                     </div>
+                 <div style="display:flex; justify-content:flex-end; gap:0.75rem; align-items:center; margin-bottom:1.5rem; margin-top:-0.5rem;">
+                     <input id="cos-search" placeholder="🔍 Search content..." style="padding:0.5rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;font-size:0.85rem;background:var(--gray-50);color:var(--dark);min-width:200px;" oninput="renderContentOS()">
+                     <select id="cos-status-filter" style="padding:0.5rem 0.85rem;border:1px solid var(--gray-200);border-radius:8px;font-size:0.85rem;background:var(--gray-50);color:var(--dark);" onchange="renderContentOS()">
+                         <option value="">All Statuses</option>
+                         <option>Idea</option><option>Research</option><option>Script Ready</option>
+                         <option>Shoot Scheduled</option><option>Shooting Done</option><option>Editing</option>
+                         <option>Review Round 1</option><option>Review Round 2</option><option>Approved</option>
+                         <option>Scheduled</option><option>Published</option><option>Performance Review</option>
+                     </select>
+                     <button class="btn btn-primary" onclick="openContentOSModal()" id="add-content-btn">
+                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                         <span>+ New Content</span>
+                     </button>
                  </div>
 
                  <!-- Status Pipeline Bar -->
