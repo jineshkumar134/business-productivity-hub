@@ -271,10 +271,10 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 .content-area::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:10px; }
 
 /* Content OS full-page scroll override */
-.cos-scroll-mode .app-container { height: auto; min-height: 100vh; }
-.cos-scroll-mode .main-content { overflow: visible; height: auto; min-height: 0; }
-.cos-scroll-mode .content-area { overflow: visible; height: auto; min-height: 0; flex: none; }
-.cos-scroll-mode body { overflow-y: auto; height: auto; }
+body.cos-scroll-mode { overflow-y: auto !important; height: auto !important; }
+.cos-scroll-mode .app-container { height: auto !important; min-height: 100vh !important; }
+.cos-scroll-mode .main-content { overflow: visible !important; height: auto !important; min-height: 0 !important; }
+.cos-scroll-mode .content-area { overflow: visible !important; height: auto !important; min-height: 0 !important; flex: none !important; }
 
 /* ===== VIEW TRANSITIONS ===== */
 .view { display:none; }
