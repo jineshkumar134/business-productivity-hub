@@ -2961,10 +2961,58 @@ async function loadContentOS() {
         if (cosEntries.length && !cosSelectedId) {
             cosSelectedId = cosEntries[0]._id;
         }
+        // If previously selected was deleted, reset
+        if (cosSelectedId && !cosEntries.find(e => e._id === cosSelectedId)) {
+            cosSelectedId = cosEntries.length ? cosEntries[0]._id : null;
+        }
         
+        renderCOSTopicSelector();
         renderContentOSPage();
         renderCOSPipeline();
     } catch(e) { console.warn('Content OS load failed:', e); }
+}
+
+// Populate the Active Topic dropdown with all entries (optionally filtered)
+function renderCOSTopicSelector() {
+    const sel = document.getElementById('cos-entry-selector');
+    if (!sel) return;
+    const search = (document.getElementById('cos-search')?.value || '').toLowerCase();
+    const statusFilter = document.getElementById('cos-status-filter')?.value || '';
+    let filtered = cosEntries;
+    if (search) filtered = filtered.filter(e => (e.title || '').toLowerCase().includes(search));
+    if (statusFilter) filtered = filtered.filter(e => e.currentStatus === statusFilter);
+    sel.innerHTML = '<option value="">— Select a topic —</option>' +
+        filtered.map(e => `<option value="${e._id}" ${e._id === cosSelectedId ? 'selected' : ''}>[${e.currentStatus || 'Idea'}] ${e.title || 'Untitled'}</option>`).join('');
+}
+
+// Called when search/filter changes — refresh selector & pipeline
+function renderContentOS() {
+    renderCOSTopicSelector();
+    renderCOSPipeline();
+}
+
+// Called when user picks a topic from the dropdown
+function selectActiveCOSEntry(id) {
+    cosSelectedId = id || null;
+    renderContentOSPage();
+}
+
+// Delete the currently active entry
+async function deleteActiveCOSEntry() {
+    if (!cosSelectedId) { showNotification('No topic selected.', 'error'); return; }
+    const entry = cosEntries.find(e => e._id === cosSelectedId);
+    const name = entry ? entry.title : 'this topic';
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    try {
+        const companyId = localStorage.getItem('bh_active_company_id') || '';
+        await fetch(`/api/content-os/${cosSelectedId}`, { method: 'DELETE', headers: { 'x-company-id': companyId } });
+        cosEntries = cosEntries.filter(e => e._id !== cosSelectedId);
+        cosSelectedId = cosEntries.length ? cosEntries[0]._id : null;
+        renderCOSTopicSelector();
+        renderContentOSPage();
+        renderCOSPipeline();
+        showNotification('Topic deleted.', 'success');
+    } catch(e) { showNotification('Delete failed', 'error'); }
 }
 
 function renderCOSPipeline() {
@@ -3128,10 +3176,13 @@ function renderContentOSPage() {
 }
 
 function openContentOSModal() {
-    // Treat as "Add New Content" reset
+    // Reset to create a new topic
     cosSelectedId = null;
+    // Deselect dropdown
+    const sel = document.getElementById('cos-entry-selector');
+    if (sel) sel.value = '';
     renderContentOSPage();
-    showNotification('Ready to create new content entry. Fill Details and save.', 'info');
+    showNotification('📝 New topic mode — fill in Section 1 (Content Details) first, then save.', 'info');
 }
 
 function calculateIGKPIs() {
@@ -3245,7 +3296,10 @@ async function saveContentOSSection(sectionNum) {
         }
         
         showNotification(`Section ${sectionNum} saved successfully!`, 'success');
-        loadContentOS();
+        await loadContentOS();
+        // Sync selector to the saved entry
+        const selAfter = document.getElementById('cos-entry-selector');
+        if (selAfter) selAfter.value = cosSelectedId;
     } catch(e) { showNotification('Failed to save section', 'error'); }
 }
 
@@ -3266,8 +3320,11 @@ async function deleteContentOS(id) {
 window.openContentOSModal = openContentOSModal;
 window.saveContentOSSection = saveContentOSSection;
 window.deleteContentOS = deleteContentOS;
+window.deleteActiveCOSEntry = deleteActiveCOSEntry;
+window.selectActiveCOSEntry = selectActiveCOSEntry;
 window.calculateIGKPIs = calculateIGKPIs;
 window.filterCOSByStatus = filterCOSByStatus;
+window.renderContentOS = renderContentOS;
 
 // ── START ─────────────────────────────────────────────────────────────────────
 setupAdminPanel();
