@@ -266,7 +266,7 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
 /* ===== CONTENT AREA ===== */
-.content-area { flex-grow:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem 2rem; scroll-behavior:smooth; min-height:0; }
+.content-area { flex-grow:1; overflow-y:scroll !important; overflow-x:hidden; padding:1.5rem 2rem; scroll-behavior:smooth; min-height:0; }
 .content-area::-webkit-scrollbar { width:5px; }
 .content-area::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:10px; }
 
