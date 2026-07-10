@@ -266,9 +266,11 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
 /* ===== CONTENT AREA ===== */
-.content-area { flex-grow:1; overflow-y:auto; padding:1.5rem 2rem; scroll-behavior:smooth; }
+.content-area { flex-grow:1; overflow-y:auto; overflow-x:hidden; padding:1.5rem 2rem; scroll-behavior:smooth; min-height:0; }
 .content-area::-webkit-scrollbar { width:5px; }
 .content-area::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:10px; }
+#content-os-view { display:none; }
+#content-os-view.active { display:block; overflow:visible; }
 
 /* ===== VIEW TRANSITIONS ===== */
 .view { display:none; }
@@ -1074,7 +1076,7 @@ select { width:100%; }
     .tag-list { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: wrap; }
 
     /* Module card — prevent content overflow */
-    .module-card { padding: 1.1rem; overflow: hidden; }
+    .module-card { padding: 1.1rem; }
     .module-card-header { flex-wrap: wrap; gap: 0.5rem; }
     .module-name { font-size: 0.9rem; word-break: break-word; }
 
