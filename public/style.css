@@ -165,9 +165,9 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 /* ===== MAIN CONTENT ===== */
 .main-content {
     flex: 1;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    min-height: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
     background: var(--bg-gradient);
     overflow: hidden;
 }
@@ -272,11 +272,11 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 
 /* ===== CONTENT AREA ===== */
 .content-area {
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 1.5rem 2rem;
     scroll-behavior: smooth;
-    min-height: 0;
 }
 .content-area::-webkit-scrollbar { width:6px; }
 .content-area::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:10px; }

@@ -541,6 +541,24 @@ const VIEW_META = {
     'content-os':{ t:'Content OS',                  d:'Full content pipeline from idea to performance review.' },
     admin:     { t:'Admin Panel',                    d:'Create and manage user accounts. Admin access only.' },
 };
+
+// ── JS-driven layout height fix ──────────────────────────────────────────────
+// Measures actual header height and explicitly sets content-area height so
+// overflow-y:auto always scrolls correctly, regardless of CSS flex/grid quirks.
+function fixContentAreaHeight() {
+    const header = document.querySelector('.top-header');
+    const contentArea = document.querySelector('.content-area');
+    if (!header || !contentArea) return;
+    const headerH = header.getBoundingClientRect().height;
+    contentArea.style.height = (window.innerHeight - headerH) + 'px';
+    contentArea.style.overflowY = 'auto';
+    contentArea.style.overflowX = 'hidden';
+}
+// Run on load and on every resize
+window.addEventListener('resize', fixContentAreaHeight);
+document.addEventListener('DOMContentLoaded', () => setTimeout(fixContentAreaHeight, 100));
+// ─────────────────────────────────────────────────────────────────────────────
+
 function switchView(viewName) {
     state.currentView = viewName;
     el.navItems.forEach(item => item.classList.toggle('active', item.getAttribute('data-view') === viewName));
@@ -549,6 +567,7 @@ function switchView(viewName) {
     el.viewTitle.textContent = meta.t;
     el.viewDesc.textContent = meta.d;
     renderAll();
+    fixContentAreaHeight();
 
     if (viewName === 'content-os') {
         loadContentOS();
