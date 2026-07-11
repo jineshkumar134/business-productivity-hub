@@ -164,8 +164,12 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 
 /* ===== MAIN CONTENT ===== */
 .main-content {
-    flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0;
+    flex: 1;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 0;
     background: var(--bg-gradient);
+    overflow: hidden;
 }
 
 /* ===== TOP HEADER ===== */
@@ -267,7 +271,13 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
 /* ===== CONTENT AREA ===== */
-.content-area { flex:1 1 0; overflow-y:scroll; overflow-x:hidden; padding:1.5rem 2rem; scroll-behavior:smooth; min-height:0; }
+.content-area {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1.5rem 2rem;
+    scroll-behavior: smooth;
+    min-height: 0;
+}
 .content-area::-webkit-scrollbar { width:6px; }
 .content-area::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:10px; }
 
