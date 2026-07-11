@@ -719,7 +719,9 @@
                  <div style="background:var(--surface); border:1px solid var(--gray-200); border-radius:12px; padding:0.85rem 1.25rem; margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; box-shadow:var(--shadow-sm);">
                      <!-- Left: Selector -->
                      <div style="display:flex; align-items:center; gap:0.6rem; flex:1; min-width:280px;">
-                         <span style="font-size:1.15rem; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.1));">📂</span>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="flex-shrink:0; color:var(--primary); filter:drop-shadow(0 2px 4px rgba(99,102,241,0.15));">
+                              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                          </svg>
                          <select id="cos-entry-selector" onchange="selectActiveCOSEntry(this.value)" style="flex:1; padding:0.55rem 0.85rem; border:1.5px solid var(--primary); border-radius:8px; font-size:0.88rem; font-weight:600; background:var(--surface); color:var(--dark); cursor:pointer; outline:none; transition:var(--transition); box-shadow:var(--shadow-sm);">
                              <option value="">— Select a topic to load all 6 sections —</option>
                          </select>
