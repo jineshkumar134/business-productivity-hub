@@ -177,6 +177,7 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
     border-bottom:1px solid var(--header-border);
     z-index:50; flex-wrap:wrap;
     box-shadow: 0 2px 16px rgba(15,23,42,0.05);
+    flex-shrink: 0;
 }
 .header-left { display:flex; align-items:center; gap:1.5rem; }
 .header-text h1 { font-size:1.4rem; font-weight:800; color:var(--dark); margin-bottom:0.1rem; }
@@ -266,8 +267,8 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 .user-avatar img { width:100%; height:100%; object-fit:cover; }
 
 /* ===== CONTENT AREA ===== */
-.content-area { flex-grow:1; overflow-y:scroll !important; overflow-x:hidden; padding:1.5rem 2rem; scroll-behavior:smooth; min-height:0; }
-.content-area::-webkit-scrollbar { width:5px; }
+.content-area { flex:1 1 0; overflow-y:scroll; overflow-x:hidden; padding:1.5rem 2rem; scroll-behavior:smooth; min-height:0; }
+.content-area::-webkit-scrollbar { width:6px; }
 .content-area::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:10px; }
 
 
