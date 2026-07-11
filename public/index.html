@@ -721,6 +721,26 @@
                      <!-- 1. Content Details -->
                      <div class="card module-card" style="padding:1.75rem 2rem;border-radius:14px;background:var(--surface);box-shadow:var(--shadow-md);border:1px solid var(--gray-200);">
                          <h2 style="border-left:5px solid var(--primary);padding-left:12px;margin:0 0 1.5rem;font-size:1.2rem;font-weight:700;color:var(--dark);">1. Content Details</h2>
+                         
+                         <!-- Topic Selector block -->
+                         <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1.5rem; padding-bottom:1.5rem; border-bottom:1px solid var(--gray-200); flex-wrap:wrap;">
+                             <div style="flex:1; min-width:240px;">
+                                 <label style="display:block; font-weight:700; font-size:0.85rem; margin-bottom:0.4rem; color:var(--dark);">📂 Select Topic to Load / Edit</label>
+                                 <select id="cos-entry-selector" onchange="selectActiveCOSEntry(this.value)" style="width:100%; padding:0.6rem 0.85rem; border:1.5px solid var(--primary); border-radius:8px; font-size:0.9rem; font-weight:600; background:var(--surface); color:var(--dark); cursor:pointer;">
+                                     <option value="">— Select a topic —</option>
+                                 </select>
+                             </div>
+                             <div style="display:flex; gap:0.5rem; align-items:flex-end; padding-top:1.3rem;">
+                                 <button class="btn btn-primary" onclick="openContentOSModal()" style="padding:0.6rem 1rem; font-size:0.85rem; background:var(--primary); border:none; display:flex; align-items:center; gap:0.4rem;">
+                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                     <span>New Topic</span>
+                                 </button>
+                                 <button onclick="deleteActiveCOSEntry()" style="background:#fff0f0; color:#ef4444; border:1px solid #fecaca; padding:0.6rem 1rem; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
+                                     🗑️ Delete
+                                 </button>
+                             </div>
+                         </div>
+                         
                          <div style="margin-bottom:1.1rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Content Title / Topic</label><input id="cos-title" placeholder="e.g. How to study effectively" style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);box-sizing:border-box;transition:var(--transition);"></div>
                          <div style="margin-bottom:1.1rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Category</label><select id="cos-category" style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);transition:var(--transition);"><option selected>Employees / Internal</option><option>Clients / Parents</option><option>Department Leaders</option><option>Stakeholders</option><option>Custom / Public</option></select></div>
                          <div style="margin-bottom:1.1rem;"><label style="display:block;font-weight:700;font-size:.9rem;margin-bottom:.4rem;color:var(--dark);">Objective</label><select id="cos-objective" style="width:100%;padding:.65rem .85rem;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-size:.9rem;background:var(--gray-50);color:var(--dark);transition:var(--transition);"><option selected>Internal Training</option><option>Brand Awareness</option><option>Client Engagement</option><option>Marketing / Sales Conversion</option><option>Strategic Update</option></select></div>
