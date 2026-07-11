@@ -3337,7 +3337,8 @@ async function saveContentOSSection(sectionNum) {
             cosSelectedId = saved._id;
         }
         
-        showNotification(`Section ${sectionNum} saved successfully!`, 'success');
+        const msg = sectionNum === 'All' ? 'Topic saved successfully! ✅' : `Section ${sectionNum} saved successfully!`;
+        showNotification(msg, 'success');
         await loadContentOS();
         // Sync selector to the saved entry
         const selAfter = document.getElementById('cos-entry-selector');

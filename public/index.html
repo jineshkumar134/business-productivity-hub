@@ -716,7 +716,7 @@
              <div id="content-os-view" class="view">
 
                  <!-- Sleek Control Toolbar -->
-                 <div style="background:var(--surface); border:1px solid var(--gray-200); border-radius:12px; padding:0.85rem 1.25rem; margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; box-shadow:var(--shadow-sm);">
+                 <div class="cos-toolbar" style="background:var(--surface); border:1px solid var(--gray-200); border-radius:12px; padding:0.85rem 1.25rem; margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; box-shadow:var(--shadow-sm);">
                      <!-- Left: Selector -->
                      <div style="display:flex; align-items:center; gap:0.6rem; flex:1; min-width:280px;">
                           <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="flex-shrink:0; color:var(--primary); filter:drop-shadow(0 2px 4px rgba(99,102,241,0.15));">
@@ -733,6 +733,9 @@
                          <button class="btn btn-primary" onclick="openContentOSModal()" style="padding:0.5rem 1rem; font-size:0.83rem; background:var(--primary); border:none; display:flex; align-items:center; gap:0.4rem; border-radius:8px;">
                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                              <span>New Topic</span>
+                         </button>
+                         <button class="btn btn-primary" onclick="saveContentOSSection('All')" style="padding:0.5rem 1rem; font-size:0.83rem; background:#22c55e; border:none; display:flex; align-items:center; gap:0.4rem; border-radius:8px;" title="Save all 6 sections at once">
+                             💾 Save Topic
                          </button>
                          <button onclick="deleteActiveCOSEntry()" style="background:#fff0f0; color:#ef4444; border:1px solid #fecaca; padding:0.5rem 0.85rem; border-radius:8px; font-size:0.83rem; font-weight:600; cursor:pointer;" title="Delete selected topic">
                              🗑️ Delete
