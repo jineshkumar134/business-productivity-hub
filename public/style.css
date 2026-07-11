@@ -85,6 +85,18 @@ h1,h2,h3,h4 { font-family: 'Poppins', sans-serif; font-weight: 700; }
 /* ===== LAYOUT ===== */
 .app-container { display:flex; height:100vh; }
 
+/* ===== CONTENT OS BODY SCROLL MODE ===== */
+/* When Content OS is active, body scrolls naturally like Notion/Google Docs */
+body.cos-scroll { overflow-y:auto !important; height:auto !important; }
+body.cos-scroll .app-container { height:auto !important; min-height:100vh !important; }
+body.cos-scroll .sidebar {
+    position:sticky !important; top:0 !important;
+    height:100vh !important; align-self:flex-start !important;
+}
+body.cos-scroll .main-content { height:auto !important; overflow:visible !important; }
+body.cos-scroll .top-header { position:sticky !important; top:0 !important; z-index:200 !important; }
+body.cos-scroll .content-area { overflow:visible !important; height:auto !important; }
+
 /* ===== SIDEBAR ===== */
 .sidebar {
     width: 260px;

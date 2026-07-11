@@ -542,21 +542,20 @@ const VIEW_META = {
     admin:     { t:'Admin Panel',                    d:'Create and manage user accounts. Admin access only.' },
 };
 
-// ── JS-driven layout height fix ──────────────────────────────────────────────
-// Measures actual header height and explicitly sets content-area height so
-// overflow-y:auto always scrolls correctly, regardless of CSS flex/grid quirks.
-function fixContentAreaHeight() {
-    const header = document.querySelector('.top-header');
-    const contentArea = document.querySelector('.content-area');
-    if (!header || !contentArea) return;
-    const headerH = header.getBoundingClientRect().height;
-    contentArea.style.height = (window.innerHeight - headerH) + 'px';
-    contentArea.style.overflowY = 'auto';
-    contentArea.style.overflowX = 'hidden';
+// ── Body-scroll mode for Content OS ──────────────────────────────────────────
+// When Content OS is active: body scrolls naturally (like Notion/Google Docs)
+// with sticky sidebar + sticky header. No nested scroll containers needed.
+function enterCOSScrollMode() {
+    document.body.classList.add('cos-scroll');
+    window.scrollTo(0, 0);
 }
-// Run on load and on every resize
-window.addEventListener('resize', fixContentAreaHeight);
-document.addEventListener('DOMContentLoaded', () => setTimeout(fixContentAreaHeight, 100));
+function exitCOSScrollMode() {
+    document.body.classList.remove('cos-scroll');
+    // clear any inline height left from previous fix attempts
+    const ca = document.querySelector('.content-area');
+    if (ca) { ca.style.height = ''; ca.style.overflowY = ''; ca.style.overflowX = ''; }
+    window.scrollTo(0, 0);
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 function switchView(viewName) {
@@ -567,10 +566,12 @@ function switchView(viewName) {
     el.viewTitle.textContent = meta.t;
     el.viewDesc.textContent = meta.d;
     renderAll();
-    fixContentAreaHeight();
 
     if (viewName === 'content-os') {
+        enterCOSScrollMode();
         loadContentOS();
+    } else {
+        exitCOSScrollMode();
     }
 
     if (viewName === 'admin') {
