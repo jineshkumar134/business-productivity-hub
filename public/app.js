@@ -393,6 +393,26 @@ function setupEventListeners() {
 
     // Theme Toggle
     el.themeToggle?.addEventListener('click', toggleTheme);
+
+    // Content OS: Real-time dropdown sync as user types title or changes status
+    document.getElementById('cos-title')?.addEventListener('input', e => {
+        if (cosSelectedId) {
+            const option = document.querySelector(`#cos-entry-selector option[value="${cosSelectedId}"]`);
+            if (option) {
+                const status = document.getElementById('cos-status')?.value || 'Idea';
+                option.textContent = `[${status}] ${e.target.value.trim() || 'Untitled'}`;
+            }
+        }
+    });
+    document.getElementById('cos-status')?.addEventListener('change', e => {
+        if (cosSelectedId) {
+            const option = document.querySelector(`#cos-entry-selector option[value="${cosSelectedId}"]`);
+            if (option) {
+                const title = document.getElementById('cos-title')?.value || 'Untitled';
+                option.textContent = `[${e.target.value}] ${title}`;
+            }
+        }
+    });
 }
 
 function toggleTheme() {
