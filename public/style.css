@@ -95,7 +95,7 @@ body.cos-scroll .sidebar {
 }
 body.cos-scroll .main-content { height:auto !important; overflow:visible !important; }
 body.cos-scroll .top-header { position:sticky !important; top:0 !important; z-index:200 !important; }
-body.cos-scroll .content-area { overflow:visible !important; height:auto !important; }
+body.cos-scroll .content-area { overflow:visible !important; height:auto !important; padding-top:1rem !important; }
 
 /* ===== SIDEBAR ===== */
 .sidebar {

@@ -12,13 +12,13 @@ const ContentOSSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['Parents', 'Students', 'Teachers', 'Principals', 'Custom'],
-        default: 'Students'
+        enum: ['Employees / Internal', 'Clients / Parents', 'Department Leaders', 'Stakeholders', 'Custom / Public', 'Parents', 'Students', 'Teachers', 'Principals', 'Custom'],
+        default: 'Employees / Internal'
     },
     objective: {
         type: String,
-        enum: ['Awareness', 'Education', 'Engagement', 'Lead Generation', 'Sales', 'Brand Building'],
-        default: 'Awareness'
+        enum: ['Internal Training', 'Brand Awareness', 'Client Engagement', 'Marketing / Sales Conversion', 'Strategic Update', 'Awareness', 'Education', 'Engagement', 'Lead Generation', 'Sales', 'Brand Building'],
+        default: 'Internal Training'
     },
     referenceLink: String,
     
