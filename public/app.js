@@ -3069,8 +3069,8 @@ function renderContentOSPage() {
     if (!entry) {
         // Reset fields for new entry creation
         document.getElementById('cos-title').value = '';
-        document.getElementById('cos-category').value = 'Students';
-        document.getElementById('cos-objective').value = 'Awareness';
+        document.getElementById('cos-category').value = 'Employees / Internal';
+        document.getElementById('cos-objective').value = 'Internal Training';
         document.getElementById('cos-ref-link').value = '';
         document.getElementById('cos-hook').value = '';
         document.getElementById('cos-curiosity').value = '';
@@ -3129,8 +3129,8 @@ function renderContentOSPage() {
 
     // Populate fields
     document.getElementById('cos-title').value = entry.title || '';
-    document.getElementById('cos-category').value = entry.category || 'Students';
-    document.getElementById('cos-objective').value = entry.objective || 'Awareness';
+    document.getElementById('cos-category').value = entry.category || 'Employees / Internal';
+    document.getElementById('cos-objective').value = entry.objective || 'Internal Training';
     document.getElementById('cos-ref-link').value = entry.referenceLink || '';
     document.getElementById('cos-hook').value = entry.hook || '';
     document.getElementById('cos-curiosity').value = entry.curiosity || '';
